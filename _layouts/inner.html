@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
   {% include inner-head.html %}
 
-  <body>
+  <body class="d-flex flex-column min-vh-100">
 
     {% include inner-header.html %}
 
+    <main class="flex-shrink-0">
         {{ content }}
+    </main>
 
     {% include inner-footer.html %}
 
