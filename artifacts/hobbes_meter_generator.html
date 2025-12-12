@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generate and download Hobbs meter SVG and PNG images for aviation hour tracking displays">
+    <title>Hobbs Meter Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .hobbs-meter-container {
+            border: 1px solid #e5e7eb; 
+            border-radius: 8px;
+            padding: 10px;
+            background-color: #f9fafb; 
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); 
+        }
+        #hobbsValue {
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        #hobbsValue:focus {
+            outline: none;
+        }
+        .message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            font-size: 0.875rem;
+        }
+        .message-box.success {
+            background-color: #D1FAE5; 
+            color: #065F46; 
+            border: 1px solid #6EE7B7; 
+        }
+        .message-box.error {
+            background-color: #FEE2E2; 
+            color: #991B1B; 
+            border: 1px solid #FCA5A5; 
+        }
+        .message-box.show {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div id="messageBox" class="message-box"></div>
+
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-sm">
+        <header class="mb-6 sm:mb-8 text-center">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Hobbs Meter Generator</h1>
+        </header>
+
+        <div class="mb-4">
+            <label for="hobbsValue" class="block text-sm font-medium text-gray-700 mb-1">Enter Value (e.g., 1234.56):</label>
+            <div class="flex">
+                <input type="text" id="hobbsValue" value="1234.56" class="flex-grow px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 z-10">
+                <button id="updateButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 sm:px-4 rounded-r-md shadow-md border border-l-0 border-blue-600 hover:border-blue-700 -ml-px transition-colors duration-150 ease-in-out">
+                    Update
+                </button>
+            </div>
+        </div>
+
+        <div class="flex justify-center mb-6"> 
+            <div class="hobbs-meter-container"> 
+                <div id="hobbsMeterPreview" class="rounded-md flex items-center justify-center">
+                    {/* SVG will be rendered here */}
+                </div>
+            </div>
+        </div>
+
+        <div class="control-panel flex flex-col sm:flex-row justify-center items-center space-y-3 sm:space-y-0 sm:space-x-3">
+            <button id="downloadSVG" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition-colors duration-150 ease-in-out">
+                Download SVG
+            </button>
+            <button id="downloadPNG" class="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition-colors duration-150 ease-in-out">
+                Download PNG
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration Constants ---
+        const SVG_WIDTH = 185; 
+        const SVG_HEIGHT = 100; 
+        const BODY_FILL = "#2D3748"; 
+        const BODY_RX = 7; 
+        const GLASS_X_PADDING = 3; 
+        const GLASS_Y_PADDING = 3;
+        
+        const GLASS_BOTTOM_MARGIN_FROM_BODY = 3; 
+        const GLASS_WIDTH = SVG_WIDTH - 2 * GLASS_X_PADDING;
+        const GLASS_HEIGHT = SVG_HEIGHT - GLASS_Y_PADDING - GLASS_BOTTOM_MARGIN_FROM_BODY; 
+        const GLASS_FILL = "black";
+        const GLASS_STROKE_WIDTH = 1.5; // Used for tumbler cell borders and overall tumbler area border
+        const GLASS_RX = 4; 
+
+        const TEXT_FILL_ON_DARK = "white";
+        const TEXT_FONT_FAMILY = "'Lucida Console', Monaco, monospace";
+        const BRAND_FONT_FAMILY = "'Arial Black', Gadget, sans-serif";
+
+        const HOBBS_FONT_SIZE = 9; 
+        const QUARTZ_FONT_SIZE = 9;
+
+        const BRAND_TEXT_COMMON_X = GLASS_X_PADDING + GLASS_WIDTH / 2; 
+        const HOBBS_TEXT_Y = GLASS_Y_PADDING + 9; 
+        const QUARTZ_TEXT_Y = HOBBS_TEXT_Y + HOBBS_FONT_SIZE + 1; 
+
+        const DIGIT_CELL_WIDTH = 22; 
+        const DIGIT_CELL_HEIGHT = 28;
+        const DIGIT_CELL_RX = 1;
+        const MAIN_DIGIT_CELL_FILL = "#1A202C"; 
+        const DIGIT_CELL_STROKE_COLOR = "#4A5568"; 
+        const TUMBLER_AREA_BORDER_COLOR = "#A0AEC0"; 
+        const DIGIT_FONT_SIZE = 19; 
+        const DIGIT_SPACING = 3; 
+        const NUM_MAIN_DIGITS = 4;
+        const DIGIT_TEXT_Y_OFFSET = 2.7; 
+
+        const MAIN_DIGIT_TEXT_FILL = TEXT_FILL_ON_DARK;
+        const TENTH_DIGIT_CELL_FILL = "white"; 
+        const TENTH_DIGIT_TEXT_FILL = "black"; 
+        const PARTIAL_TURN_SHIFT_Y = DIGIT_FONT_SIZE * 0.48; 
+
+        const TOTAL_TUMBLERS = NUM_MAIN_DIGITS + 1;
+        const TUMBLERS_BLOCK_WIDTH_NO_PADDING = (TOTAL_TUMBLERS * DIGIT_CELL_WIDTH) + ((TOTAL_TUMBLERS - 1) * DIGIT_SPACING);
+
+        const DIGITS_Y = QUARTZ_TEXT_Y + QUARTZ_FONT_SIZE + 4; 
+        
+        const TUMBLER_BORDER_PADDING = 2; 
+        const OUTER_TUMBLER_BORDER_WIDTH = TUMBLERS_BLOCK_WIDTH_NO_PADDING + 2 * TUMBLER_BORDER_PADDING;
+        const OUTER_TUMBLER_BORDER_HEIGHT = DIGIT_CELL_HEIGHT + 2 * TUMBLER_BORDER_PADDING;
+        const OUTER_TUMBLER_BORDER_RX = 2;
+        
+        const FRACTION_TEXT_WIDTH = 18; 
+        const FRACTION_FONT_SIZE = 7;
+        const SPACE_AFTER_TUMBLER_BORDER = 2; 
+
+        const CONTENT_BLOCK_WIDTH = OUTER_TUMBLER_BORDER_WIDTH + SPACE_AFTER_TUMBLER_BORDER + FRACTION_TEXT_WIDTH;
+        
+        const OUTER_TUMBLER_BORDER_X = GLASS_X_PADDING + (GLASS_WIDTH - CONTENT_BLOCK_WIDTH) / 2;
+        const OUTER_TUMBLER_BORDER_Y = DIGITS_Y - TUMBLER_BORDER_PADDING;
+
+        const DIGITS_START_X = OUTER_TUMBLER_BORDER_X + TUMBLER_BORDER_PADDING;
+        
+        const FRACTION_AND_HOURGLASS_START_X = OUTER_TUMBLER_BORDER_X + OUTER_TUMBLER_BORDER_WIDTH + SPACE_AFTER_TUMBLER_BORDER;
+        const FRACTION_AND_HOURGLASS_CENTER_X = FRACTION_AND_HOURGLASS_START_X + FRACTION_TEXT_WIDTH / 2;
+
+        const FRACTION_TEXT_BASE_Y = DIGITS_Y + DIGIT_CELL_HEIGHT / 2 + DIGIT_TEXT_Y_OFFSET; 
+
+        const HOURGLASS_WIDTH = 8;
+        const HOURGLASS_HEIGHT = 10;
+        const HOURGLASS_X = FRACTION_AND_HOURGLASS_CENTER_X - (HOURGLASS_WIDTH / 2);
+        const HOURGLASS_Y = HOBBS_TEXT_Y - 1; 
+        const HOURGLASS_FILL = TEXT_FILL_ON_DARK;
+
+        const HOURS_FONT_SIZE = 10;
+        const HOURS_TEXT_Y = GLASS_Y_PADDING + GLASS_HEIGHT - HOURS_FONT_SIZE - 2; 
+        const HOURS_TEXT_X = GLASS_X_PADDING + GLASS_WIDTH / 2; 
+
+
+        // --- DOM Elements ---
+        const valueInput = document.getElementById('hobbsValue');
+        const updateButton = document.getElementById('updateButton');
+        const downloadSvgButton = document.getElementById('downloadSVG');
+        const downloadPngButton = document.getElementById('downloadPNG');
+        const previewContainer = document.getElementById('hobbsMeterPreview');
+        const messageBox = document.getElementById('messageBox');
+
+        // --- Utility Functions ---
+        function showMessage(message, type = 'success') {
+            messageBox.textContent = message;
+            messageBox.className = `message-box ${type} show`;
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3000);
+        }
+
+        // --- SVG Generation ---
+        function generateHobbsSVG(valueStr) {
+            let mainDigits = Array(NUM_MAIN_DIGITS).fill('0');
+            let tenthDigit = '0';
+            let hundredthDigit = '0';
+
+            if (valueStr) {
+                const parts = valueStr.split('.');
+                const integerPart = parts[0].replace(/[^0-9]/g, ''); 
+                const decimalPartRaw = parts.length > 1 ? parts[1].replace(/[^0-9]/g, '') : "00";
+                const decimalPartPadded = decimalPartRaw.padEnd(2, '0');
+
+                const paddedIntegerPart = integerPart.padStart(NUM_MAIN_DIGITS, '0');
+                mainDigits = paddedIntegerPart.slice(-NUM_MAIN_DIGITS).split('');
+                tenthDigit = decimalPartPadded[0];
+                hundredthDigit = decimalPartPadded[1];
+            }
+
+            let svg = `<svg width="${SVG_WIDTH}" height="${SVG_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: ${BODY_FILL}; border-radius: ${BODY_RX}px;">`;
+
+            // 1. Main black glass area
+            svg += `<rect x="${GLASS_X_PADDING}" y="${GLASS_Y_PADDING}" width="${GLASS_WIDTH}" height="${GLASS_HEIGHT}" fill="${GLASS_FILL}" rx="${GLASS_RX}"/>`;
+
+            // 2. Branding text
+            svg += `<text x="${BRAND_TEXT_COMMON_X}" y="${HOBBS_TEXT_Y}" font-family="${BRAND_FONT_FAMILY}" font-size="${HOBBS_FONT_SIZE}px" fill="${TEXT_FILL_ON_DARK}" text-anchor="middle">Hobbs</text>`;
+            svg += `<text x="${BRAND_TEXT_COMMON_X}" y="${QUARTZ_TEXT_Y}" font-family="${BRAND_FONT_FAMILY}" font-size="${QUARTZ_FONT_SIZE}px" font-weight="bold" fill="${TEXT_FILL_ON_DARK}" text-anchor="middle">QUARTZ</text>`;
+
+            // 3. Hourglass
+            svg += `<g transform="translate(${HOURGLASS_X}, ${HOURGLASS_Y}) scale(${HOURGLASS_WIDTH/10}, ${HOURGLASS_HEIGHT/12})">`;
+            svg += `<path d="M0 0 H10 L5 5 Z M0 12 H10 L5 7 Z M0 5.5 H10" fill="${HOURGLASS_FILL}" stroke="${HOURGLASS_FILL}" stroke-width="0.5"/>`;
+            svg += `</g>`;
+
+            // 4. Digits and their individual cell borders
+            let currentX = DIGITS_START_X;
+            const digitTextBaseY = DIGITS_Y + DIGIT_CELL_HEIGHT / 2 + DIGIT_TEXT_Y_OFFSET; 
+
+            // --- Main Digits ---
+            for (let i = 0; i < NUM_MAIN_DIGITS; i++) {
+                svg += `<rect x="${currentX}" y="${DIGITS_Y}" width="${DIGIT_CELL_WIDTH}" height="${DIGIT_CELL_HEIGHT}" fill="${MAIN_DIGIT_CELL_FILL}" stroke="none" rx="${DIGIT_CELL_RX}"/>`;
+                svg += `<text x="${currentX + DIGIT_CELL_WIDTH / 2}" y="${digitTextBaseY}" font-family="${TEXT_FONT_FAMILY}" font-size="${DIGIT_FONT_SIZE}px" fill="${MAIN_DIGIT_TEXT_FILL}" text-anchor="middle" dominant-baseline="middle">${mainDigits[i]}</text>`;
+                svg += `<rect x="${currentX}" y="${DIGITS_Y}" width="${DIGIT_CELL_WIDTH}" height="${DIGIT_CELL_HEIGHT}" fill="none" stroke="${DIGIT_CELL_STROKE_COLOR}" stroke-width="${GLASS_STROKE_WIDTH / 2}" rx="${DIGIT_CELL_RX}"/>`;
+                currentX += DIGIT_CELL_WIDTH + DIGIT_SPACING;
+            }
+
+            // --- Tenth Digit ---
+            const tenthDigitCellX = currentX;
+            svg += `<rect x="${tenthDigitCellX}" y="${DIGITS_Y}" width="${DIGIT_CELL_WIDTH}" height="${DIGIT_CELL_HEIGHT}" fill="${TENTH_DIGIT_CELL_FILL}" stroke="none" rx="${DIGIT_CELL_RX}"/>`;
+            
+            const tenthDigitCenterX = tenthDigitCellX + DIGIT_CELL_WIDTH / 2;
+            if (parseInt(hundredthDigit) === 0 || !hundredthDigit) { 
+                svg += `<text x="${tenthDigitCenterX}" y="${digitTextBaseY}" font-family="${TEXT_FONT_FAMILY}" font-size="${DIGIT_FONT_SIZE}px" fill="${TENTH_DIGIT_TEXT_FILL}" text-anchor="middle" dominant-baseline="middle">${tenthDigit}</text>`;
+            } else { 
+                const nextTenthVisual = (parseInt(tenthDigit) + 1) % 10;
+                const yUp = digitTextBaseY - PARTIAL_TURN_SHIFT_Y; 
+                const yDown = digitTextBaseY + PARTIAL_TURN_SHIFT_Y; 
+                
+                svg += `<text x="${tenthDigitCenterX}" y="${yUp}" font-family="${TEXT_FONT_FAMILY}" font-size="${DIGIT_FONT_SIZE}px" fill="${TENTH_DIGIT_TEXT_FILL}" text-anchor="middle" dominant-baseline="middle">${tenthDigit}</text>`;
+                svg += `<text x="${tenthDigitCenterX}" y="${yDown}" font-family="${TEXT_FONT_FAMILY}" font-size="${DIGIT_FONT_SIZE}px" fill="${TENTH_DIGIT_TEXT_FILL}" text-anchor="middle" dominant-baseline="middle">${nextTenthVisual}</text>`;
+            }
+            svg += `<rect x="${tenthDigitCellX}" y="${DIGITS_Y}" width="${DIGIT_CELL_WIDTH}" height="${DIGIT_CELL_HEIGHT}" fill="none" stroke="${DIGIT_CELL_STROKE_COLOR}" stroke-width="${GLASS_STROKE_WIDTH / 2}" rx="${DIGIT_CELL_RX}"/>`;
+            
+            // 5. Outer border around the entire tumbler area (drawn ON TOP of digits)
+            svg += `<rect x="${OUTER_TUMBLER_BORDER_X}" y="${OUTER_TUMBLER_BORDER_Y}" width="${OUTER_TUMBLER_BORDER_WIDTH}" height="${OUTER_TUMBLER_BORDER_HEIGHT}" fill="none" stroke="${TUMBLER_AREA_BORDER_COLOR}" stroke-width="${GLASS_STROKE_WIDTH}" rx="${OUTER_TUMBLER_BORDER_RX}"/>`;
+
+            // 6. Fraction "1/10" 
+            const fractionTextX = FRACTION_AND_HOURGLASS_CENTER_X;
+            const effectiveFractionBaseY = FRACTION_TEXT_BASE_Y; 
+            svg += `<text x="${fractionTextX}" y="${effectiveFractionBaseY - FRACTION_FONT_SIZE/2 - 1}" font-family="${TEXT_FONT_FAMILY}" font-size="${FRACTION_FONT_SIZE}px" fill="${TEXT_FILL_ON_DARK}" text-anchor="middle" dominant-baseline="middle">1</text>`;
+            svg += `<line x1="${fractionTextX - 4}" y1="${effectiveFractionBaseY}" x2="${fractionTextX + 4}" y2="${effectiveFractionBaseY}" stroke="${TEXT_FILL_ON_DARK}" stroke-width="1"/>`;
+            svg += `<text x="${fractionTextX}" y="${effectiveFractionBaseY + FRACTION_FONT_SIZE/2 + 1}" font-family="${TEXT_FONT_FAMILY}" font-size="${FRACTION_FONT_SIZE}px" fill="${TEXT_FILL_ON_DARK}" text-anchor="middle" dominant-baseline="middle">10</text>`;
+
+            // 7. "HOURS" text
+            svg += `<text x="${HOURS_TEXT_X}" y="${HOURS_TEXT_Y}" font-family="${BRAND_FONT_FAMILY}" font-size="${HOURS_FONT_SIZE}px" fill="${TEXT_FILL_ON_DARK}" text-anchor="middle">HOURS</text>`;
+            svg += `</svg>`;
+            return svg;
+        }
+
+        // --- Event Handlers ---
+        function updateMeterPreview() {
+            const value = valueInput.value;
+            const svgString = generateHobbsSVG(value);
+            previewContainer.innerHTML = svgString;
+        }
+
+        function downloadFile(filename, contentOrUrl, mimeType, isDataUrl = false) {
+            const a = document.createElement('a');
+            a.download = filename;
+            if (isDataUrl) {
+                a.href = contentOrUrl;
+            } else {
+                const blob = new Blob([contentOrUrl], { type: mimeType });
+                a.href = URL.createObjectURL(blob);
+            }
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            if (!isDataUrl) {
+                URL.revokeObjectURL(a.href);
+            }
+            showMessage(`${filename} downloaded successfully!`);
+        }
+
+        downloadSvgButton.addEventListener('click', () => {
+            const svgString = previewContainer.innerHTML;
+            if (svgString.trim() === "" || !svgString.includes("<svg")) {
+                 showMessage("Please generate the meter first by clicking 'Update Meter'.", "error");
+                return;
+            }
+            downloadFile('hobbs_meter.svg', svgString, 'image/svg+xml');
+        });
+
+        downloadPngButton.addEventListener('click', () => {
+            const svgString = previewContainer.innerHTML;
+             if (svgString.trim() === "" || !svgString.includes("<svg")) {
+                 showMessage("Please generate the meter first by clicking 'Update Meter'.", "error");
+                return;
+            }
+
+            const svgElement = previewContainer.querySelector('svg');
+            if (!svgElement) {
+                showMessage("SVG element not found for PNG conversion.", "error");
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            const svgWidth = parseFloat(svgElement.getAttribute('width'));
+            const svgHeight = parseFloat(svgElement.getAttribute('height'));
+
+            canvas.width = svgWidth * 2; 
+            canvas.height = svgHeight * 2;
+
+            const ctx = canvas.getContext('2d');
+            ctx.scale(2, 2); 
+
+            const img = new Image();
+            const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); 
+                ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+                URL.revokeObjectURL(url);
+                const pngUrl = canvas.toDataURL('image/png');
+                downloadFile('hobbs_meter.png', pngUrl, 'image/png', true);
+            };
+            img.onerror = (e) => {
+                URL.revokeObjectURL(url);
+                showMessage('Error loading SVG for PNG conversion.', "error");
+                console.error("Image load error:", e);
+            };
+            img.src = url;
+        });
+
+        updateButton.addEventListener('click', updateMeterPreview);
+        updateMeterPreview(); // Initial render
+    </script>
+
+</body>
+</html>

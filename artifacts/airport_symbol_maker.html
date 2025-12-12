@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Create custom aviation airport symbols with configurable runway layouts, export as SVG or PNG">
+    <title>Airport Symbol Maker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-b612 {
+            font-family: 'B612', monospace;
+        }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .control-group {
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+        }
+        .export-buttons button, .action-button, .example-button { /* Added .example-button */
+            transition: background-color 0.2s ease-in-out;
+        }
+        .slider-value {
+            display: inline-block;
+            min-width: 35px;
+            text-align: right;
+            margin-left: 8px;
+        }
+        .icon-label-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .icon-label-container svg {
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+        .icon-label-container .form-checkbox {
+             margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 py-8 max-w-7xl">
+        <h1 class="text-3xl font-bold mb-8 text-center text-gray-700">Airport Symbol Maker</h1>
+
+        <div class="grid lg:grid-cols-5 gap-6 items-start">
+            <div class="lg:col-span-3 bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-semibold mb-5 text-gray-800 border-b pb-2">Controls</h2>
+
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-3">Load Example</h3>
+                    <div class="control-group grid grid-cols-2 sm:grid-cols-2 gap-3">
+                        <button id="loadKHMT" class="example-button bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-3 rounded-md shadow text-sm">KHMT - Hemet Ryan</button>
+                        <button id="loadL18" class="example-button bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-3 rounded-md shadow text-sm">L18 - Fallbrook</button>
+                        <button id="loadL35" class="example-button bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-3 rounded-md shadow text-sm">L35 - Big Bear</button>
+                        <button id="loadKAVX" class="example-button bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-3 rounded-md shadow text-sm">KAVX - Catalina</button>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-3">General Options</h3>
+                    <div class="control-group">
+                        <div class="icon-label-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/><circle cx="12" cy="12" r="10"/><path d="M22 12c0-5.52-4.48-10-10-10"/><path d="m15.5 7.513-8.42 8.42M12 22a9.934 9.934 0 0 0 4-1"/><path d="M2 12c0 5.52 4.48 10 10 10"/><path d="M12 2a9.934 9.934 0 0 0-4 1"/></svg>
+                            <label class="block text-sm font-medium text-gray-700">Symbol Color:</label>
+                        </div>
+                        <div class="flex items-center space-x-4 pl-7 mb-2">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="symbolColor" value="magenta" class="form-radio h-5 w-5 text-pink-600 border-gray-300 focus:ring-pink-500" checked>
+                                <span class="ml-2 text-gray-700">Magenta (Untowered)</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="symbolColor" value="blue" class="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-700">Blue (Towered)</span>
+                            </label>
+                        </div>
+
+                        <div class="icon-label-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                            <input type="checkbox" id="rotatingBeacon" class="form-checkbox h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                            <label for="rotatingBeacon" class="ml-2 text-sm font-medium text-gray-700 select-none cursor-pointer">Rotating Beacon (Star)</label>
+                        </div>
+
+                        <div class="icon-label-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="15" y1="22" y2="22"/><line x1="4" x2="14" y1="9" y2="9"/><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/></svg>
+                            <input type="checkbox" id="fuelAvailable" class="form-checkbox h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                            <label for="fuelAvailable" class="ml-2 text-sm font-medium text-gray-700 select-none cursor-pointer">Fuel/Services Available (Tines)</label>
+                        </div>
+                         <div class="icon-label-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M12 6V4a2 2 0 0 0-2-2h-1"/></svg>
+                            <input type="checkbox" id="doubleRunwayThickness" class="form-checkbox h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                            <label for="doubleRunwayThickness" class="ml-2 text-sm font-medium text-gray-700 select-none cursor-pointer">Double Runway Thickness</label>
+                        </div>
+                        <div class="icon-label-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+                            <label for="magneticVariation" class="text-sm font-medium text-gray-700">Magnetic Variation (°E/W):</label>
+                        </div>
+                        <input type="number" id="magneticVariation" value="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500 ml-7 mb-2">
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-medium text-gray-800 mb-3">Runways (up to 3)</h3>
+                    <div class="space-y-4">
+                        <div class="control-group space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label for="runway1Enabled" class="text-sm font-medium text-gray-700 select-none cursor-pointer">Enable Runway 1</label>
+                                <input type="checkbox" id="runway1Enabled" class="form-checkbox h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer" checked>
+                            </div>
+                            <div>
+                                <label for="runway1Orientation" class="block text-xs text-gray-600 mb-1">Orientation (0-359°):</label>
+                                <input type="number" id="runway1Orientation" min="0" max="359" value="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="runway1Length" class="block text-xs text-gray-600 mb-1">Length: <span id="runway1LengthValue" class="slider-value font-mono">100%</span></label>
+                                <input type="range" id="runway1Length" min="0.3" max="1" step="0.05" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                            </div>
+                            <div>
+                                <label for="runway1OffsetX" class="block text-xs text-gray-600 mb-1">X Offset: <span id="runway1OffsetXValue" class="slider-value font-mono">0</span>px</label>
+                                <input type="range" id="runway1OffsetX" min="-50" max="50" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                            </div>
+                            <div>
+                                <label for="runway1OffsetY" class="block text-xs text-gray-600 mb-1">Y Offset: <span id="runway1OffsetYValue" class="slider-value font-mono">0</span>px</label>
+                                <input type="range" id="runway1OffsetY" min="-50" max="50" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                            </div>
+                        </div>
+                        <div class="control-group space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label for="runway2Enabled" class="text-sm font-medium text-gray-700 select-none cursor-pointer">Enable Runway 2</label>
+                                <input type="checkbox" id="runway2Enabled" class="form-checkbox h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                            </div>
+                            <div>
+                                <label for="runway2Orientation" class="block text-xs text-gray-600 mb-1">Orientation (0-359°):</label>
+                                <input type="number" id="runway2Orientation" min="0" max="359" value="45" class="w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500" disabled>
+                            </div>
+                            <div>
+                                <label for="runway2Length" class="block text-xs text-gray-600 mb-1">Length: <span id="runway2LengthValue" class="slider-value font-mono">100%</span></label>
+                                <input type="range" id="runway2Length" min="0.3" max="1" step="0.05" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" disabled>
+                            </div>
+                            <div>
+                                <label for="runway2OffsetX" class="block text-xs text-gray-600 mb-1">X Offset: <span id="runway2OffsetXValue" class="slider-value font-mono">0</span>px</label>
+                                <input type="range" id="runway2OffsetX" min="-50" max="50" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" disabled>
+                            </div>
+                            <div>
+                                <label for="runway2OffsetY" class="block text-xs text-gray-600 mb-1">Y Offset: <span id="runway2OffsetYValue" class="slider-value font-mono">0</span>px</label>
+                                <input type="range" id="runway2OffsetY" min="-50" max="50" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" disabled>
+                            </div>
+                        </div>
+                        <div class="control-group space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label for="runway3Enabled" class="text-sm font-medium text-gray-700 select-none cursor-pointer">Enable Runway 3</label>
+                                <input type="checkbox" id="runway3Enabled" class="form-checkbox h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                            </div>
+                           <div>
+                                <label for="runway3Orientation" class="block text-xs text-gray-600 mb-1">Orientation (0-359°):</label>
+                                <input type="number" id="runway3Orientation" min="0" max="359" value="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500" disabled>
+                            </div>
+                            <div>
+                                <label for="runway3Length" class="block text-xs text-gray-600 mb-1">Length: <span id="runway3LengthValue" class="slider-value font-mono">100%</span></label>
+                                <input type="range" id="runway3Length" min="0.3" max="1" step="0.05" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" disabled>
+                            </div>
+                            <div>
+                                <label for="runway3OffsetX" class="block text-xs text-gray-600 mb-1">X Offset: <span id="runway3OffsetXValue" class="slider-value font-mono">0</span>px</label>
+                                <input type="range" id="runway3OffsetX" min="-50" max="50" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" disabled>
+                            </div>
+                             <div>
+                                <label for="runway3OffsetY" class="block text-xs text-gray-600 mb-1">Y Offset: <span id="runway3OffsetYValue" class="slider-value font-mono">0</span>px</label>
+                                <input type="range" id="runway3OffsetY" min="-50" max="50" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800 self-start">Preview</h2>
+                    <canvas id="airportCanvas" width="350" height="350" class="border border-gray-300 rounded-md bg-white shadow-inner"></canvas>
+                    
+                    <div class="w-full mt-4">
+                        <label for="airportNameInput" class="block text-sm font-medium text-gray-700 mb-1">Airport Name:</label>
+                        <input type="text" id="airportNameInput" class="w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500 font-b612" placeholder="Enter airport name">
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3 self-start">Note: 0° is North (top), 90° is East (right).</p>
+                </div>
+                 <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-lg font-medium text-gray-800 mb-3">Export</h3>
+                    <div class="space-y-3 export-buttons">
+                         <button id="exportPNG" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow action-button flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Export as PNG
+                        </button>
+                         <button id="exportSVG" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-md shadow action-button flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Export as SVG
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('airportCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Configuration Constants ---
+        const CANVAS_WIDTH = canvas.width;
+        const CANVAS_HEIGHT = canvas.height; 
+        const CX = CANVAS_WIDTH / 2;
+        const CY = CANVAS_WIDTH / 2; 
+        const R_CIRCLE = 100; 
+        const ARM_LENGTH = 30; 
+        const ARM_WIDTH = 24;  
+        const TINE_OVERLAP = 2; 
+        const STAR_OUTER_RADIUS = ARM_WIDTH * 1.05; 
+        const STAR_INNER_POINT_RADIUS_FACTOR = 2.5;
+        const STAR_CENTER_DOT_RADIUS = 4.5;
+        
+        const BASE_RUNWAY_LINE_WIDTH = 12;
+        const BASE_RUNWAY_HALF_LENGTH = R_CIRCLE * 0.78; 
+
+        const AIRPORT_NAME_FONT_SIZE_CANVAS = 18;
+        const AIRPORT_NAME_FONT_CANVAS = `${AIRPORT_NAME_FONT_SIZE_CANVAS}px B612`;
+        const AIRPORT_NAME_COLOR_CANVAS = '#374151'; 
+        const AIRPORT_NAME_Y_MARGIN_CANVAS = 25; 
+
+        const AIRPORT_NAME_FONT_SIZE_SVG = 18; 
+        const AIRPORT_NAME_Y_MARGIN_SVG = 25;
+
+        const COLORS = {
+            magenta: '#AD5CAD',
+            blue: '#5E8FAA',
+            starDotRunway: '#FFFFFF' 
+        };
+
+        // --- UI Elements ---
+        const colorRadios = document.querySelectorAll('input[name="symbolColor"]');
+        const rotatingBeaconCheckbox = document.getElementById('rotatingBeacon');
+        const fuelAvailableCheckbox = document.getElementById('fuelAvailable');
+        const doubleRunwayThicknessCheckbox = document.getElementById('doubleRunwayThickness');
+        const magneticVariationInput = document.getElementById('magneticVariation');
+        const airportNameInput = document.getElementById('airportNameInput');
+        const exportPNGBtn = document.getElementById('exportPNG');
+        const exportSVGBtn = document.getElementById('exportSVG');
+        
+        const loadKHMTBtn = document.getElementById('loadKHMT');
+        const loadL18Btn = document.getElementById('loadL18');
+        const loadL35Btn = document.getElementById('loadL35');
+        const loadKAVXBtn = document.getElementById('loadKAVX');
+
+        const runwayControls = [
+            { 
+                enabled: document.getElementById('runway1Enabled'), 
+                orientation: document.getElementById('runway1Orientation'),
+                length: document.getElementById('runway1Length'),
+                lengthValueDisplay: document.getElementById('runway1LengthValue'),
+                offsetX: document.getElementById('runway1OffsetX'),
+                offsetY: document.getElementById('runway1OffsetY'),
+                offsetXValueDisplay: document.getElementById('runway1OffsetXValue'),
+                offsetYValueDisplay: document.getElementById('runway1OffsetYValue')
+            },
+            { 
+                enabled: document.getElementById('runway2Enabled'), 
+                orientation: document.getElementById('runway2Orientation'),
+                length: document.getElementById('runway2Length'),
+                lengthValueDisplay: document.getElementById('runway2LengthValue'),
+                offsetX: document.getElementById('runway2OffsetX'),
+                offsetY: document.getElementById('runway2OffsetY'),
+                offsetXValueDisplay: document.getElementById('runway2OffsetXValue'),
+                offsetYValueDisplay: document.getElementById('runway2OffsetYValue')
+            },
+            { 
+                enabled: document.getElementById('runway3Enabled'), 
+                orientation: document.getElementById('runway3Orientation'),
+                length: document.getElementById('runway3Length'),
+                lengthValueDisplay: document.getElementById('runway3LengthValue'),
+                offsetX: document.getElementById('runway3OffsetX'),
+                offsetY: document.getElementById('runway3OffsetY'),
+                offsetXValueDisplay: document.getElementById('runway3OffsetXValue'),
+                offsetYValueDisplay: document.getElementById('runway3OffsetYValue')
+            }
+        ];
+
+        // --- Example Data ---
+        const exampleAirports = {
+            khmt: {
+                name: "KHMT - Hemet Ryan", color: "magenta", beacon: true, fuel: true, magVar: 14, doubleThick: false,
+                runways: [
+                    { enabled: true, orientation: 230, length: 0.9, offsetX: 0, offsetY: 0 },
+                    { enabled: true, orientation: 230, length: 0.4, offsetX: 19, offsetY: -9 }
+                ]
+            },
+            l18: {
+                name: "L18 - Fallbrook", color: "magenta", beacon: true, fuel: true, magVar: 14, doubleThick: false,
+                runways: [
+                    { enabled: true, orientation: 180, length: 0.3, offsetX: 0, offsetY: 0 }
+                ]
+            },
+            l35: {
+                name: "L35 - Big Bear", color: "magenta", beacon: true, fuel: true, magVar: 12, doubleThick: false,
+                runways: [
+                    { enabled: true, orientation: 260, length: 0.9, offsetX: 0, offsetY: 0 }
+                ]
+            },
+            kavx: {
+                name: "KAVX - Catalina Island", color: "magenta", beacon: false, fuel: false, magVar: 5, doubleThick: false,
+                runways: [
+                    { enabled: true, orientation: 220, length: 0.9, offsetX: 0, offsetY: 0 }
+                ]
+            }
+        };
+
+        // --- Helper Functions ---
+        function getSymbolConfig() { 
+            const color = document.querySelector('input[name="symbolColor"]:checked').value;
+            const magVar = parseInt(magneticVariationInput.value) || 0;
+            const isThicknessDoubled = doubleRunwayThicknessCheckbox.checked;
+            const currentRunwayLineWidth = isThicknessDoubled ? BASE_RUNWAY_LINE_WIDTH * 2 : BASE_RUNWAY_LINE_WIDTH;
+
+            const rawRunways = runwayControls.map(rc => ({
+                enabled: rc.enabled.checked,
+                orientation: parseInt(rc.orientation.value) || 0,
+                lengthFactor: parseFloat(rc.length.value) || 1,
+                offsetX: parseInt(rc.offsetX.value) || 0,
+                offsetY: parseInt(rc.offsetY.value) || 0
+            }));
+
+            return { 
+                colorValue: COLORS[color], 
+                colorName: color, 
+                airportName: airportNameInput.value.trim(),
+                magneticVariation: magVar,
+                runways: rawRunways.map(r => ({ 
+                    ...r,
+                    orientation: (r.orientation + magVar + 360) % 360
+                })),
+                hasRotatingBeacon: rotatingBeaconCheckbox.checked,
+                hasFuelAvailable: fuelAvailableCheckbox.checked,
+                actualRunwayLineWidth: currentRunwayLineWidth
+            };
+        }
+
+        function setConfiguration(config) {
+            document.querySelector(`input[name="symbolColor"][value="${config.color}"]`).checked = true;
+            rotatingBeaconCheckbox.checked = config.beacon;
+            fuelAvailableCheckbox.checked = config.fuel;
+            doubleRunwayThicknessCheckbox.checked = config.doubleThick !== undefined ? config.doubleThick : false;
+            magneticVariationInput.value = config.magVar;
+            airportNameInput.value = config.name;
+
+            runwayControls.forEach((rc, index) => {
+                const runwayData = config.runways[index];
+                if (runwayData) {
+                    rc.enabled.checked = runwayData.enabled;
+                    rc.orientation.value = runwayData.orientation;
+                    rc.length.value = runwayData.length;
+                    rc.offsetX.value = runwayData.offsetX;
+                    rc.offsetY.value = runwayData.offsetY;
+                } else {
+                    rc.enabled.checked = false;
+                    // Reset other fields if no data for this runway slot
+                    rc.orientation.value = 0;
+                    rc.length.value = 1; // Default to 100%
+                    rc.offsetX.value = 0;
+                    rc.offsetY.value = 0;
+                }
+            });
+            handleInputChange(); // Update UI and redraw
+        }
+
+
+        // --- Drawing Functions (Canvas) ---
+        function drawStarOnCanvas(cx_star, cy_star, outerRadius, fillColor, dotColor) {
+            const spikes = 5;
+            const innerRadius = outerRadius / STAR_INNER_POINT_RADIUS_FACTOR;
+            
+            ctx.beginPath();
+            ctx.moveTo(cx_star, cy_star - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                let xOuter = cx_star + Math.cos(i * 2 * Math.PI / spikes - Math.PI / 2) * outerRadius;
+                let yOuter = cy_star + Math.sin(i * 2 * Math.PI / spikes - Math.PI / 2) * outerRadius;
+                ctx.lineTo(xOuter, yOuter);
+                let xInner = cx_star + Math.cos((i + 0.5) * 2 * Math.PI / spikes - Math.PI / 2) * innerRadius;
+                let yInner = cy_star + Math.sin((i + 0.5) * 2 * Math.PI / spikes - Math.PI / 2) * innerRadius;
+                ctx.lineTo(xInner, yInner);
+            }
+            ctx.closePath();
+            ctx.fillStyle = fillColor;
+            ctx.fill();
+
+            if (STAR_CENTER_DOT_RADIUS > 0) {
+                ctx.beginPath();
+                ctx.arc(cx_star, cy_star, STAR_CENTER_DOT_RADIUS, 0, 2 * Math.PI);
+                ctx.fillStyle = dotColor; 
+                ctx.fill();
+            }
+        }
+
+        function drawSymbolOnCanvas() {
+            const config = getSymbolConfig(); 
+            const symbolColor = config.colorValue;
+            const hasName = config.airportName.length > 0;
+            const currentRunwayLineWidth = config.actualRunwayLineWidth;
+            const currentParallelRunwaySpacing = currentRunwayLineWidth * 2.2;
+
+
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); 
+
+            ctx.fillStyle = symbolColor;
+            ctx.beginPath();
+            ctx.arc(CX, CY, R_CIRCLE, 0, 2 * Math.PI);
+            ctx.fill();
+
+            if (config.hasFuelAvailable) {
+                ctx.fillRect(CX - ARM_WIDTH / 2, CY + R_CIRCLE - TINE_OVERLAP, ARM_WIDTH, ARM_LENGTH); 
+                ctx.fillRect(CX - R_CIRCLE - ARM_LENGTH + TINE_OVERLAP, CY - ARM_WIDTH / 2, ARM_LENGTH, ARM_WIDTH); 
+                ctx.fillRect(CX + R_CIRCLE - TINE_OVERLAP, CY - ARM_WIDTH / 2, ARM_LENGTH, ARM_WIDTH); 
+            }
+
+            if (config.hasRotatingBeacon) {
+                const starCX = CX;
+                const starCY = CY - R_CIRCLE - STAR_OUTER_RADIUS * 0.8 + 2; 
+                drawStarOnCanvas(starCX, starCY, STAR_OUTER_RADIUS, symbolColor, COLORS.starDotRunway);
+            }
+
+            ctx.strokeStyle = COLORS.starDotRunway; 
+            ctx.lineWidth = currentRunwayLineWidth; 
+            ctx.lineCap = 'butt';
+
+            const enabledRunways = config.runways.filter(r => r.enabled);
+            const runwaysByOrientation = {};
+            enabledRunways.forEach(runway => {
+                if (!runwaysByOrientation[runway.orientation]) { 
+                    runwaysByOrientation[runway.orientation] = [];
+                }
+                runwaysByOrientation[runway.orientation].push(runway); 
+            });
+
+            for (const orientationKey in runwaysByOrientation) { 
+                const group = runwaysByOrientation[orientationKey];
+                const numInGroup = group.length;
+                const angleRad = (group[0].orientation - 90) * Math.PI / 180; 
+                const perpAngleRad = angleRad + Math.PI / 2;
+
+                group.forEach((runway, index) => {
+                    let parallelOffsetDist = 0; 
+                    if (numInGroup === 2) {
+                        parallelOffsetDist = (index === 0) ? -currentParallelRunwaySpacing / 2 : currentParallelRunwaySpacing / 2;
+                    } else if (numInGroup === 3) {
+                        if (index === 0) parallelOffsetDist = -currentParallelRunwaySpacing;
+                        else if (index === 1) parallelOffsetDist = 0; 
+                        else parallelOffsetDist = currentParallelRunwaySpacing;
+                    }
+                    
+                    const currentRunwayHalfLength = BASE_RUNWAY_HALF_LENGTH * runway.lengthFactor;
+                    const centerAfterParallelX = CX + parallelOffsetDist * Math.cos(perpAngleRad);
+                    const centerAfterParallelY = CY + parallelOffsetDist * Math.sin(perpAngleRad);
+                    const runwayBaseCX = centerAfterParallelX + runway.offsetX;
+                    const runwayBaseCY = centerAfterParallelY + runway.offsetY;
+                    
+                    const x1 = runwayBaseCX - currentRunwayHalfLength * Math.cos(angleRad);
+                    const y1 = runwayBaseCY - currentRunwayHalfLength * Math.sin(angleRad);
+                    const x2 = runwayBaseCX + currentRunwayHalfLength * Math.cos(angleRad);
+                    const y2 = runwayBaseCY + currentRunwayHalfLength * Math.sin(angleRad);
+
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                });
+            }
+
+            if (hasName) {
+                ctx.font = AIRPORT_NAME_FONT_CANVAS;
+                ctx.fillStyle = AIRPORT_NAME_COLOR_CANVAS;
+                ctx.textAlign = 'center';
+                let symbolBottomY = CY + R_CIRCLE;
+                if (config.hasFuelAvailable) {
+                    symbolBottomY = Math.max(symbolBottomY, CY + R_CIRCLE + ARM_LENGTH - TINE_OVERLAP);
+                }
+                const nameYPosition = symbolBottomY + AIRPORT_NAME_Y_MARGIN_CANVAS;
+                if (nameYPosition < CANVAS_HEIGHT - AIRPORT_NAME_FONT_SIZE_CANVAS / 2) { 
+                     ctx.fillText(config.airportName, CX, nameYPosition);
+                } else {
+                    ctx.fillText(config.airportName, CX, CANVAS_HEIGHT - AIRPORT_NAME_FONT_SIZE_CANVAS * 0.5);
+                }
+            }
+        }
+
+        // --- SVG Generation Functions ---
+        function getStarSVGPath(cx_star, cy_star, outerRadius) {
+            const spikes = 5;
+            const innerRadius = outerRadius / STAR_INNER_POINT_RADIUS_FACTOR;
+            let pathData = `M ${cx_star} ${cy_star - outerRadius}`;
+            for (let i = 0; i < spikes; i++) {
+                let xOuter = cx_star + Math.cos(i * 2 * Math.PI / spikes - Math.PI / 2) * outerRadius;
+                let yOuter = cy_star + Math.sin(i * 2 * Math.PI / spikes - Math.PI / 2) * outerRadius;
+                pathData += ` L ${xOuter} ${yOuter}`;
+                let xInner = cx_star + Math.cos((i + 0.5) * 2 * Math.PI / spikes - Math.PI / 2) * innerRadius;
+                let yInner = cy_star + Math.sin((i + 0.5) * 2 * Math.PI / spikes - Math.PI / 2) * innerRadius;
+                pathData += ` L ${xInner} ${yInner}`;
+            }
+            pathData += " Z";
+            return pathData;
+        }
+
+        function generateSVG() {
+            const config = getSymbolConfig(); 
+            const symbolColor = config.colorValue;
+            const hasName = config.airportName.length > 0;
+            const currentRunwayLineWidth = config.actualRunwayLineWidth;
+            const currentParallelRunwaySpacing = currentRunwayLineWidth * 2.2;
+            
+            let svgHeight = CANVAS_WIDTH; 
+            let nameYPositionSVG = 0;
+
+            if (hasName) {
+                let symbolBottomY = CY + R_CIRCLE;
+                 if (config.hasFuelAvailable) {
+                    symbolBottomY = Math.max(symbolBottomY, CY + R_CIRCLE + ARM_LENGTH - TINE_OVERLAP);
+                }
+                nameYPositionSVG = symbolBottomY + AIRPORT_NAME_Y_MARGIN_SVG;
+                svgHeight = nameYPositionSVG + AIRPORT_NAME_FONT_SIZE_SVG; 
+            }
+
+            let svgString = `<svg width="${CANVAS_WIDTH}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg" style="font-family: 'B612', monospace;">\n`;
+            svgString += `  <circle cx="${CX}" cy="${CY}" r="${R_CIRCLE}" fill="${symbolColor}" />\n`;
+
+            if (config.hasFuelAvailable) {
+                svgString += `  <rect x="${CX - ARM_WIDTH / 2}" y="${CY + R_CIRCLE - TINE_OVERLAP}" width="${ARM_WIDTH}" height="${ARM_LENGTH}" fill="${symbolColor}" />\n`;
+                svgString += `  <rect x="${CX - R_CIRCLE - ARM_LENGTH + TINE_OVERLAP}" y="${CY - ARM_WIDTH / 2}" width="${ARM_LENGTH}" height="${ARM_WIDTH}" fill="${symbolColor}" />\n`;
+                svgString += `  <rect x="${CX + R_CIRCLE - TINE_OVERLAP}" y="${CY - ARM_WIDTH / 2}" width="${ARM_LENGTH}" height="${ARM_WIDTH}" fill="${symbolColor}" />\n`;
+            }
+            
+            if (config.hasRotatingBeacon) {
+                const starCX = CX;
+                const starCY = CY - R_CIRCLE - STAR_OUTER_RADIUS * 0.8 + 2;
+                const starPath = getStarSVGPath(starCX, starCY, STAR_OUTER_RADIUS);
+                svgString += `  <path d="${starPath}" fill="${symbolColor}" />\n`;
+                if (STAR_CENTER_DOT_RADIUS > 0) {
+                    svgString += `  <circle cx="${starCX}" cy="${starCY}" r="${STAR_CENTER_DOT_RADIUS}" fill="${COLORS.starDotRunway}" />\n`;
+                }
+            }
+
+            const enabledRunways = config.runways.filter(r => r.enabled);
+            const runwaysByOrientation = {};
+            enabledRunways.forEach(runway => {
+                if (!runwaysByOrientation[runway.orientation]) { runwaysByOrientation[runway.orientation] = []; }
+                runwaysByOrientation[runway.orientation].push(runway);
+            });
+
+            for (const orientationKey in runwaysByOrientation) {
+                const group = runwaysByOrientation[orientationKey];
+                const numInGroup = group.length;
+                const angleRad = (group[0].orientation - 90) * Math.PI / 180;
+                const perpAngleRad = angleRad + Math.PI / 2;
+
+                group.forEach((runway, index) => {
+                    let parallelOffsetDist = 0;
+                    if (numInGroup === 2) {
+                        parallelOffsetDist = (index === 0) ? -currentParallelRunwaySpacing / 2 : currentParallelRunwaySpacing / 2;
+                    } else if (numInGroup === 3) {
+                        if (index === 0) parallelOffsetDist = -currentParallelRunwaySpacing;
+                        else if (index === 1) parallelOffsetDist = 0;
+                        else parallelOffsetDist = currentParallelRunwaySpacing;
+                    }
+                    
+                    const currentRunwayHalfLength = BASE_RUNWAY_HALF_LENGTH * runway.lengthFactor;
+                    const centerAfterParallelX = CX + parallelOffsetDist * Math.cos(perpAngleRad);
+                    const centerAfterParallelY = CY + parallelOffsetDist * Math.sin(perpAngleRad);
+                    const runwayBaseCX = centerAfterParallelX + runway.offsetX;
+                    const runwayBaseCY = centerAfterParallelY + runway.offsetY;
+                    
+                    const x1 = runwayBaseCX - currentRunwayHalfLength * Math.cos(angleRad);
+                    const y1 = runwayBaseCY - currentRunwayHalfLength * Math.sin(angleRad);
+                    const x2 = runwayBaseCX + currentRunwayHalfLength * Math.cos(angleRad);
+                    const y2 = runwayBaseCY + currentRunwayHalfLength * Math.sin(angleRad);
+
+                    svgString += `  <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${COLORS.starDotRunway}" stroke-width="${currentRunwayLineWidth}" stroke-linecap="butt" />\n`;
+                });
+            }
+
+            if (hasName) {
+                svgString += `  <text x="${CX}" y="${nameYPositionSVG}" font-family="B612, monospace" font-size="${AIRPORT_NAME_FONT_SIZE_SVG}" fill="${AIRPORT_NAME_COLOR_CANVAS}" text-anchor="middle">${config.airportName}</text>\n`;
+            }
+
+            svgString += `</svg>`;
+            return svgString;
+        }
+        
+        function exportPNGWithName() {
+            const config = getSymbolConfig(); 
+            const hasName = config.airportName.length > 0;
+            const currentRunwayLineWidth = config.actualRunwayLineWidth;
+            const currentParallelRunwaySpacing = currentRunwayLineWidth * 2.2;
+            
+            let exportCanvasWidth = CANVAS_WIDTH;
+            let exportCanvasHeight = CANVAS_HEIGHT; 
+            let nameYPositionExport = 0;
+
+            if (hasName) {
+                 let symbolBottomY = CY + R_CIRCLE;
+                 if (config.hasFuelAvailable) {
+                    symbolBottomY = Math.max(symbolBottomY, CY + R_CIRCLE + ARM_LENGTH - TINE_OVERLAP);
+                }
+                nameYPositionExport = symbolBottomY + AIRPORT_NAME_Y_MARGIN_CANVAS;
+                exportCanvasHeight = nameYPositionExport + AIRPORT_NAME_FONT_SIZE_CANVAS * 1.5; 
+            }
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = exportCanvasWidth;
+            tempCanvas.height = exportCanvasHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            const symbolColor = config.colorValue;
+            tempCtx.fillStyle = symbolColor;
+            tempCtx.beginPath();
+            tempCtx.arc(CX, CY, R_CIRCLE, 0, 2 * Math.PI);
+            tempCtx.fill();
+
+            if (config.hasFuelAvailable) {
+                tempCtx.fillRect(CX - ARM_WIDTH / 2, CY + R_CIRCLE - TINE_OVERLAP, ARM_WIDTH, ARM_LENGTH); 
+                tempCtx.fillRect(CX - R_CIRCLE - ARM_LENGTH + TINE_OVERLAP, CY - ARM_WIDTH / 2, ARM_LENGTH, ARM_WIDTH); 
+                tempCtx.fillRect(CX + R_CIRCLE - TINE_OVERLAP, CY - ARM_WIDTH / 2, ARM_LENGTH, ARM_WIDTH); 
+            }
+            if (config.hasRotatingBeacon) {
+                const starCX = CX;
+                const starCY = CY - R_CIRCLE - STAR_OUTER_RADIUS * 0.8 + 2; 
+                drawStarOnTemporaryCanvas(tempCtx, starCX, starCY, STAR_OUTER_RADIUS, symbolColor, COLORS.starDotRunway);
+            }
+            tempCtx.strokeStyle = COLORS.starDotRunway; 
+            tempCtx.lineWidth = currentRunwayLineWidth;
+            tempCtx.lineCap = 'butt';
+            const enabledRunways = config.runways.filter(r => r.enabled);
+            const runwaysByOrientation = {};
+            enabledRunways.forEach(runway => {
+                if (!runwaysByOrientation[runway.orientation]) runwaysByOrientation[runway.orientation] = [];
+                runwaysByOrientation[runway.orientation].push(runway); 
+            });
+            for (const orientationKey in runwaysByOrientation) {
+                const group = runwaysByOrientation[orientationKey];
+                const numInGroup = group.length;
+                const angleRad = (group[0].orientation - 90) * Math.PI / 180;
+                const perpAngleRad = angleRad + Math.PI / 2;
+                group.forEach((runway, index) => {
+                    let parallelOffsetDist = 0; 
+                    if (numInGroup === 2) parallelOffsetDist = (index === 0) ? -currentParallelRunwaySpacing / 2 : currentParallelRunwaySpacing / 2;
+                    else if (numInGroup === 3) {
+                        if (index === 0) parallelOffsetDist = -currentParallelRunwaySpacing;
+                        else if (index === 1) parallelOffsetDist = 0; 
+                        else parallelOffsetDist = currentParallelRunwaySpacing;
+                    }
+                    const currentRunwayHalfLength = BASE_RUNWAY_HALF_LENGTH * runway.lengthFactor;
+                    const centerAfterParallelX = CX + parallelOffsetDist * Math.cos(perpAngleRad);
+                    const centerAfterParallelY = CY + parallelOffsetDist * Math.sin(perpAngleRad);
+                    const runwayBaseCX = centerAfterParallelX + runway.offsetX;
+                    const runwayBaseCY = centerAfterParallelY + runway.offsetY;
+                    const x1 = runwayBaseCX - currentRunwayHalfLength * Math.cos(angleRad);
+                    const y1 = runwayBaseCY - currentRunwayHalfLength * Math.sin(angleRad);
+                    const x2 = runwayBaseCX + currentRunwayHalfLength * Math.cos(angleRad);
+                    const y2 = runwayBaseCY + currentRunwayHalfLength * Math.sin(angleRad);
+                    tempCtx.beginPath();
+                    tempCtx.moveTo(x1, y1);
+                    tempCtx.lineTo(x2, y2);
+                    tempCtx.stroke();
+                });
+            }
+
+            if (hasName) {
+                tempCtx.font = AIRPORT_NAME_FONT_CANVAS;
+                tempCtx.fillStyle = AIRPORT_NAME_COLOR_CANVAS;
+                tempCtx.textAlign = 'center';
+                tempCtx.fillText(config.airportName, CX, nameYPositionExport);
+            }
+
+            const dataURL = tempCanvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'airport_symbol.png';
+            link.href = dataURL;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        function drawStarOnTemporaryCanvas(tempCtx, cx_star, cy_star, outerRadius, fillColor, dotColor) {
+            const spikes = 5;
+            const innerRadius = outerRadius / STAR_INNER_POINT_RADIUS_FACTOR;
+            tempCtx.beginPath();
+            tempCtx.moveTo(cx_star, cy_star - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                let xOuter = cx_star + Math.cos(i * 2 * Math.PI / spikes - Math.PI / 2) * outerRadius;
+                let yOuter = cy_star + Math.sin(i * 2 * Math.PI / spikes - Math.PI / 2) * outerRadius;
+                tempCtx.lineTo(xOuter, yOuter);
+                let xInner = cx_star + Math.cos((i + 0.5) * 2 * Math.PI / spikes - Math.PI / 2) * innerRadius;
+                let yInner = cy_star + Math.sin((i + 0.5) * 2 * Math.PI / spikes - Math.PI / 2) * innerRadius;
+                tempCtx.lineTo(xInner, yInner);
+            }
+            tempCtx.closePath();
+            tempCtx.fillStyle = fillColor;
+            tempCtx.fill();
+            if (STAR_CENTER_DOT_RADIUS > 0) {
+                tempCtx.beginPath();
+                tempCtx.arc(cx_star, cy_star, STAR_CENTER_DOT_RADIUS, 0, 2 * Math.PI);
+                tempCtx.fillStyle = dotColor; 
+                tempCtx.fill();
+            }
+        }
+        
+        function handleInputChange() {
+            runwayControls.forEach(rc => {
+                const isDisabled = !rc.enabled.checked;
+                rc.orientation.disabled = isDisabled;
+                rc.length.disabled = isDisabled; 
+                rc.lengthValueDisplay.textContent = (parseFloat(rc.length.value) * 100).toFixed(0) + '%';
+                rc.offsetX.disabled = isDisabled; 
+                rc.offsetY.disabled = isDisabled; 
+
+                rc.offsetXValueDisplay.textContent = rc.offsetX.value;
+                rc.offsetYValueDisplay.textContent = rc.offsetY.value;
+
+                [rc.orientation, rc.length, rc.offsetX, rc.offsetY].forEach(el => {
+                    el.classList.toggle('bg-gray-200', isDisabled && el.type !== 'range'); 
+                    el.classList.toggle('cursor-not-allowed', isDisabled);
+                    if (el.type === 'range') { 
+                        el.classList.toggle('opacity-50', isDisabled);
+                    }
+                });
+            });
+            drawSymbolOnCanvas();
+        }
+
+        exportPNGBtn.addEventListener('click', exportPNGWithName); 
+        exportSVGBtn.addEventListener('click', () => {
+            const svgData = generateSVG();
+            const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = 'airport_symbol.svg';
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
+        
+        // Event Listeners for Example Buttons
+        loadKHMTBtn.addEventListener('click', () => setConfiguration(exampleAirports.khmt));
+        loadL18Btn.addEventListener('click', () => setConfiguration(exampleAirports.l18));
+        loadL35Btn.addEventListener('click', () => setConfiguration(exampleAirports.l35));
+        loadKAVXBtn.addEventListener('click', () => setConfiguration(exampleAirports.kavx));
+
+        airportNameInput.addEventListener('input', handleInputChange);
+        magneticVariationInput.addEventListener('input', handleInputChange);
+        doubleRunwayThicknessCheckbox.addEventListener('change', handleInputChange);
+        colorRadios.forEach(radio => radio.addEventListener('change', handleInputChange));
+        rotatingBeaconCheckbox.addEventListener('change', handleInputChange);
+        fuelAvailableCheckbox.addEventListener('change', handleInputChange);
+        runwayControls.forEach(rc => {
+            rc.enabled.addEventListener('change', handleInputChange);
+            rc.orientation.addEventListener('input', handleInputChange);
+            rc.length.addEventListener('input', handleInputChange); 
+            rc.offsetX.addEventListener('input', handleInputChange); 
+            rc.offsetY.addEventListener('input', handleInputChange); 
+        });
+
+        handleInputChange(); 
+    </script>
+
+</body>
+</html>

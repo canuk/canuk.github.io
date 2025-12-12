@@ -2,9 +2,6 @@
 :root {
   --primary-color: #2563eb;
   --secondary-color: #10b981;
-  --accent-color: #f59e0b;
-  --dark-bg: #0f172a;
-  --light-bg: #f8fafc;
   --text-primary: #1e293b;
   --text-secondary: #64748b;
   --border-color: #e2e8f0;
@@ -25,7 +22,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
 }
 
-/* Navbar Styling */
+/* Navbar */
 .navbar {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
@@ -49,68 +46,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--primary-color) !important;
 }
 
-/* Hexagon Projects */
-@media (min-width: 1000px) {
-  .hex-project-a {
-    margin-top: 112px;
-    margin-left: 3px;
-  }
-  .hex-project-b {
-    margin-left: -62px;
-  }
-  .hex-project-c {
-    margin-top: 225px;
-    margin-left: -62px;
-  }
-  .hex-project-d {
-    margin-top: 337px;
-    margin-left: 3px;
-  }
-}
-
-@media (max-width: 999px) {
-  .honeycombs {
-    margin-top: -112px;
-  }
-}
-
-.hex-right {
-  width: 280px;
-  margin-left: 200px;
-  text-align: left;
-}
-
-.hex-left {
-  width: 280px;      
-  margin-right: 200px;
-  text-align: right;
-}
-
-.text-light {
-  color: #ffffff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.text-dark {
-  color: var(--text-primary);
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-}
-
-/* Hex overlay improvements */
-.honeycombs .comb span {
-  transition: all 0.3s ease;
-}
-
-.honeycombs .comb:hover span {
-  transform: scale(1.05);
-}
-
-/* Footer */
-.footer {
-  margin-top: 4rem;
-}
-
-/* Cards and modern components */
+/* Cards */
 .card-modern {
   border-radius: 12px;
   border: 1px solid var(--border-color);
@@ -124,7 +60,7 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(-4px);
 }
 
-/* Button styles */
+/* Buttons */
 .btn-primary {
   background: var(--primary-color);
   border: none;
@@ -138,6 +74,16 @@ h1, h2, h3, h4, h5, h6 {
   background: #1d4ed8;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.btn-outline-secondary {
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-secondary:hover {
+  transform: translateY(-2px);
 }
 
 /* Smooth scrolling */

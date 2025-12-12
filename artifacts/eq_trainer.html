@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Train your ears to identify EQ frequencies with interactive audio exercises and parametric equalization">
+    <title>EQ Feedback Trainer - Parametric Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .knob-container {
+            user-select: none;
+        }
+
+        /* Rotary Knob */
+        .knob-wrapper { display: flex; flex-direction: column; align-items: center; margin: 5px; }
+        .knob {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            background: #4B5563;
+            border-radius: 50%;
+            border: 2px solid #2d3748;
+            cursor: ns-resize;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .knob-indicator {
+            position: absolute;
+            width: 4px;
+            height: 12px;
+            background: #FBBF24;
+            top: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            transform-origin: center 18px;
+            border-radius: 2px;
+        }
+        .knob.disabled { cursor: not-allowed; background: #374151; }
+        .knob-label { font-size: 0.8rem; color: #9CA3AF; margin-top: 5px; font-weight: 600;}
+        .knob-value { font-family: monospace; font-size: 0.75rem; color: #FBBF24; margin-top: 2px; }
+
+
+        canvas { background-color: #000; border-radius: 0.5rem; border: 2px solid #4B5563; }
+        #gemini-modal, #settings-modal { display: none; }
+        #gemini-modal.show, #settings-modal.show { display: flex; }
+        
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #374151; transition: .4s; border-radius: 28px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #2563EB; }
+        input:checked + .slider:before { transform: translateX(22px); }
+    </style>
+</head>
+<body class="text-white p-4">
+
+    <div class="w-full max-w-7xl mx-auto p-4 bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 flex flex-col relative" style="height: 95vh; max-height: 900px;">
+        
+        <!-- Settings Button -->
+        <button id="settings-button" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </button>
+
+        <div class="text-center mb-2 flex-shrink-0">
+            <h1 class="text-2xl font-bold text-white">Parametric EQ Trainer</h1>
+        </div>
+
+        <div class="flex-grow mb-2 relative min-h-0">
+             <canvas id="rta-canvas" class="w-full h-full"></canvas>
+        </div>
+
+        <div class="flex-shrink-0 bg-black/30 rounded-lg p-3">
+            <div class="flex justify-between items-center gap-4 mb-3">
+                <div class="flex items-center gap-2">
+                    <button id="start-button" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed">Start</button>
+                    <button id="feedback-button" class="px-4 py-2 bg-red-700 text-white font-semibold rounded-lg shadow-md hover:bg-red-800 transition-all duration-200" disabled>Feedback</button>
+                    <button id="analyze-button" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition-all duration-200 hidden">✨ Analyze</button>
+                </div>
+                 <div class="flex items-center gap-3">
+                    <span class="text-sm font-medium text-gray-300">✨ Smart Scenarios</span>
+                    <label class="switch">
+                        <input type="checkbox" id="smart-feedback-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div id="status-message" class="text-center h-8 flex items-center justify-center text-sm rounded bg-gray-900">
+                <p class="text-lg text-yellow-400 font-medium">System is OFF</p>
+            </div>
+        </div>
+
+        <div class="flex-shrink-0 bg-gray-800/60 p-2 rounded-xl border border-gray-700 mt-2">
+            <div id="channels-container" class="flex justify-around items-start"></div>
+        </div>
+    </div>
+
+    <!-- Gemini Modal -->
+    <div id="gemini-modal" class="fixed inset-0 bg-black bg-opacity-70 items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-600">
+            <h3 class="text-2xl font-bold text-purple-400 mb-4">✨ Gemini Analysis</h3>
+            <div id="gemini-content" class="text-gray-300 space-y-4"></div>
+            <button id="close-modal-button" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Close</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-70 items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-600">
+            <h3 class="text-xl font-bold text-white mb-4">Settings</h3>
+            <div class="mb-4">
+                <label class="block text-gray-400 text-sm font-bold mb-2" for="api-key-input">
+                    Google Gemini API Key
+                </label>
+                <input class="shadow appearance-none border border-gray-600 rounded w-full py-2 px-3 text-gray-300 bg-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="api-key-input" type="password" placeholder="Paste your API key here">
+                <p class="text-xs text-gray-500 mt-2">Key is stored locally in your browser.</p>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button id="close-settings-button" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancel</button>
+                <button id="save-key-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const channelsContainer = document.getElementById('channels-container');
+            const canvas = document.getElementById('rta-canvas');
+            const canvasCtx = canvas.getContext('2d');
+            const startButton = document.getElementById('start-button');
+            const feedbackButton = document.getElementById('feedback-button');
+            const analyzeButton = document.getElementById('analyze-button');
+            const statusMessage = document.getElementById('status-message');
+            const smartFeedbackToggle = document.getElementById('smart-feedback-toggle');
+            
+            // Modals
+            const geminiModal = document.getElementById('gemini-modal');
+            const geminiContent = document.getElementById('gemini-content');
+            const closeModalButton = document.getElementById('close-modal-button');
+            
+            const settingsButton = document.getElementById('settings-button');
+            const settingsModal = document.getElementById('settings-modal');
+            const apiKeyInput = document.getElementById('api-key-input');
+            const saveKeyButton = document.getElementById('save-key-button');
+            const closeSettingsButton = document.getElementById('close-settings-button');
+
+            let isSystemOn = false, isFeedbacking = false, feedbackFrequency = 0, lastScenario = "";
+            let noise, feedbackOsc, analyser, noiseLFO, animationFrameId;
+            let eqFilters = [];
+
+            const RTA_SIZE = 2048;
+            const RTA_BARS = 62; // 1/6 octave
+            const RTA_MIN_FREQ = 20, RTA_MAX_FREQ = 20000;
+            const RTA_GRID_FREQS = [31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+            const channelDefinitions = [
+                { label: 'Low', min: 60, max: 250 },
+                { label: 'Low-Mid', min: 250, max: 2000 },
+                { label: 'Hi-Mid', min: 2000, max: 6000 },
+                { label: 'High', min: 6000, max: 16000 },
+            ];
+            
+            // --- Settings Logic ---
+            settingsButton.addEventListener('click', () => {
+                apiKeyInput.value = localStorage.getItem('gemini_api_key') || "";
+                settingsModal.classList.add('show');
+            });
+
+            closeSettingsButton.addEventListener('click', () => {
+                settingsModal.classList.remove('show');
+            });
+
+            saveKeyButton.addEventListener('click', () => {
+                const key = apiKeyInput.value.trim();
+                if (key) {
+                    localStorage.setItem('gemini_api_key', key);
+                    settingsModal.classList.remove('show');
+                    alert("API Key saved successfully!");
+                } else {
+                    alert("Please enter a valid API key.");
+                }
+            });
+
+            // --- UI Creation ---
+            const createChannels = () => {
+                channelsContainer.innerHTML = '';
+                channelDefinitions.forEach((def, index) => {
+                    const channelWrapper = document.createElement('div');
+                    channelWrapper.className = 'flex flex-col items-center p-2 bg-gray-900/50 rounded-lg';
+                    
+                    const bandLabel = document.createElement('div');
+                    bandLabel.className = 'font-bold text-lg text-gray-400 mb-2';
+                    bandLabel.textContent = def.label;
+                    channelWrapper.appendChild(bandLabel);
+
+                    const knobsContainer = document.createElement('div');
+                    knobsContainer.className = 'flex flex-col items-center gap-2';
+                    const freqKnob = createKnob(index, 'freq', 'FREQ', def.min, def.max);
+                    const gainKnob = createKnob(index, 'gain', 'GAIN', -30, 10);
+                    const qKnob = createKnob(index, 'q', 'Q', 0.5, 12);
+                    knobsContainer.appendChild(freqKnob.container);
+                    knobsContainer.appendChild(gainKnob.container);
+                    knobsContainer.appendChild(qKnob.container);
+
+                    channelWrapper.appendChild(knobsContainer);
+                    channelsContainer.appendChild(channelWrapper);
+                });
+            };
+
+            const createKnob = (index, type, label, min, max) => {
+                const container = document.createElement('div');
+                container.className = 'knob-wrapper';
+                const knob = document.createElement('div');
+                knob.className = 'knob disabled';
+                const indicator = document.createElement('div');
+                indicator.className = 'knob-indicator';
+                knob.appendChild(indicator);
+                const labelEl = document.createElement('div');
+                labelEl.className = 'knob-label';
+                labelEl.textContent = label;
+                const valueEl = document.createElement('div');
+                valueEl.className = 'knob-value';
+                valueEl.id = `${type}-value-${index}`;
+                container.appendChild(knob);
+                container.appendChild(labelEl);
+                container.appendChild(valueEl);
+
+                let active = false, initialY, initialAngle;
+                const dragStart = (e) => {
+                    if (knob.classList.contains('disabled')) return;
+                    active = true;
+                    initialY = e.clientY || e.touches[0].clientY;
+                    const currentRotation = indicator.style.transform.match(/rotate\((.+)deg\)/);
+                    initialAngle = currentRotation ? parseFloat(currentRotation[1]) : 0;
+                    document.body.style.cursor = 'ns-resize';
+                    document.addEventListener('pointermove', drag);
+                    document.addEventListener('pointerup', dragEnd);
+                };
+                const drag = (e) => {
+                    if (!active) return;
+                    e.preventDefault();
+                    const currentY = e.clientY || e.touches[0].clientY;
+                    const deltaY = initialY - currentY;
+                    let newAngle = initialAngle + deltaY;
+                    newAngle = Math.max(-135, Math.min(newAngle, 135));
+                    indicator.style.transform = `translateX(-50%) rotate(${newAngle}deg)`;
+                    updateChannelState(index);
+                };
+                const dragEnd = () => {
+                    active = false;
+                    document.body.style.cursor = 'default';
+                    document.removeEventListener('pointermove', drag);
+                    document.removeEventListener('pointerup', dragEnd);
+                };
+                knob.addEventListener('pointerdown', dragStart);
+
+                return { container, knob, indicator };
+            };
+
+            // --- State & Audio Update ---
+            const updateChannelState = (index) => {
+                if (!isSystemOn) return;
+                const channel = eqFilters[index];
+                
+                const getKnobValue = (type, min, max, isLog) => {
+                    const indicator = document.querySelector(`#${type}-value-${index}`).previousElementSibling.previousElementSibling.querySelector('.knob-indicator');
+                    const angle = (indicator.style.transform.match(/rotate\((.+)deg\)/) || [0,0])[1];
+                    const percent = (parseFloat(angle) + 135) / 270;
+                    if (isLog) {
+                        const logMin = Math.log10(min);
+                        const logMax = Math.log10(max);
+                        return Math.pow(10, logMin + percent * (logMax - logMin));
+                    }
+                    return min + percent * (max - min);
+                };
+
+                const freq = getKnobValue('freq', channelDefinitions[index].min, channelDefinitions[index].max, true);
+                const gain = getKnobValue('gain', -30, 10, false);
+                const q = getKnobValue('q', 0.5, 12, false);
+
+                channel.frequency.value = freq;
+                channel.gain.value = gain;
+                channel.Q.value = q;
+
+                document.getElementById(`freq-value-${index}`).textContent = `${Math.round(freq)} Hz`;
+                document.getElementById(`gain-value-${index}`).textContent = `${gain.toFixed(1)}dB`;
+                document.getElementById(`q-value-${index}`).textContent = q.toFixed(1);
+
+                checkSuccess();
+            };
+            
+            const checkSuccess = () => {
+                if (!isFeedbacking) return;
+                for (const filter of eqFilters) {
+                    const bandwidth = filter.frequency.value / filter.Q.value;
+                    const freqMatch = Math.abs(filter.frequency.value - feedbackFrequency) < bandwidth / 2;
+                    if (freqMatch && filter.gain.value < -15) {
+                        stopFeedback();
+                        statusMessage.innerHTML = `<p class="text-green-400 font-bold">Success! Feedback at ${Math.round(feedbackFrequency)} Hz eliminated.</p>`;
+                        analyzeButton.classList.remove('hidden');
+                        break;
+                    }
+                }
+            };
+
+            const setupAudio = () => {
+                noiseLFO = new Tone.LFO({ frequency: 0.3, type: "sine", min: -32, max: -22 }).start();
+                noise = new Tone.Noise("pink");
+                noiseLFO.connect(noise.volume);
+                feedbackOsc = new Tone.Oscillator(440, "sine");
+                feedbackOsc.volume.value = -18;
+                analyser = new Tone.Analyser('fft', RTA_SIZE);
+
+                eqFilters = channelDefinitions.map(() => new Tone.Filter(0, 'peaking'));
+                
+                noise.chain(...eqFilters, analyser, Tone.Destination);
+                feedbackOsc.chain(...eqFilters, analyser, Tone.Destination);
+            };
+
+            const resetControls = () => {
+                document.querySelectorAll('.knob').forEach(knob => {
+                    const indicator = knob.querySelector('.knob-indicator');
+                    const valueEl = knob.nextElementSibling.nextElementSibling;
+                    const type = valueEl.id.split('-')[0];
+                    let angle = 0;
+                    if (type === 'gain') {
+                        const gainPercent = (0 - (-30)) / 40;
+                        angle = (gainPercent * 270) - 135;
+                    } else if (type === 'freq') {
+                         angle = 0; // Center frequency
+                    } else if (type === 'q') {
+                        const qPercent = (1.4 - 0.5) / 11.5; // Default Q of 1.4
+                        angle = (qPercent * 270) - 135;
+                    }
+                    indicator.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+                });
+                eqFilters.forEach((_, index) => updateChannelState(index));
+            };
+            
+            // --- RTA and System Logic ---
+            const setCanvasSize = () => {
+                const dpr = window.devicePixelRatio || 1;
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                canvasCtx.scale(dpr, dpr);
+                if(isSystemOn) drawRTA(); else drawEmptyRTA();
+            };
+            window.addEventListener('resize', setCanvasSize);
+
+            const freqToX = (freq) => {
+                const logMin = Math.log10(RTA_MIN_FREQ);
+                const logMax = Math.log10(RTA_MAX_FREQ);
+                const logFreq = Math.log10(freq);
+                return ((logFreq - logMin) / (logMax - logMin)) * canvas.clientWidth;
+            };
+
+            const drawRTALabels = () => {
+                const height = canvas.clientHeight;
+                RTA_GRID_FREQS.forEach(freq => {
+                    const x = freqToX(freq);
+                    canvasCtx.fillStyle = '#9CA3AF';
+                    canvasCtx.font = '10px Inter';
+                    canvasCtx.textAlign = 'center';
+                    const label = freq < 1000 ? freq : `${freq/1000}k`;
+                    canvasCtx.fillText(label, x, height - 5);
+                });
+            };
+
+            const drawEmptyRTA = () => {
+                const width = canvas.clientWidth;
+                const height = canvas.clientHeight;
+                canvasCtx.clearRect(0, 0, width, height);
+                canvasCtx.fillStyle = '#000';
+                canvasCtx.fillRect(0,0, width, height);
+                drawRTALabels();
+            };
+
+            const drawRTA = () => {
+                animationFrameId = requestAnimationFrame(drawRTA);
+                if (!analyser) return;
+
+                const fftData = analyser.getValue();
+                const width = canvas.clientWidth;
+                const height = canvas.clientHeight;
+                
+                // Draw background first
+                canvasCtx.clearRect(0, 0, width, height);
+                canvasCtx.fillStyle = '#000';
+                canvasCtx.fillRect(0, 0, width, height);
+
+                const barWidth = width / RTA_BARS;
+                const sampleRate = Tone.context.sampleRate;
+                const fftFreqResolution = sampleRate / RTA_SIZE;
+
+                const logMin = Math.log10(RTA_MIN_FREQ);
+                const logMax = Math.log10(RTA_MAX_FREQ);
+
+                for (let i = 0; i < RTA_BARS; i++) {
+                    const barPercentStart = i / RTA_BARS;
+                    const barPercentEnd = (i + 1) / RTA_BARS;
+
+                    const startFreq = Math.pow(10, logMin + (logMax - logMin) * barPercentStart);
+                    const endFreq = Math.pow(10, logMin + (logMax - logMin) * barPercentEnd);
+
+                    let peak = -140;
+                    const startIndex = Math.floor(startFreq / fftFreqResolution);
+                    const endIndex = Math.ceil(endFreq / fftFreqResolution);
+                    
+                    for (let j = startIndex; j <= endIndex; j++) {
+                        if (fftData[j] > peak) {
+                            peak = fftData[j];
+                        }
+                    }
+                    
+                    const db = peak;
+                    const barHeight = ((db + 100) / 100) * height; // Map -100dB to 0dB range
+
+                    const gradient = canvasCtx.createLinearGradient(0, height - barHeight, 0, height);
+                    gradient.addColorStop(0, '#00E5FF');
+                    gradient.addColorStop(1, '#2563EB');
+                    canvasCtx.fillStyle = gradient;
+
+                    canvasCtx.fillRect(i * barWidth, height - barHeight, barWidth - 1, barHeight);
+                }
+
+                // FIX: Draw labels on top of the bars
+                drawRTALabels();
+            };
+
+            startButton.addEventListener('click', async () => {
+                if (!isSystemOn) {
+                    await Tone.start(); setupAudio(); noise.start(); drawRTA(); isSystemOn = true;
+                    startButton.textContent = 'Stop'; startButton.classList.replace('bg-blue-600', 'bg-gray-600');
+                    feedbackButton.disabled = false; statusMessage.innerHTML = '<p class="text-green-400">System ON</p>';
+                    document.querySelectorAll('.knob').forEach(el => el.classList.remove('disabled'));
+                    resetControls();
+                } else {
+                    stopFeedback(); noise.stop(); noiseLFO.stop(); cancelAnimationFrame(animationFrameId); drawEmptyRTA(); isSystemOn = false;
+                    startButton.textContent = 'Start'; startButton.classList.replace('bg-gray-600', 'bg-blue-600');
+                    feedbackButton.disabled = true; statusMessage.innerHTML = '<p class="text-yellow-400">System is OFF</p>';
+                    document.querySelectorAll('.knob').forEach(el => el.classList.add('disabled'));
+                    analyzeButton.classList.add('hidden');
+                }
+            });
+
+            feedbackButton.addEventListener('click', async () => {
+                if (!isSystemOn || isFeedbacking) return;
+                feedbackButton.disabled = true;
+                analyzeButton.classList.add('hidden');
+                statusMessage.innerHTML = `<p class="text-blue-400 animate-pulse">✨ Getting scenario...</p>`;
+                
+                const minFbFreq = 200, maxFbFreq = 8000;
+                
+                // Check API key availability for smart features
+                const hasApiKey = !!localStorage.getItem('gemini_api_key');
+
+                if (smartFeedbackToggle.checked && hasApiKey) {
+                    try {
+                        const { scenario, frequency } = await getSmartFeedback(minFbFreq, maxFbFreq);
+                        lastScenario = scenario;
+                        startFeedback(frequency, `<strong>Scenario:</strong> ${scenario}`);
+                    } catch (error) {
+                        console.error("Gemini API error:", error);
+                        statusMessage.innerHTML = `<p class="text-red-500">Could not get scenario. Using random.</p>`;
+                        startFeedback(minFbFreq + Math.random() * (maxFbFreq - minFbFreq), "");
+                    }
+                } else {
+                     if (smartFeedbackToggle.checked && !hasApiKey) {
+                        // User wanted smart feedback but no key
+                        settingsModal.classList.add('show');
+                        statusMessage.innerHTML = `<p class="text-yellow-500">API Key missing. Using random mode.</p>`;
+                        lastScenario = "Random mode (API Key missing)";
+                    } else {
+                        lastScenario = "A random frequency was generated.";
+                    }
+                    startFeedback(minFbFreq + Math.random() * (maxFbFreq - minFbFreq), "");
+                }
+            });
+            
+            const startFeedback = (freq, scenarioText) => {
+                isFeedbacking = true;
+                feedbackFrequency = freq;
+                feedbackOsc.frequency.value = feedbackFrequency;
+                feedbackOsc.start();
+                feedbackButton.textContent = 'Feedback!';
+                if (scenarioText) {
+                    statusMessage.innerHTML = `<p class="text-red-500 animate-pulse text-sm">${scenarioText} Feedback detected! Cut it!</p>`;
+                }
+            };
+
+            const stopFeedback = () => {
+                if (isFeedbacking) {
+                    feedbackOsc.stop(); isFeedbacking = false; feedbackButton.disabled = false;
+                    feedbackButton.textContent = 'Feedback';
+                }
+            };
+            
+            // --- Gemini API with dynamic key ---
+            async function callGemini(payload) {
+                const apiKey = localStorage.getItem('gemini_api_key');
+                if (!apiKey) {
+                    settingsModal.classList.add('show');
+                    throw new Error("API Key missing. Please check your settings.");
+                }
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
+                const result = await response.json();
+                if (!result.candidates?.[0]?.content?.parts?.[0]) throw new Error("Invalid API response structure");
+                return result.candidates[0].content.parts[0].text;
+            }
+            
+            async function getSmartFeedback(min, max) {
+                const payload = {
+                    contents: [{ parts: [{ text: `Generate a common live sound scenario that could cause audio feedback. Provide a short description of the scenario and a specific feedback frequency as a number between ${min} and ${max}. Return ONLY a valid JSON object with keys "scenario" (string) and "frequency" (number).` }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                };
+                const text = await callGemini(payload);
+                return JSON.parse(text);
+            }
+
+            async function getAnalysis() {
+                const apiKey = localStorage.getItem('gemini_api_key');
+                if (!apiKey) {
+                    settingsModal.classList.add('show');
+                    alert("Please enter your API Key in Settings to use Analysis.");
+                    return;
+                }
+
+                analyzeButton.disabled = true;
+                analyzeButton.textContent = "Analyzing...";
+                geminiContent.innerHTML = '<p class="animate-pulse">Asking Gemini for advice...</p>';
+                geminiModal.classList.add('show');
+
+                const prompt = `As a live sound engineer, I just resolved an audio feedback issue.
+                - Scenario: ${lastScenario}
+                - Feedback Frequency: ${Math.round(feedbackFrequency)} Hz
+                Please provide a brief, easy-to-understand analysis. Explain why this frequency likely caused feedback in this scenario and give 2-3 actionable tips to prevent it in the future. Format the response in simple HTML using <h4> for titles and <p> for text.`;
+                
+                try {
+                    const text = await callGemini({ contents: [{ parts: [{ text: prompt }] }] });
+                    geminiContent.innerHTML = text;
+                } catch (error) {
+                    geminiContent.innerHTML = `<p class="text-red-500">Sorry, I couldn't get an analysis. Error: ${error.message}. Check your API Key.</p>`;
+                } finally {
+                    analyzeButton.disabled = false;
+                    analyzeButton.textContent = "✨ Analyze";
+                }
+            }
+
+            analyzeButton.addEventListener('click', getAnalysis);
+            closeModalButton.addEventListener('click', () => geminiModal.classList.remove('show'));
+
+            // Initial setup
+            createChannels();
+            setCanvasSize();
+            drawEmptyRTA();
+        });
+    </script>
+</body>
+</html>
