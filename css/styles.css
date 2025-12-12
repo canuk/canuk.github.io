@@ -1,48 +1,146 @@
-    @media (min-width: 1000px) {
-          .hex-project-a {
-            margin-top: 112px;
-            margin-left: 3px;
-          }
-          .hex-project-b {
-            margin-left:-62px
-          }
-          .hex-project-c {
-            margin-top: 225px;
-            margin-left:-62px
-          }
-          .hex-project-d {
-            margin-top: 337px;
-            margin-left: 3px
-          }
-    }
-    @media (max-width: 999px) {
-          .honeycombs {
-            margin-top: -112px;
-          }
-    }
-    body {
-      padding-top: 70px;
-      font-family: 'Montserrat', serif;
-      background-color: #F2E6B6;
-      background-image: url(../img/bg_tan.png);
-      color: #303030;
-    }
-    .navbar {
-       background:rgba(255,255,255,0.8);   /* translucent nav bar */
-    }
-    .hex-right {
-      width: 280px;
-    	margin-left:200px;
-    	text-align: left;
-    }
-    .hex-left {
-      width: 280px;      
-    	margin-right:200px;
-    	text-align: right;
-    }
-    .text-light {
-      color: #efefef;
-    }
-    .text-dark {
-      color: #303030;
-    }
+/* Modern 2025 Design System */
+:root {
+  --primary-color: #2563eb;
+  --secondary-color: #10b981;
+  --accent-color: #f59e0b;
+  --dark-bg: #0f172a;
+  --light-bg: #f8fafc;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+  --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --card-shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+body {
+  padding-top: 70px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+}
+
+/* Navbar Styling */
+.navbar {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.navbar-brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.5rem;
+  color: var(--primary-color) !important;
+}
+
+.nav-link {
+  color: var(--text-primary) !important;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--primary-color) !important;
+}
+
+/* Hexagon Projects */
+@media (min-width: 1000px) {
+  .hex-project-a {
+    margin-top: 112px;
+    margin-left: 3px;
+  }
+  .hex-project-b {
+    margin-left:-62px
+  }
+  .hex-project-c {
+    margin-top: 225px;
+    margin-left:-62px
+  }
+  .hex-project-d {
+    margin-top: 337px;
+    margin-left: 3px
+  }
+}
+
+@media (max-width: 999px) {
+  .honeycombs {
+    margin-top: -112px;
+  }
+}
+
+.hex-right {
+  width: 280px;
+  margin-left: 200px;
+  text-align: left;
+}
+
+.hex-left {
+  width: 280px;      
+  margin-right: 200px;
+  text-align: right;
+}
+
+.text-light {
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.text-dark {
+  color: var(--text-primary);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+/* Hex overlay improvements */
+.honeycombs .comb span {
+  transition: all 0.3s ease;
+}
+
+.honeycombs .comb:hover span {
+  transform: scale(1.05);
+}
+
+/* Footer */
+.footer {
+  margin-top: 4rem;
+}
+
+/* Cards and modern components */
+.card-modern {
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.card-modern:hover {
+  box-shadow: var(--card-shadow-lg);
+  transform: translateY(-4px);
+}
+
+/* Button styles */
+.btn-primary {
+  background: var(--primary-color);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
