@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Semantic Zoom Editor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #fafaf9;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Main content area */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid #e7e5e4;
+      background: white;
+      flex-shrink: 0;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    h1 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #292524;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: #78716c;
+      margin-top: 0.125rem;
+    }
+
+    .loading-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.375rem 0.75rem;
+      background: #fef3c7;
+      color: #b45309;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+    }
+
+    .spinner {
+      width: 0.75rem;
+      height: 0.75rem;
+      border: 2px solid #f59e0b;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .word-count {
+      font-size: 0.875rem;
+      color: #78716c;
+    }
+
+    .word-count span {
+      color: #a8a29e;
+      margin-left: 0.5rem;
+    }
+
+    /* Editor area */
+    .editor-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+    }
+
+    .editor-content {
+      max-width: 42rem;
+      margin: 0 auto;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: calc(100vh - 180px);
+      background: transparent;
+      border: none;
+      resize: none;
+      font-family: Georgia, serif;
+      font-size: 18px;
+      line-height: 1.7;
+      color: #44403c;
+      outline: none;
+    }
+
+    textarea::placeholder {
+      color: #a8a29e;
+    }
+
+    /* Paragraphs */
+    .paragraphs {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .paragraph-group {
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .paragraph-group:hover {
+      color: #1c1917;
+    }
+
+    .paragraph-text {
+      font-family: Georgia, serif;
+      font-size: 18px;
+      line-height: 1.7;
+      color: #44403c;
+    }
+
+    .expand-arrow {
+      margin-left: 0.5rem;
+      font-size: 0.75rem;
+      color: #a8a29e;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .paragraph-group:hover .expand-arrow {
+      opacity: 1;
+    }
+
+    .expanded-text {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.2s ease-out, opacity 0.2s ease-out, margin-top 0.2s ease-out;
+    }
+
+    .expanded-text.show {
+      max-height: 500px;
+      opacity: 1;
+      margin-top: 1rem;
+    }
+
+    .expanded-text-inner {
+      padding-left: 1rem;
+      border-left: 2px solid #d6d3d1;
+      font-family: Georgia, serif;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #78716c;
+    }
+
+    /* Abstract view */
+    .abstract-view {
+      padding: 3rem 0;
+      text-align: center;
+    }
+
+    .abstract-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.375rem 0.75rem;
+      background: #f5f5f4;
+      color: #57534e;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .abstract-text {
+      font-family: Georgia, serif;
+      font-size: 18px;
+      line-height: 1.7;
+      color: #44403c;
+      max-width: 32rem;
+      margin: 0 auto;
+    }
+
+    /* Loading skeleton */
+    .skeleton {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .skeleton-line {
+      height: 1.25rem;
+      background: #e7e5e4;
+      border-radius: 0.25rem;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .skeleton-line:nth-child(2) { width: 75%; }
+    .skeleton-line:nth-child(3) { width: 60%; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 9rem;
+      background: white;
+      border-left: 1px solid #e7e5e4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 0;
+      flex-shrink: 0;
+    }
+
+    .sidebar-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #a8a29e;
+      letter-spacing: 0.1em;
+      margin-bottom: 1.5rem;
+    }
+
+    .zoom-levels {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+    }
+
+    .zoom-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.375rem 0.5rem;
+      border: none;
+      background: transparent;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      width: 100%;
+      text-align: left;
+    }
+
+    .zoom-btn:hover {
+      background: #f5f5f4;
+    }
+
+    .zoom-btn.active {
+      background: #f5f5f4;
+    }
+
+    .zoom-btn.active .zoom-label-percent,
+    .zoom-btn.active .zoom-label-name {
+      color: #292524;
+    }
+
+    .zoom-btn.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .minimap {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      width: 2rem;
+      height: 2.5rem;
+      justify-content: center;
+    }
+
+    .minimap-bar {
+      height: 4px;
+      background: #d6d3d1;
+      border-radius: 2px;
+      transition: all 0.3s;
+    }
+
+    .zoom-btn.active .minimap-bar {
+      background: #57534e;
+    }
+
+    .zoom-label {
+      flex: 1;
+      text-align: left;
+    }
+
+    .zoom-label-percent {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #57534e;
+    }
+
+    .zoom-label-name {
+      font-size: 0.625rem;
+      color: #a8a29e;
+    }
+
+    .zoom-status {
+      width: 1rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .status-spinner {
+      width: 0.625rem;
+      height: 0.625rem;
+      border: 2px solid #a8a29e;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .status-ready {
+      width: 6px;
+      height: 6px;
+      background: #4ade80;
+      border-radius: 50%;
+    }
+
+    .status-unavailable {
+      width: 6px;
+      height: 6px;
+      background: #d6d3d1;
+      border-radius: 50%;
+    }
+
+    .zoom-nav {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e7e5e4;
+    }
+
+    .nav-btn {
+      padding: 0.5rem;
+      border: none;
+      background: transparent;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      color: #78716c;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: #f5f5f4;
+      color: #44403c;
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .nav-btn svg {
+      width: 1rem;
+      height: 1rem;
+    }
+
+    /* Model loading overlay */
+    .model-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(250, 250, 249, 0.98);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .model-overlay.hidden {
+      display: none;
+    }
+
+    .model-loading-content {
+      text-align: center;
+      max-width: 28rem;
+      padding: 0 1.5rem;
+    }
+
+    .model-loading-icon {
+      width: 4rem;
+      height: 4rem;
+      margin: 0 auto 1.5rem;
+      color: #57534e;
+    }
+
+    .model-loading-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #292524;
+      margin-bottom: 0.5rem;
+    }
+
+    .model-loading-subtitle {
+      font-size: 0.875rem;
+      color: #78716c;
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 0.5rem;
+      background: #e7e5e4;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 0.75rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #57534e;
+      border-radius: 9999px;
+      transition: width 0.3s;
+    }
+
+    .progress-text {
+      font-size: 0.75rem;
+      color: #a8a29e;
+    }
+
+    /* Error state */
+    .error-icon {
+      width: 4rem;
+      height: 4rem;
+      margin: 0 auto 1.5rem;
+      color: #dc2626;
+    }
+
+    .error-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #292524;
+      margin-bottom: 0.75rem;
+    }
+
+    .error-message {
+      font-size: 0.875rem;
+      color: #78716c;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+
+    .error-details {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+
+    .error-details-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #991b1b;
+      margin-bottom: 0.5rem;
+    }
+
+    .error-details-list {
+      font-size: 0.8125rem;
+      color: #b91c1c;
+      list-style: disc;
+      padding-left: 1.25rem;
+      line-height: 1.6;
+    }
+
+    .browser-links {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .browser-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.5rem 1rem;
+      background: #f5f5f4;
+      color: #44403c;
+      text-decoration: none;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      transition: background 0.15s;
+    }
+
+    .browser-link:hover {
+      background: #e7e5e4;
+    }
+
+    .fallback-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.625rem;
+      background: #fef3c7;
+      color: #b45309;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      margin-left: 0.5rem;
+    }
+
+    .demo-mode-notice {
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.8125rem;
+      color: #92400e;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .demo-mode-notice.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Model loading overlay -->
+  <div class="model-overlay" id="modelOverlay">
+    <div class="model-loading-content" id="overlayContent">
+      <!-- Content set dynamically -->
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="main">
+      <header>
+        <div class="header-content">
+          <div class="header-left">
+            <div>
+              <h1>
+                Semantic Zoom Editor
+                <span class="fallback-badge hidden" id="fallbackBadge">Demo Mode</span>
+              </h1>
+              <div class="subtitle" id="levelDescription">Full Text · Every word as written</div>
+            </div>
+            <div class="loading-badge" id="generatingBadge" style="display: none;">
+              <div class="spinner"></div>
+              Generating summaries...
+            </div>
+          </div>
+          <div class="word-count">
+            <span id="wordCount">0 words</span>
+            <span id="compressionRatio"></span>
+          </div>
+        </div>
+      </header>
+
+      <div class="editor-container">
+        <div class="demo-mode-notice hidden" id="demoNotice">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Running in demo mode with pre-generated summaries. Use Chrome/Edge with WebGPU for live AI.
+        </div>
+        <div class="editor-content" id="editorContent">
+          <!-- Content rendered here -->
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="sidebar-title">ZOOM</div>
+      <div class="zoom-levels" id="zoomLevels">
+        <!-- Zoom buttons rendered here -->
+      </div>
+      <div class="zoom-nav">
+        <button class="nav-btn" id="zoomInBtn" title="Zoom In">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+          </svg>
+        </button>
+        <button class="nav-btn" id="zoomOutBtn" title="Zoom Out">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Constants
+    const ZOOM_LEVELS = [
+      { value: 100, label: 'Full Text', description: 'Every word as written' },
+      { value: 75, label: 'Tightened', description: 'Condensed prose' },
+      { value: 50, label: 'Core Ideas', description: '2-3 key sentences' },
+      { value: 25, label: 'Summary', description: 'One sentence each' },
+      { value: 10, label: 'Theme', description: 'A few words' },
+      { value: 0, label: 'Abstract', description: 'Document overview' },
+    ];
+
+    const SAMPLE_TEXT = `The art of writing is fundamentally about communication. When we put words on a page, we're attempting to transfer thoughts, emotions, and ideas from our minds into the minds of others. This process is both magical and mundane—magical in its ability to transcend time and space, mundane in its everyday ubiquity.
+
+Good writing requires clarity above all else. The writer must understand what they want to say before they can hope to communicate it effectively. This means thinking deeply about the subject, organizing thoughts logically, and choosing words with precision. Hemingway famously said that the first draft of anything is garbage, and he was right—writing is rewriting.
+
+The revision process is where good writing becomes great. During revision, we cut unnecessary words, strengthen weak verbs, and ensure each sentence earns its place. We read our work aloud to catch awkward rhythms. We ask ourselves: Is this clear? Is this true? Is this necessary? These questions guide us toward prose that respects the reader's time and intelligence.
+
+Technology has transformed how we write, but the fundamentals remain unchanged. Whether carving in stone or typing on glass, writers still grapple with the same challenges: finding the right word, striking the right tone, and making meaning out of the chaos of experience. The tools evolve; the craft endures.`;
+
+    // Pre-generated fallback summaries for demo mode
+    const FALLBACK_SUMMARIES = {
+      abstract: "Writing is fundamentally about transferring ideas between minds through clear, precise prose. Good writing emerges through rigorous revision, and while technology changes our tools, the core challenges of finding the right words remain timeless.",
+      paragraphs: {
+        75: [
+          "Writing is fundamentally about communication—transferring thoughts and ideas from our minds to others. This process is both magical in transcending time and space, and mundane in its ubiquity.",
+          "Good writing requires clarity above all. Writers must understand what they want to say before communicating it effectively, which means thinking deeply, organizing logically, and choosing words precisely. As Hemingway said, the first draft is garbage—writing is rewriting.",
+          "Revision transforms good writing into great writing. We cut unnecessary words, strengthen weak verbs, and ensure each sentence earns its place. We ask: Is this clear? True? Necessary? These questions guide us toward prose that respects readers.",
+          "Technology has transformed how we write, but fundamentals remain unchanged. Whether carving in stone or typing on glass, writers grapple with the same challenges: finding the right word, striking the right tone, making meaning from chaos. Tools evolve; craft endures."
+        ],
+        50: [
+          "Writing transfers thoughts between minds. This process transcends time and space.",
+          "Good writing requires clarity and precision. Writing is rewriting.",
+          "Revision makes writing great. Ask: Is this clear, true, necessary?",
+          "Technology changes tools, but writing fundamentals remain unchanged."
+        ],
+        25: [
+          "Writing is the art of transferring ideas between minds through words.",
+          "Good writing demands clarity, precision, and continuous revision.",
+          "Revision transforms good writing into great writing through ruthless editing.",
+          "Technology evolves but the fundamental challenges of writing remain constant."
+        ],
+        10: [
+          "Communication through words",
+          "Clarity and revision",
+          "Editing creates greatness",
+          "Timeless craft"
+        ]
+      }
+    };
+
+    // State
+    let state = {
+      content: SAMPLE_TEXT,
+      zoomLevel: 100,
+      prevZoomLevel: 100,
+      paragraphs: [],
+      summaryCache: {},
+      generatingLevels: new Set(),
+      isGenerating: false,
+      expandedParagraphs: new Set(),
+      previousTexts: {},
+      transitionKey: 0,
+      engine: null,
+      webGPUSupported: false,
+      fallbackMode: false
+    };
+
+    // DOM elements
+    const elements = {
+      modelOverlay: document.getElementById('modelOverlay'),
+      overlayContent: document.getElementById('overlayContent'),
+      levelDescription: document.getElementById('levelDescription'),
+      generatingBadge: document.getElementById('generatingBadge'),
+      wordCount: document.getElementById('wordCount'),
+      compressionRatio: document.getElementById('compressionRatio'),
+      editorContent: document.getElementById('editorContent'),
+      zoomLevels: document.getElementById('zoomLevels'),
+      zoomInBtn: document.getElementById('zoomInBtn'),
+      zoomOutBtn: document.getElementById('zoomOutBtn'),
+      fallbackBadge: document.getElementById('fallbackBadge'),
+      demoNotice: document.getElementById('demoNotice')
+    };
+
+    // Utility functions
+    function hashString(str) {
+      let hash1 = 5381, hash2 = 52711;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash1 = (hash1 * 33) ^ char;
+        hash2 = (hash2 * 33) ^ char;
+      }
+      return (hash1 >>> 0).toString(16) + (hash2 >>> 0).toString(16);
+    }
+
+    function getWordCount(text) {
+      return text ? text.split(/\s+/).filter(w => w).length : 0;
+    }
+
+    function getEffectiveLevel(zoom) {
+      const levels = ZOOM_LEVELS.map(l => l.value);
+      return levels.reduce((prev, curr) =>
+        Math.abs(curr - zoom) < Math.abs(prev - zoom) ? curr : prev
+      );
+    }
+
+    function getPromptForLevel(text, level, isFullDocument = false) {
+      if (isFullDocument) {
+        return `Summarize this entire document in 2-3 sentences. Plain text only, no markdown:\n\n${text}`;
+      }
+      switch (level) {
+        case 75:
+          return `Tighten this paragraph by removing filler words and redundancy. Keep it as flowing prose, just more concise. Plain text only:\n\n${text}`;
+        case 50:
+          return `Distill this paragraph to its 2-3 most important sentences or ideas. Plain text only:\n\n${text}`;
+        case 25:
+          return `Summarize this paragraph in exactly one sentence. Plain text only:\n\n${text}`;
+        case 10:
+          return `What is the main theme of this paragraph in 3-5 words? No punctuation, plain text only:\n\n${text}`;
+        default:
+          return text;
+      }
+    }
+
+    function stripMarkdown(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/__(.*?)__/g, '$1')
+        .replace(/_(.*?)_/g, '$1')
+        .replace(/`(.*?)`/g, '$1')
+        .replace(/^#+\s*/gm, '')
+        .replace(/^[-*+]\s+/gm, '')
+        .replace(/^\d+\.\s+/gm, '')
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+        .trim();
+    }
+
+    function getDisplayText(para, index, level) {
+      if (level === 100) return para;
+      const key = `${index}-${hashString(para)}-${level}`;
+      return state.summaryCache[key] || null;
+    }
+
+    function getAbstract() {
+      const key = `abstract-${hashString(state.paragraphs.join('|||'))}`;
+      return state.summaryCache[key] || null;
+    }
+
+    // WebGPU Detection
+    async function checkWebGPUSupport() {
+      if (!navigator.gpu) {
+        return { supported: false, reason: 'WebGPU API not available in this browser' };
+      }
+
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) {
+          return { supported: false, reason: 'No WebGPU adapter found (GPU may not be supported)' };
+        }
+
+        const device = await adapter.requestDevice();
+        if (!device) {
+          return { supported: false, reason: 'Could not initialize WebGPU device' };
+        }
+
+        return { supported: true };
+      } catch (error) {
+        return { supported: false, reason: error.message };
+      }
+    }
+
+    function showLoadingOverlay() {
+      elements.overlayContent.innerHTML = `
+        <svg class="model-loading-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        <div class="model-loading-title">Loading AI Model</div>
+        <div class="model-loading-subtitle">Downloading and initializing the model for in-browser AI processing. This may take a moment on first visit...</div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div class="progress-text" id="progressText">Checking WebGPU support...</div>
+      `;
+    }
+
+    function showErrorOverlay(reason) {
+      elements.overlayContent.innerHTML = `
+        <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div class="error-title">WebGPU Not Available</div>
+        <div class="error-message">
+          This editor uses WebGPU to run AI models directly in your browser. Your current browser or device doesn't support WebGPU.
+        </div>
+        <div class="error-details">
+          <div class="error-details-title">Technical Details</div>
+          <ul class="error-details-list">
+            <li>${reason}</li>
+            <li>WebGPU requires Chrome 113+, Edge 113+, or Safari 18+ (macOS Sonoma)</li>
+            <li>Hardware acceleration must be enabled</li>
+            <li>A compatible GPU is required</li>
+          </ul>
+        </div>
+        <div style="margin-bottom: 1rem; font-size: 0.875rem; color: #57534e;">
+          Try one of these browsers with WebGPU support:
+        </div>
+        <div class="browser-links">
+          <a href="https://www.google.com/chrome/" target="_blank" class="browser-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+              <circle cx="12" cy="12" r="4"/>
+            </svg>
+            Chrome
+          </a>
+          <a href="https://www.microsoft.com/edge" target="_blank" class="browser-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+            Edge
+          </a>
+        </div>
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e7e5e4;">
+          <button id="useFallbackBtn" style="
+            background: #57534e;
+            color: white;
+            border: none;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background 0.15s;
+          ">Continue with Demo Mode</button>
+          <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #a8a29e;">
+            Uses pre-generated summaries instead of live AI
+          </div>
+        </div>
+      `;
+
+      document.getElementById('useFallbackBtn').addEventListener('click', () => {
+        enableFallbackMode();
+      });
+    }
+
+    function enableFallbackMode() {
+      state.fallbackMode = true;
+      elements.modelOverlay.classList.add('hidden');
+      elements.fallbackBadge.classList.remove('hidden');
+      elements.demoNotice.classList.remove('hidden');
+      loadFallbackSummaries();
+      updateUI();
+    }
+
+    function loadFallbackSummaries() {
+      const contentHash = hashString(state.paragraphs.join('|||'));
+      
+      // Load abstract
+      state.summaryCache[`abstract-${contentHash}`] = FALLBACK_SUMMARIES.abstract;
+      
+      // Load paragraph summaries for each level
+      [75, 50, 25, 10].forEach(level => {
+        state.paragraphs.forEach((para, idx) => {
+          const key = `${idx}-${hashString(para)}-${level}`;
+          if (FALLBACK_SUMMARIES.paragraphs[level] && FALLBACK_SUMMARIES.paragraphs[level][idx]) {
+            state.summaryCache[key] = FALLBACK_SUMMARIES.paragraphs[level][idx];
+          }
+        });
+      });
+    }
+
+    // AI functions
+    async function initializeEngine() {
+      showLoadingOverlay();
+
+      // Check WebGPU support first
+      const gpuCheck = await checkWebGPUSupport();
+      
+      if (!gpuCheck.supported) {
+        showErrorOverlay(gpuCheck.reason);
+        return;
+      }
+
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
+
+      try {
+        const webllm = await import("https://esm.run/@mlc-ai/web-llm");
+        
+        state.engine = await webllm.CreateMLCEngine(
+          "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+          {
+            initProgressCallback: (progress) => {
+              const percent = Math.round(progress.progress * 100);
+              progressFill.style.width = `${percent}%`;
+              progressText.textContent = progress.text || `Loading... ${percent}%`;
+            }
+          }
+        );
+
+        state.webGPUSupported = true;
+        elements.modelOverlay.classList.add('hidden');
+        generateAllSummaries();
+      } catch (error) {
+        console.error('Failed to load model:', error);
+        showErrorOverlay(error.message);
+      }
+    }
+
+    async function callLLM(prompt, maxTokens) {
+      if (!state.engine) return null;
+      try {
+        const response = await state.engine.chat.completions.create({
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: maxTokens,
+          temperature: 0.3
+        });
+        return stripMarkdown(response.choices[0].message.content);
+      } catch (error) {
+        console.error('LLM call failed:', error);
+        return null;
+      }
+    }
+
+    async function generateAllSummaries() {
+      if (state.fallbackMode) return;
+      if (!state.engine || state.paragraphs.length === 0) return;
+
+      state.isGenerating = true;
+      updateUI();
+
+      const levels = [75, 50, 25, 10];
+      const contentHash = hashString(state.paragraphs.join('|||'));
+
+      // Generate abstract
+      const abstractKey = `abstract-${contentHash}`;
+      if (!state.summaryCache[abstractKey]) {
+        const abstract = await callLLM(
+          getPromptForLevel(state.paragraphs.join('\n\n'), 0, true),
+          150
+        );
+        if (abstract) {
+          state.summaryCache[abstractKey] = abstract;
+          updateUI();
+        }
+      }
+
+      // Generate summaries for each level
+      for (const level of levels) {
+        state.generatingLevels.add(level);
+        updateUI();
+
+        for (let idx = 0; idx < state.paragraphs.length; idx++) {
+          const para = state.paragraphs[idx];
+          const key = `${idx}-${hashString(para)}-${level}`;
+
+          if (!state.summaryCache[key]) {
+            const maxTokens = level === 10 ? 30 : level === 25 ? 100 : 250;
+            const result = await callLLM(getPromptForLevel(para, level), maxTokens);
+            if (result) {
+              state.summaryCache[key] = result;
+              updateUI();
+            }
+          }
+        }
+
+        state.generatingLevels.delete(level);
+        updateUI();
+      }
+
+      state.isGenerating = false;
+      updateUI();
+    }
+
+    // Reflow animation
+    function animateReflow(element, fromText, toText, duration = 150) {
+      if (!fromText || fromText === toText) {
+        element.textContent = toText;
+        return;
+      }
+
+      const startTime = performance.now();
+
+      function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const charCount = Math.floor(toText.length * eased);
+
+        if (progress < 1) {
+          const revealed = toText.substring(0, charCount);
+          const remaining = toText.substring(charCount);
+          const scrambled = remaining.split('').map(char => {
+            if (char === ' ') return ' ';
+            if (Math.random() > 0.7) return char;
+            return String.fromCharCode(97 + Math.floor(Math.random() * 26));
+          }).join('');
+
+          element.textContent = revealed + scrambled;
+          requestAnimationFrame(animate);
+        } else {
+          element.textContent = toText;
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // UI rendering
+    function renderMinimap(level, isActive) {
+      if (level === 0) return '<div class="minimap"></div>';
+
+      const maxLength = Math.max(...state.paragraphs.map(p => p.length), 1);
+
+      return `
+        <div class="minimap">
+          ${state.paragraphs.map((para, idx) => {
+            const text = getDisplayText(para, idx, level);
+            const len = text ? text.length : para.length * 0.3;
+            const width = Math.max(15, (len / maxLength) * 100);
+            return `<div class="minimap-bar" style="width: ${width}%; opacity: ${text ? 1 : 0.5}"></div>`;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function renderZoomLevels() {
+      const effectiveLevel = getEffectiveLevel(state.zoomLevel);
+
+      elements.zoomLevels.innerHTML = ZOOM_LEVELS.map(level => {
+        const isActive = effectiveLevel === level.value;
+        const isReady = level.value === 100 || level.value === 0 ||
+          state.paragraphs.every((p, i) => getDisplayText(p, i, level.value));
+        const isGeneratingThis = state.generatingLevels.has(level.value);
+
+        let statusHtml = '';
+        if (isGeneratingThis) {
+          statusHtml = '<div class="status-spinner"></div>';
+        } else if (isReady && level.value !== 100) {
+          statusHtml = '<div class="status-ready"></div>';
+        } else if (!state.fallbackMode && !state.webGPUSupported && level.value !== 100) {
+          statusHtml = '<div class="status-unavailable"></div>';
+        }
+
+        return `
+          <button class="zoom-btn ${isActive ? 'active' : ''}" data-level="${level.value}">
+            ${renderMinimap(level.value, isActive)}
+            <div class="zoom-label">
+              <div class="zoom-label-percent">${level.value}%</div>
+              <div class="zoom-label-name">${level.label}</div>
+            </div>
+            <div class="zoom-status">${statusHtml}</div>
+          </button>
+        `;
+      }).join('');
+
+      // Add click handlers
+      elements.zoomLevels.querySelectorAll('.zoom-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const level = parseInt(btn.dataset.level);
+          setZoomLevel(level);
+        });
+      });
+    }
+
+    function renderEditor() {
+      const effectiveLevel = getEffectiveLevel(state.zoomLevel);
+
+      if (effectiveLevel === 100) {
+        elements.editorContent.innerHTML = `
+          <textarea id="mainTextarea" placeholder="Start writing...">${state.content}</textarea>
+        `;
+
+        const textarea = document.getElementById('mainTextarea');
+        textarea.addEventListener('input', (e) => {
+          state.content = e.target.value;
+          state.paragraphs = state.content.split('\n\n').filter(p => p.trim().length > 0);
+          updateWordCount();
+          
+          if (!state.fallbackMode) {
+            clearTimeout(state.regenerateTimeout);
+            state.regenerateTimeout = setTimeout(() => generateAllSummaries(), 2000);
+          }
+        });
+      } else if (effectiveLevel === 0) {
+        const abstract = getAbstract();
+        elements.editorContent.innerHTML = `
+          <div class="abstract-view">
+            <div class="abstract-badge">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Document Abstract
+            </div>
+            ${abstract
+              ? `<p class="abstract-text">${abstract}</p>`
+              : '<div class="skeleton"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>'
+            }
+          </div>
+        `;
+      } else {
+        elements.editorContent.innerHTML = `
+          <div class="paragraphs">
+            ${state.paragraphs.map((para, index) => {
+              const text = getDisplayText(para, index, effectiveLevel);
+              const isExpanded = state.expandedParagraphs.has(index);
+              const prevText = state.previousTexts[index];
+
+              if (!text) {
+                return `
+                  <div class="paragraph-group">
+                    <div class="skeleton">
+                      <div class="skeleton-line"></div>
+                      <div class="skeleton-line"></div>
+                    </div>
+                  </div>
+                `;
+              }
+
+              return `
+                <div class="paragraph-group" data-index="${index}">
+                  <p class="paragraph-text" data-prev="${prevText || ''}">${text}</p>
+                  <span class="expand-arrow">${isExpanded ? '▼' : '▶'}</span>
+                  <div class="expanded-text ${isExpanded ? 'show' : ''}">
+                    <div class="expanded-text-inner">${para}</div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+
+        // Add click handlers and animate
+        elements.editorContent.querySelectorAll('.paragraph-group').forEach(group => {
+          const index = parseInt(group.dataset.index);
+          const textEl = group.querySelector('.paragraph-text');
+          const prevText = textEl.dataset.prev;
+          const currentText = textEl.textContent;
+
+          // Animate if transitioning
+          if (state.transitionKey > 0 && prevText && prevText !== currentText) {
+            animateReflow(textEl, prevText, currentText);
+          }
+
+          group.addEventListener('click', () => {
+            if (state.expandedParagraphs.has(index)) {
+              state.expandedParagraphs.delete(index);
+            } else {
+              state.expandedParagraphs.add(index);
+            }
+            updateUI();
+          });
+        });
+      }
+    }
+
+    function updateWordCount() {
+      const effectiveLevel = getEffectiveLevel(state.zoomLevel);
+      let count;
+
+      if (effectiveLevel === 0) {
+        count = getWordCount(getAbstract());
+      } else if (effectiveLevel === 100) {
+        count = getWordCount(state.content);
+      } else {
+        count = state.paragraphs.reduce((acc, p, i) =>
+          acc + getWordCount(getDisplayText(p, i, effectiveLevel) || ''), 0);
+      }
+
+      const originalCount = getWordCount(state.content);
+      elements.wordCount.textContent = `${count} words`;
+
+      if (effectiveLevel < 100 && effectiveLevel > 0 && count > 0) {
+        elements.compressionRatio.textContent = `(${Math.round((count / originalCount) * 100)}% of original)`;
+      } else {
+        elements.compressionRatio.textContent = '';
+      }
+    }
+
+    function updateUI() {
+      const effectiveLevel = getEffectiveLevel(state.zoomLevel);
+      const levelInfo = ZOOM_LEVELS.find(l => l.value === effectiveLevel);
+
+      elements.levelDescription.textContent = `${levelInfo.label} · ${levelInfo.description}`;
+      elements.generatingBadge.style.display = state.isGenerating ? 'flex' : 'none';
+
+      elements.zoomInBtn.disabled = effectiveLevel === 100;
+      elements.zoomOutBtn.disabled = effectiveLevel === 0;
+
+      renderZoomLevels();
+      renderEditor();
+      updateWordCount();
+    }
+
+    function setZoomLevel(level) {
+      if (level === state.zoomLevel) return;
+
+      // Capture previous texts for animation
+      const effectiveLevel = getEffectiveLevel(state.zoomLevel);
+      state.previousTexts = {};
+      state.paragraphs.forEach((para, idx) => {
+        state.previousTexts[idx] = getDisplayText(para, idx, effectiveLevel);
+      });
+
+      state.prevZoomLevel = state.zoomLevel;
+      state.zoomLevel = level;
+      state.transitionKey++;
+      state.expandedParagraphs.clear();
+
+      updateUI();
+    }
+
+    // Event listeners
+    elements.zoomInBtn.addEventListener('click', () => {
+      const idx = ZOOM_LEVELS.findIndex(l => l.value === getEffectiveLevel(state.zoomLevel));
+      if (idx > 0) setZoomLevel(ZOOM_LEVELS[idx - 1].value);
+    });
+
+    elements.zoomOutBtn.addEventListener('click', () => {
+      const idx = ZOOM_LEVELS.findIndex(l => l.value === getEffectiveLevel(state.zoomLevel));
+      if (idx < ZOOM_LEVELS.length - 1) setZoomLevel(ZOOM_LEVELS[idx + 1].value);
+    });
+
+    // Initialize
+    state.paragraphs = state.content.split('\n\n').filter(p => p.trim().length > 0);
+    updateUI();
+    initializeEngine();
+  </script>
+</body>
+</html>
