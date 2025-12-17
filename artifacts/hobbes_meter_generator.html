@@ -126,7 +126,7 @@
         const DIGIT_FONT_SIZE = 19; 
         const DIGIT_SPACING = 3; 
         const NUM_MAIN_DIGITS = 4;
-        const DIGIT_TEXT_Y_OFFSET = 2.7; 
+        const DIGIT_TEXT_Y_OFFSET = 6; 
 
         const MAIN_DIGIT_TEXT_FILL = TEXT_FILL_ON_DARK;
         const TENTH_DIGIT_CELL_FILL = "white"; 
@@ -226,7 +226,7 @@
             // --- Main Digits ---
             for (let i = 0; i < NUM_MAIN_DIGITS; i++) {
                 svg += `<rect x="${currentX}" y="${DIGITS_Y}" width="${DIGIT_CELL_WIDTH}" height="${DIGIT_CELL_HEIGHT}" fill="${MAIN_DIGIT_CELL_FILL}" stroke="none" rx="${DIGIT_CELL_RX}"/>`;
-                svg += `<text x="${currentX + DIGIT_CELL_WIDTH / 2}" y="${digitTextBaseY}" font-family="${TEXT_FONT_FAMILY}" font-size="${DIGIT_FONT_SIZE}px" fill="${MAIN_DIGIT_TEXT_FILL}" text-anchor="middle" dominant-baseline="middle">${mainDigits[i]}</text>`;
+                svg += `<text x="${currentX + DIGIT_CELL_WIDTH / 2}" y="${digitTextBaseY}" font-family="${TEXT_FONT_FAMILY}" font-size="${DIGIT_FONT_SIZE}px" fill="${MAIN_DIGIT_TEXT_FILL}" text-anchor="middle">${mainDigits[i]}</text>`;
                 svg += `<rect x="${currentX}" y="${DIGITS_Y}" width="${DIGIT_CELL_WIDTH}" height="${DIGIT_CELL_HEIGHT}" fill="none" stroke="${DIGIT_CELL_STROKE_COLOR}" stroke-width="${GLASS_STROKE_WIDTH / 2}" rx="${DIGIT_CELL_RX}"/>`;
                 currentX += DIGIT_CELL_WIDTH + DIGIT_SPACING;
             }
@@ -236,27 +236,28 @@
             svg += `<rect x="${tenthDigitCellX}" y="${DIGITS_Y}" width="${DIGIT_CELL_WIDTH}" height="${DIGIT_CELL_HEIGHT}" fill="${TENTH_DIGIT_CELL_FILL}" stroke="none" rx="${DIGIT_CELL_RX}"/>`;
             
             const tenthDigitCenterX = tenthDigitCellX + DIGIT_CELL_WIDTH / 2;
-            if (parseInt(hundredthDigit) === 0 || !hundredthDigit) { 
-                svg += `<text x="${tenthDigitCenterX}" y="${digitTextBaseY}" font-family="${TEXT_FONT_FAMILY}" font-size="${DIGIT_FONT_SIZE}px" fill="${TENTH_DIGIT_TEXT_FILL}" text-anchor="middle" dominant-baseline="middle">${tenthDigit}</text>`;
-            } else { 
+            if (parseInt(hundredthDigit) === 0 || !hundredthDigit) {
+                svg += `<text x="${tenthDigitCenterX}" y="${digitTextBaseY}" font-family="${TEXT_FONT_FAMILY}" font-size="${DIGIT_FONT_SIZE}px" fill="${TENTH_DIGIT_TEXT_FILL}" text-anchor="middle">${tenthDigit}</text>`;
+            } else {
                 const nextTenthVisual = (parseInt(tenthDigit) + 1) % 10;
-                const yUp = digitTextBaseY - PARTIAL_TURN_SHIFT_Y; 
-                const yDown = digitTextBaseY + PARTIAL_TURN_SHIFT_Y; 
-                
-                svg += `<text x="${tenthDigitCenterX}" y="${yUp}" font-family="${TEXT_FONT_FAMILY}" font-size="${DIGIT_FONT_SIZE}px" fill="${TENTH_DIGIT_TEXT_FILL}" text-anchor="middle" dominant-baseline="middle">${tenthDigit}</text>`;
-                svg += `<text x="${tenthDigitCenterX}" y="${yDown}" font-family="${TEXT_FONT_FAMILY}" font-size="${DIGIT_FONT_SIZE}px" fill="${TENTH_DIGIT_TEXT_FILL}" text-anchor="middle" dominant-baseline="middle">${nextTenthVisual}</text>`;
+                const yUp = digitTextBaseY - PARTIAL_TURN_SHIFT_Y;
+                const yDown = digitTextBaseY + PARTIAL_TURN_SHIFT_Y;
+
+                svg += `<text x="${tenthDigitCenterX}" y="${yUp}" font-family="${TEXT_FONT_FAMILY}" font-size="${DIGIT_FONT_SIZE}px" fill="${TENTH_DIGIT_TEXT_FILL}" text-anchor="middle">${tenthDigit}</text>`;
+                svg += `<text x="${tenthDigitCenterX}" y="${yDown}" font-family="${TEXT_FONT_FAMILY}" font-size="${DIGIT_FONT_SIZE}px" fill="${TENTH_DIGIT_TEXT_FILL}" text-anchor="middle">${nextTenthVisual}</text>`;
             }
             svg += `<rect x="${tenthDigitCellX}" y="${DIGITS_Y}" width="${DIGIT_CELL_WIDTH}" height="${DIGIT_CELL_HEIGHT}" fill="none" stroke="${DIGIT_CELL_STROKE_COLOR}" stroke-width="${GLASS_STROKE_WIDTH / 2}" rx="${DIGIT_CELL_RX}"/>`;
             
             // 5. Outer border around the entire tumbler area (drawn ON TOP of digits)
             svg += `<rect x="${OUTER_TUMBLER_BORDER_X}" y="${OUTER_TUMBLER_BORDER_Y}" width="${OUTER_TUMBLER_BORDER_WIDTH}" height="${OUTER_TUMBLER_BORDER_HEIGHT}" fill="none" stroke="${TUMBLER_AREA_BORDER_COLOR}" stroke-width="${GLASS_STROKE_WIDTH}" rx="${OUTER_TUMBLER_BORDER_RX}"/>`;
 
-            // 6. Fraction "1/10" 
+            // 6. Fraction "1/10" - use baseline positioning for cross-platform compatibility
             const fractionTextX = FRACTION_AND_HOURGLASS_CENTER_X;
-            const effectiveFractionBaseY = FRACTION_TEXT_BASE_Y; 
-            svg += `<text x="${fractionTextX}" y="${effectiveFractionBaseY - FRACTION_FONT_SIZE/2 - 1}" font-family="${TEXT_FONT_FAMILY}" font-size="${FRACTION_FONT_SIZE}px" fill="${TEXT_FILL_ON_DARK}" text-anchor="middle" dominant-baseline="middle">1</text>`;
-            svg += `<line x1="${fractionTextX - 4}" y1="${effectiveFractionBaseY}" x2="${fractionTextX + 4}" y2="${effectiveFractionBaseY}" stroke="${TEXT_FILL_ON_DARK}" stroke-width="1"/>`;
-            svg += `<text x="${fractionTextX}" y="${effectiveFractionBaseY + FRACTION_FONT_SIZE/2 + 1}" font-family="${TEXT_FONT_FAMILY}" font-size="${FRACTION_FONT_SIZE}px" fill="${TEXT_FILL_ON_DARK}" text-anchor="middle" dominant-baseline="middle">10</text>`;
+            const fractionCenterY = DIGITS_Y + DIGIT_CELL_HEIGHT / 2;
+            const fractionLineY = fractionCenterY;
+            svg += `<text x="${fractionTextX}" y="${fractionLineY - 2}" font-family="${TEXT_FONT_FAMILY}" font-size="${FRACTION_FONT_SIZE}px" fill="${TEXT_FILL_ON_DARK}" text-anchor="middle">1</text>`;
+            svg += `<line x1="${fractionTextX - 4}" y1="${fractionLineY}" x2="${fractionTextX + 4}" y2="${fractionLineY}" stroke="${TEXT_FILL_ON_DARK}" stroke-width="1"/>`;
+            svg += `<text x="${fractionTextX}" y="${fractionLineY + FRACTION_FONT_SIZE + 1}" font-family="${TEXT_FONT_FAMILY}" font-size="${FRACTION_FONT_SIZE}px" fill="${TEXT_FILL_ON_DARK}" text-anchor="middle">10</text>`;
 
             // 7. "HOURS" text
             svg += `<text x="${HOURS_TEXT_X}" y="${HOURS_TEXT_Y}" font-family="${BRAND_FONT_FAMILY}" font-size="${HOURS_FONT_SIZE}px" fill="${TEXT_FILL_ON_DARK}" text-anchor="middle">HOURS</text>`;
