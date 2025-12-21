@@ -1,0 +1,2869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Chatbot Demo</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 900px;
+            margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .app-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .app-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .app-header p {
+            opacity: 0.9;
+            font-size: 0.875rem;
+            margin: 0;
+        }
+
+        .settings-btn {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .status-loading { color: #ffc107; }
+        .status-ready { color: #198754; }
+        .status-error { color: #dc3545; }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: #6c757d;
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            background: transparent;
+        }
+
+        .tab-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .tab-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .tab-pane.show {
+            display: flex !important;
+        }
+
+        .upload-section {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .upload-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .btn-upload {
+            border: 2px dashed #dee2e6;
+            background: white;
+            padding: 0.5rem 1rem;
+        }
+
+        .btn-upload:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .mode-toggle {
+            padding: 0.5rem 1rem;
+            background: white;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.875rem;
+        }
+
+        .mode-switch {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .mode-switch .form-check {
+            padding-left: 0;
+            margin-bottom: 0;
+        }
+
+        .mode-switch .form-check-input {
+            margin: 0;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .mode-label {
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            max-width: 85%;
+        }
+
+        .message-user {
+            margin-left: auto;
+        }
+
+        .message-user .message-bubble {
+            background: #667eea;
+            color: white;
+            border-radius: 1rem 1rem 0.25rem 1rem;
+        }
+
+        .message-bot .message-bubble {
+            background: #e9ecef;
+            color: #212529;
+            border-radius: 1rem 1rem 1rem 0.25rem;
+        }
+
+        .message-system {
+            max-width: 100%;
+        }
+
+        .message-system .message-bubble {
+            background: #e7f1ff;
+            color: #0d6efd;
+            border-left: 4px solid #0d6efd;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+
+        .message-bubble {
+            padding: 0.75rem 1rem;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 0.75rem 1rem;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing-bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing-bounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-8px);
+                opacity: 1;
+            }
+        }
+
+        /* Document Bar */
+        .document-bar {
+            padding: 0.75rem 1rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            min-height: 52px;
+        }
+
+        .document-bar-empty {
+            color: #6c757d;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .document-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.6rem;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            color: #495057;
+            animation: pill-appear 0.3s ease-out;
+        }
+
+        @keyframes pill-appear {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .document-pill i {
+            color: #667eea;
+        }
+
+        .document-pill .doc-name {
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .document-pill .doc-remove {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: transparent;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0;
+            transition: all 0.2s;
+        }
+
+        .document-pill .doc-remove:hover {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-add-doc {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.35rem 0.75rem;
+            background: #667eea;
+            border: none;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-add-doc:hover {
+            background: #5a6fd6;
+        }
+
+        .btn-add-doc:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-sample-doc {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.35rem 0.75rem;
+            background: transparent;
+            border: 1px dashed #667eea;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-sample-doc:hover {
+            background: #f8f9ff;
+        }
+
+        .btn-sample-doc:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Processing Indicator */
+        .processing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0.875rem;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 0.5rem;
+            flex: 1;
+            max-width: 350px;
+            animation: processing-appear 0.3s ease-out;
+        }
+
+        @keyframes processing-appear {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .processing-icon {
+            color: #667eea;
+            animation: processing-spin 1s linear infinite;
+        }
+
+        @keyframes processing-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .processing-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .processing-name {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #495057;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0.25rem;
+        }
+
+        .processing-progress {
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .processing-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px;
+            transition: width 0.2s ease;
+        }
+
+        .processing-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.2rem;
+            font-size: 0.65rem;
+            color: #667eea;
+        }
+
+        .processing-percent {
+            font-weight: 600;
+        }
+
+        /* Header Buttons */
+        .header-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .header-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .history-btn {
+            right: 4rem;
+        }
+
+        .settings-btn {
+            right: 1rem;
+        }
+
+        /* History Modal */
+        .session-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .session-card {
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 0.875rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .session-card:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .session-card.active {
+            border-color: #667eea;
+            background: #e7f1ff;
+        }
+
+        .session-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 0.35rem;
+        }
+
+        .session-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .session-date {
+            font-size: 0.7rem;
+            color: #6c757d;
+        }
+
+        .session-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+
+        .session-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .session-delete {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: transparent;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            opacity: 0;
+            transition: all 0.2s;
+        }
+
+        .session-card:hover .session-delete {
+            opacity: 1;
+        }
+
+        .session-delete:hover {
+            background: #dc3545;
+            color: white;
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            opacity: 0.9;
+        }
+
+        .sources-section {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .sources-toggle {
+            font-size: 0.75rem;
+            color: #667eea;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .source-item {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .source-match {
+            color: #667eea;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .source-context {
+            color: #6c757d;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .source-context.expanded {
+            display: block;
+            -webkit-line-clamp: unset;
+        }
+
+        .input-section {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .input-group .form-control {
+            border-radius: 2rem;
+            padding: 0.75rem 1.25rem;
+        }
+
+        .input-group .btn {
+            border-radius: 2rem;
+            padding: 0.75rem 1.25rem;
+        }
+
+        /* Embeddings Tab */
+        .embeddings-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        /* Pipeline Visualization */
+        .pipeline-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .pipeline-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .pipeline-steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .pipeline-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(255,255,255,0.15);
+            border-radius: 0.5rem;
+            min-width: 70px;
+        }
+
+        .pipeline-step i {
+            font-size: 1.25rem;
+        }
+
+        .pipeline-step span {
+            font-size: 0.65rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pipeline-arrow {
+            color: rgba(255,255,255,0.6);
+            font-size: 1rem;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1.25rem 0 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .section-header h5 {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .section-header .badge {
+            font-size: 0.65rem;
+        }
+
+        /* Parent Chunk Cards */
+        .parent-chunk {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
+
+        .parent-chunk-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 0.875rem;
+            border-bottom: 1px solid #dee2e6;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .parent-chunk-header:hover {
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+        }
+
+        .parent-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .parent-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.6rem;
+            background: #667eea;
+            color: white;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .child-count-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.2rem 0.5rem;
+            background: #e7f1ff;
+            color: #667eea;
+            border-radius: 1rem;
+            font-size: 0.65rem;
+            font-weight: 500;
+        }
+
+        .parent-chunk-text {
+            font-size: 0.8rem;
+            color: #495057;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .parent-chunk-text.expanded {
+            display: block;
+            -webkit-line-clamp: unset;
+        }
+
+        /* Child Chunks */
+        .child-chunks {
+            padding: 0.75rem;
+            background: #fafbfc;
+        }
+
+        .child-chunks-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .child-chunks-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #dee2e6;
+        }
+
+        .child-chunk {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-left: 3px solid #667eea;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .child-chunk:last-child {
+            margin-bottom: 0;
+        }
+
+        .child-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .child-id {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #667eea;
+            background: #e7f1ff;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+        }
+
+        .child-text {
+            font-size: 0.8rem;
+            color: #495057;
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .child-text.expanded {
+            display: block;
+            -webkit-line-clamp: unset;
+        }
+
+        /* Embedding Heatmap Visualization */
+        .embedding-section {
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 0.625rem;
+            margin-top: 0.5rem;
+        }
+
+        .embedding-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .embedding-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .embedding-title i {
+            color: #667eea;
+        }
+
+        .embedding-dims {
+            font-size: 0.6rem;
+            color: #667eea;
+            background: white;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            border: 1px solid #e9ecef;
+            font-weight: 500;
+        }
+
+        .embedding-explanation {
+            font-size: 0.65rem;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .embedding-heatmap-container {
+            background: white;
+            border-radius: 0.25rem;
+            padding: 0.375rem;
+            border: 1px solid #e9ecef;
+        }
+
+        .embedding-heatmap {
+            display: flex;
+            height: 16px;
+            border-radius: 3px;
+            overflow: hidden;
+            background: #e9ecef;
+        }
+
+        .embedding-heatmap-bar {
+            flex: 1;
+            min-width: 1px;
+        }
+
+        .embedding-scale {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.6rem;
+            color: #6c757d;
+        }
+
+        .scale-gradient {
+            width: 80px;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #4285f4, #fff, #ea4335);
+            border: 1px solid #e9ecef;
+        }
+
+        .embedding-insight {
+            margin-top: 0.5rem;
+            padding: 0.375rem 0.5rem;
+            background: #e7f1ff;
+            border-radius: 0.25rem;
+            font-size: 0.6rem;
+            color: #495057;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.35rem;
+        }
+
+        .embedding-insight i {
+            color: #667eea;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* Info Cards */
+        .info-card {
+            background: #e7f1ff;
+            border-left: 4px solid #667eea;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+            font-size: 0.8rem;
+            color: #495057;
+        }
+
+        .info-card strong {
+            color: #667eea;
+        }
+
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .info-card {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6c757d;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            opacity: 0.5;
+            margin-bottom: 1rem;
+        }
+
+        /* Settings Modal */
+        .settings-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .settings-section h6 {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .model-option {
+            border: 2px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .model-option:hover {
+            border-color: #667eea;
+        }
+
+        .model-option.selected {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .model-option .form-check-input:checked {
+            background-color: #667eea;
+            border-color: #667eea;
+        }
+
+        /* Download Progress */
+        .download-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .download-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .download-card h4 {
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .download-card .progress {
+            height: 1.5rem;
+            border-radius: 1rem;
+            margin: 1rem 0;
+        }
+
+        .download-card .progress-bar {
+            background: var(--primary-gradient);
+            transition: width 0.3s;
+        }
+
+        .download-status {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 0.5rem;
+        }
+
+        .webgpu-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .cache-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: #198754;
+            color: white;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        @media (max-width: 576px) {
+            .app-header {
+                padding: 1rem;
+            }
+            .app-header h1 {
+                font-size: 1.25rem;
+            }
+            .upload-buttons {
+                flex-direction: column;
+            }
+            .mode-toggle {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="app-header">
+            <h1><i class="bi bi-book me-2"></i>RAG Chatbot Demo</h1>
+            <p>Upload a document and ask questions about it</p>
+            <button class="header-btn history-btn" id="history-btn" title="Chat History">
+                <i class="bi bi-clock-history"></i>
+            </button>
+            <button class="header-btn settings-btn" id="settings-btn" title="Settings">
+                <i class="bi bi-gear-fill"></i>
+            </button>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item" id="llm-status">
+                <i class="bi bi-hourglass-split status-loading"></i>
+                <span>LLM: initializing</span>
+            </div>
+            <div class="status-item" id="embedding-status">
+                <i class="bi bi-hourglass-split status-loading"></i>
+                <span>Embeddings: loading</span>
+            </div>
+            <div class="status-item" id="doc-status">
+                <i class="bi bi-file-text text-secondary"></i>
+                <span>No document</span>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item flex-fill text-center" role="presentation">
+                <button class="nav-link active w-100" id="chat-tab" data-bs-toggle="tab" data-bs-target="#chat-pane" type="button">
+                    <i class="bi bi-chat-dots me-1"></i>Chat
+                </button>
+            </li>
+            <li class="nav-item flex-fill text-center" role="presentation">
+                <button class="nav-link w-100" id="embeddings-tab" data-bs-toggle="tab" data-bs-target="#embeddings-pane" type="button">
+                    <i class="bi bi-database me-1"></i>Embeddings
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Chat Tab -->
+            <div class="tab-pane fade show active" id="chat-pane" role="tabpanel">
+                <!-- Document Bar -->
+                <div class="document-bar" id="document-bar">
+                    <input type="file" id="file-input" accept=".txt" class="d-none">
+                    <div class="document-bar-empty" id="doc-empty-state">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span>No documents loaded</span>
+                    </div>
+                    <div id="document-pills"></div>
+                    <button class="btn-add-doc" id="add-doc-btn" disabled title="Add document">
+                        <i class="bi bi-plus"></i> Add
+                    </button>
+                    <button class="btn-sample-doc" id="sample-btn" disabled title="Load sample document">
+                        <i class="bi bi-lightning"></i> Sample
+                    </button>
+                </div>
+
+                <!-- Mode Toggle -->
+                <div class="mode-toggle">
+                    <span class="text-muted">Response Mode:</span>
+                    <div class="mode-switch">
+                        <span class="small text-primary fw-medium mode-label" id="mode-strict-label">Strict</span>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="mode-toggle" style="width: 2.5rem; height: 1.25rem;">
+                        </div>
+                        <span class="small text-muted mode-label" id="mode-general-label">+ General Knowledge</span>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div class="messages-container" id="messages"></div>
+
+                <!-- Input -->
+                <div class="input-section">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="user-input" placeholder="Upload a document first..." disabled>
+                        <button class="btn btn-primary" id="send-btn" disabled>
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Embeddings Tab -->
+            <div class="tab-pane fade" id="embeddings-pane" role="tabpanel">
+                <div class="embeddings-container" id="embeddings-container">
+                    <div class="empty-state">
+                        <i class="bi bi-database"></i>
+                        <p>Upload a document to see embeddings</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settings-modal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-gear me-2"></i>Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- LLM Provider Selection -->
+                    <div class="settings-section">
+                        <h6><i class="bi bi-cpu"></i>LLM Provider</h6>
+
+                        <div class="model-option selected" id="option-local" onclick="selectModelOption('local')">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="llm-provider" id="provider-local" checked>
+                                <label class="form-check-label fw-medium" for="provider-local">
+                                    Local Model (WebLLM)
+                                    <span class="webgpu-badge ms-2"><i class="bi bi-gpu-card"></i> WebGPU</span>
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-1">
+                                Runs Llama 3.2 3B locally in your browser. First load downloads ~1.8GB model (cached for future use).
+                            </small>
+                            <div id="cache-status" class="mt-2" style="display: none;">
+                                <span class="cache-badge"><i class="bi bi-check-circle"></i> Model cached</span>
+                            </div>
+                        </div>
+
+                        <div class="model-option" id="option-anthropic" onclick="selectModelOption('anthropic')">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="llm-provider" id="provider-anthropic">
+                                <label class="form-check-label fw-medium" for="provider-anthropic">
+                                    Anthropic API (Claude)
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-1">
+                                Use Claude via Anthropic's API. Requires your own API key.
+                            </small>
+                            <div class="mt-2" id="api-key-section" style="display: none;">
+                                <div class="input-group input-group-sm">
+                                    <input type="password" class="form-control" id="api-key-input" placeholder="sk-ant-...">
+                                    <button class="btn btn-outline-secondary" type="button" id="toggle-key-visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Your key is stored locally and never sent to our servers.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WebGPU Info -->
+                    <div class="settings-section">
+                        <h6><i class="bi bi-info-circle"></i>Browser Requirements</h6>
+                        <div id="webgpu-status"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-settings-btn">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal fade" id="history-modal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-clock-history me-2"></i>Chat History</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <button class="new-chat-btn" id="new-chat-btn">
+                        <i class="bi bi-plus-circle me-2"></i>Start New Chat
+                    </button>
+                    <div class="session-list" id="session-list">
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-chat-square-text" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <p class="mt-2 mb-0">No saved chats yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Progress Overlay -->
+    <div class="download-overlay" id="download-overlay" style="display: none;">
+        <div class="download-card">
+            <h4><i class="bi bi-download me-2"></i>Downloading Model</h4>
+            <p class="text-muted">Llama 3.2 3B Instruct (~1.8GB)</p>
+            <div class="progress">
+                <div class="progress-bar" id="download-progress" role="progressbar" style="width: 0%">0%</div>
+            </div>
+            <div class="download-status" id="download-status">Initializing...</div>
+            <small class="text-muted mt-3 d-block">The model will be cached for instant loading on future visits.</small>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- WebLLM -->
+    <script type="module">
+        import * as webllm from 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.74/+esm';
+        window.webllm = webllm;
+        window.dispatchEvent(new Event('webllmReady'));
+    </script>
+
+    <!-- Transformers.js -->
+    <script type="module">
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+        window.transformersPipeline = pipeline;
+        window.transformersEnv = env;
+        window.dispatchEvent(new Event('transformersReady'));
+    </script>
+
+    <script>
+        // ==================== GLOBALS ====================
+        let extractor = null;
+        let webllmEngine = null;
+        let isStrictMode = true;
+        let currentProvider = 'local'; // 'local' or 'anthropic'
+        let isLLMReady = false;
+        let isEmbeddingReady = false;
+
+        // Document management
+        let documents = []; // Array of {id, name, text, parentChunks, childChunks, embeddings}
+        let currentSessionId = null;
+        let chatMessages = []; // Current session messages
+        let db = null; // IndexedDB connection
+
+        // Web Worker for embeddings
+        let embeddingWorker = null;
+        let workerReady = false;
+        let pendingWorkerCallback = null;
+
+        // Inline worker code for embedding generation (ES module worker)
+        const WORKER_CODE = `
+            let extractor = null;
+
+            self.onmessage = async function(e) {
+                const { type, data } = e.data;
+
+                if (type === 'init') {
+                    try {
+                        self.postMessage({ type: 'status', message: 'Loading embedding model...' });
+
+                        // Dynamic import for ES modules in worker
+                        const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+                        env.allowLocalModels = false;
+
+                        extractor = await pipeline(
+                            'feature-extraction',
+                            'Xenova/bge-small-en-v1.5',
+                            { quantized: false }
+                        );
+
+                        self.postMessage({ type: 'ready' });
+                    } catch (error) {
+                        self.postMessage({ type: 'error', message: error.message });
+                    }
+                }
+
+                if (type === 'embed') {
+                    if (!extractor) {
+                        self.postMessage({ type: 'error', message: 'Model not loaded' });
+                        return;
+                    }
+
+                    const chunks = data.chunks;
+                    const embeddings = [];
+
+                    try {
+                        for (let i = 0; i < chunks.length; i++) {
+                            const output = await extractor(chunks[i].text, {
+                                pooling: 'mean',
+                                normalize: true
+                            });
+                            embeddings.push(Array.from(output.data));
+
+                            // Send progress update
+                            self.postMessage({
+                                type: 'progress',
+                                current: i + 1,
+                                total: chunks.length
+                            });
+                        }
+
+                        self.postMessage({ type: 'complete', embeddings });
+                    } catch (error) {
+                        self.postMessage({ type: 'error', message: error.message });
+                    }
+                }
+            };
+        `;
+
+        const MODEL_ID = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
+        const DB_NAME = 'rag-chatbot-db';
+        const DB_VERSION = 1;
+        const MAX_SESSIONS = 5;
+        const STORAGE_KEYS = {
+            provider: 'rag-chatbot-provider',
+            apiKey: 'rag-chatbot-anthropic-key'
+        };
+
+        // Sample document
+        const SAMPLE_DOCUMENT = `Artificial Intelligence in Education
+
+Artificial Intelligence (AI) is transforming education by providing personalized learning experiences, automating administrative tasks, and offering new ways to engage students. This document explores key applications and considerations.
+
+Personalized Learning
+AI-powered adaptive learning systems analyze student performance in real-time to adjust content difficulty and pacing. These systems can identify knowledge gaps and provide targeted practice problems. Research shows that personalized learning can improve student outcomes by up to 30% compared to traditional one-size-fits-all approaches.
+
+Intelligent Tutoring Systems
+Intelligent tutoring systems (ITS) provide one-on-one instruction by simulating human tutors. They can answer questions, provide hints, and guide students through problem-solving processes. Modern ITS use natural language processing to understand student queries and generate appropriate responses.
+
+Automated Grading and Feedback
+AI can automatically grade multiple-choice tests, short answers, and even essays. This frees up teacher time for more meaningful interactions with students. Automated feedback systems can provide immediate responses to student work, enabling faster learning cycles.
+
+Challenges and Considerations
+Despite the benefits, AI in education faces challenges including data privacy concerns, the digital divide, and the need for teacher training. It's important to ensure AI tools are accessible to all students and that they complement rather than replace human instruction.
+
+The Future of AI in Education
+Looking ahead, AI will likely become more integrated into educational settings. Virtual reality combined with AI could create immersive learning experiences. AI assistants may become commonplace in classrooms, helping both teachers and students.`;
+
+        // ==================== DOM ELEMENTS ====================
+        const llmStatusEl = document.getElementById('llm-status');
+        const embeddingStatusEl = document.getElementById('embedding-status');
+        const docStatusEl = document.getElementById('doc-status');
+        const fileInput = document.getElementById('file-input');
+        const addDocBtn = document.getElementById('add-doc-btn');
+        const sampleBtn = document.getElementById('sample-btn');
+        const documentPills = document.getElementById('document-pills');
+        const docEmptyState = document.getElementById('doc-empty-state');
+        const modeToggle = document.getElementById('mode-toggle');
+        const modeStrictLabel = document.getElementById('mode-strict-label');
+        const modeGeneralLabel = document.getElementById('mode-general-label');
+        const messagesEl = document.getElementById('messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const embeddingsContainer = document.getElementById('embeddings-container');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = new bootstrap.Modal(document.getElementById('settings-modal'));
+        const historyBtn = document.getElementById('history-btn');
+        const historyModal = new bootstrap.Modal(document.getElementById('history-modal'));
+        const sessionListEl = document.getElementById('session-list');
+        const newChatBtn = document.getElementById('new-chat-btn');
+        const downloadOverlay = document.getElementById('download-overlay');
+        const downloadProgress = document.getElementById('download-progress');
+        const downloadStatus = document.getElementById('download-status');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        const webgpuStatusEl = document.getElementById('webgpu-status');
+        const cacheStatusEl = document.getElementById('cache-status');
+        const apiKeySectionEl = document.getElementById('api-key-section');
+
+        // ==================== UI HELPERS ====================
+        function updateLLMStatus(status, text) {
+            const icons = {
+                loading: '<i class="bi bi-hourglass-split status-loading"></i>',
+                ready: '<i class="bi bi-check-circle status-ready"></i>',
+                error: '<i class="bi bi-exclamation-circle status-error"></i>'
+            };
+            llmStatusEl.innerHTML = `${icons[status]}<span>LLM: ${text}</span>`;
+        }
+
+        function updateEmbeddingStatus(status, text) {
+            const icons = {
+                loading: '<i class="bi bi-hourglass-split status-loading"></i>',
+                ready: '<i class="bi bi-check-circle status-ready"></i>',
+                error: '<i class="bi bi-exclamation-circle status-error"></i>'
+            };
+            embeddingStatusEl.innerHTML = `${icons[status]}<span>Embeddings: ${text}</span>`;
+        }
+
+        function updateDocStatus(text, isReady = false) {
+            const icon = isReady ?
+                '<i class="bi bi-file-check status-ready"></i>' :
+                '<i class="bi bi-file-text text-secondary"></i>';
+            docStatusEl.innerHTML = `${icon}<span>${text}</span>`;
+        }
+
+        // ==================== TYPING INDICATOR ====================
+        let typingIndicatorEl = null;
+
+        function showTypingIndicator() {
+            if (typingIndicatorEl) return;
+
+            typingIndicatorEl = document.createElement('div');
+            typingIndicatorEl.className = 'message message-bot';
+            typingIndicatorEl.innerHTML = `
+                <div class="message-bubble">
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            messagesEl.appendChild(typingIndicatorEl);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            if (typingIndicatorEl) {
+                typingIndicatorEl.remove();
+                typingIndicatorEl = null;
+            }
+        }
+
+        // ==================== DOCUMENT BAR ====================
+        function updateDocumentBar() {
+            documentPills.innerHTML = '';
+
+            if (documents.length === 0) {
+                docEmptyState.style.display = 'flex';
+                updateDocStatus('No documents', false);
+            } else {
+                docEmptyState.style.display = 'none';
+                documents.forEach(doc => {
+                    const pill = document.createElement('div');
+                    pill.className = 'document-pill';
+                    pill.innerHTML = `
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span class="doc-name" title="${doc.name}">${doc.name}</span>
+                        <button class="doc-remove" onclick="removeDocument('${doc.id}')" title="Remove">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    `;
+                    documentPills.appendChild(pill);
+                });
+                updateDocStatus(`${documents.length} doc${documents.length > 1 ? 's' : ''}`, true);
+            }
+
+            // Enable/disable chat input based on documents
+            const hasDocuments = documents.length > 0;
+            userInput.disabled = !hasDocuments || !isLLMReady;
+            userInput.placeholder = hasDocuments ? 'Ask a question...' : 'Add a document first...';
+            sendBtn.disabled = !hasDocuments || !isLLMReady;
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        // ==================== PROCESSING INDICATOR ====================
+        let processingIndicatorEl = null;
+
+        function showProcessingIndicator(docName) {
+            hideProcessingIndicator(); // Remove any existing
+
+            processingIndicatorEl = document.createElement('div');
+            processingIndicatorEl.className = 'processing-indicator';
+            processingIndicatorEl.innerHTML = `
+                <i class="bi bi-arrow-repeat processing-icon"></i>
+                <div class="processing-content">
+                    <div class="processing-name">${docName}</div>
+                    <div class="processing-progress">
+                        <div class="processing-progress-bar" id="processing-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="processing-status">
+                        <span id="processing-text">Preparing...</span>
+                        <span class="processing-percent" id="processing-percent">0%</span>
+                    </div>
+                </div>
+            `;
+
+            // Insert before the add button
+            const documentBar = document.getElementById('document-bar');
+            documentBar.insertBefore(processingIndicatorEl, addDocBtn);
+        }
+
+        function updateProcessingProgress(current, total, statusText) {
+            const bar = document.getElementById('processing-bar');
+            const text = document.getElementById('processing-text');
+            const percent = document.getElementById('processing-percent');
+
+            if (bar && text && percent) {
+                const pct = Math.round((current / total) * 100);
+                bar.style.width = pct + '%';
+                text.textContent = statusText || `Embedding ${current}/${total}`;
+                percent.textContent = pct + '%';
+            }
+        }
+
+        function hideProcessingIndicator() {
+            if (processingIndicatorEl) {
+                processingIndicatorEl.remove();
+                processingIndicatorEl = null;
+            }
+        }
+
+        // ==================== WEB WORKER ====================
+        function createEmbeddingWorker() {
+            const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
+            const workerUrl = URL.createObjectURL(blob);
+            // Use type: 'module' to enable ES module imports in worker
+            embeddingWorker = new Worker(workerUrl, { type: 'module' });
+
+            embeddingWorker.onmessage = function(e) {
+                const { type, current, total, embeddings, message } = e.data;
+
+                switch (type) {
+                    case 'ready':
+                        workerReady = true;
+                        updateEmbeddingStatus('ready', 'ready');
+                        isEmbeddingReady = true;
+                        checkAllReady();
+                        break;
+
+                    case 'progress':
+                        updateProcessingProgress(current, total);
+                        break;
+
+                    case 'complete':
+                        if (pendingWorkerCallback) {
+                            pendingWorkerCallback.resolve(embeddings);
+                            pendingWorkerCallback = null;
+                        }
+                        break;
+
+                    case 'error':
+                        console.error('Worker error:', message);
+                        if (pendingWorkerCallback) {
+                            pendingWorkerCallback.reject(new Error(message));
+                            pendingWorkerCallback = null;
+                        }
+                        break;
+
+                    case 'status':
+                        updateEmbeddingStatus('loading', message);
+                        break;
+                }
+            };
+
+            embeddingWorker.onerror = function(error) {
+                console.error('Worker error:', error);
+                updateEmbeddingStatus('error', 'worker failed');
+            };
+
+            // Initialize the worker
+            embeddingWorker.postMessage({ type: 'init' });
+        }
+
+        function generateEmbeddingsInWorker(chunks) {
+            return new Promise((resolve, reject) => {
+                if (!workerReady) {
+                    reject(new Error('Embedding worker not ready'));
+                    return;
+                }
+
+                pendingWorkerCallback = { resolve, reject };
+                embeddingWorker.postMessage({ type: 'embed', data: { chunks } });
+            });
+        }
+
+        // ==================== IndexedDB ====================
+        function openDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const database = event.target.result;
+                    if (!database.objectStoreNames.contains('sessions')) {
+                        const store = database.createObjectStore('sessions', { keyPath: 'id' });
+                        store.createIndex('timestamp', 'timestamp', { unique: false });
+                    }
+                };
+            });
+        }
+
+        async function saveSession() {
+            if (!db || !currentSessionId) return;
+
+            const session = {
+                id: currentSessionId,
+                name: getSessionName(),
+                timestamp: Date.now(),
+                messages: chatMessages,
+                documents: documents
+            };
+
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['sessions'], 'readwrite');
+                const store = transaction.objectStore('sessions');
+                const request = store.put(session);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getSessionName() {
+            // Get name from first user message or default
+            const firstUserMsg = chatMessages.find(m => m.type === 'user');
+            if (firstUserMsg) {
+                const text = firstUserMsg.text;
+                return text.length > 40 ? text.substring(0, 40) + '...' : text;
+            }
+            return 'New Chat';
+        }
+
+        async function loadSession(sessionId) {
+            if (!db) return null;
+
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['sessions'], 'readonly');
+                const store = transaction.objectStore('sessions');
+                const request = store.get(sessionId);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function deleteSession(sessionId) {
+            if (!db) return;
+
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['sessions'], 'readwrite');
+                const store = transaction.objectStore('sessions');
+                const request = store.delete(sessionId);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getAllSessions() {
+            if (!db) return [];
+
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['sessions'], 'readonly');
+                const store = transaction.objectStore('sessions');
+                const index = store.index('timestamp');
+                const request = index.openCursor(null, 'prev'); // newest first
+                const sessions = [];
+
+                request.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (cursor && sessions.length < MAX_SESSIONS) {
+                        sessions.push(cursor.value);
+                        cursor.continue();
+                    } else {
+                        resolve(sessions);
+                    }
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function startNewSession() {
+            currentSessionId = generateId();
+            chatMessages = [];
+            documents = [];
+            messagesEl.innerHTML = '';
+            updateDocumentBar();
+            displayEmbeddings();
+            addMessage('system', 'Started a new chat. Add a document to begin!');
+        }
+
+        async function switchToSession(sessionId) {
+            const session = await loadSession(sessionId);
+            if (!session) return;
+
+            currentSessionId = session.id;
+            chatMessages = session.messages || [];
+            documents = session.documents || [];
+
+            // Restore UI
+            messagesEl.innerHTML = '';
+            chatMessages.forEach(msg => {
+                addMessageToUI(msg.type, msg.text, msg.sources || []);
+            });
+            updateDocumentBar();
+            displayEmbeddings();
+
+            historyModal.hide();
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            return date.toLocaleDateString();
+        }
+
+        async function renderSessionList() {
+            const sessions = await getAllSessions();
+
+            if (sessions.length === 0) {
+                sessionListEl.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-chat-square-text" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <p class="mt-2 mb-0">No saved chats yet</p>
+                    </div>
+                `;
+                return;
+            }
+
+            sessionListEl.innerHTML = sessions.map(session => `
+                <div class="session-card ${session.id === currentSessionId ? 'active' : ''}"
+                     onclick="switchToSession('${session.id}')">
+                    <button class="session-delete" onclick="event.stopPropagation(); confirmDeleteSession('${session.id}')" title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    <div class="session-header">
+                        <span class="session-name">${session.name}</span>
+                        <span class="session-date">${formatDate(session.timestamp)}</span>
+                    </div>
+                    <div class="session-meta">
+                        <span><i class="bi bi-file-text"></i> ${session.documents?.length || 0} docs</span>
+                        <span><i class="bi bi-chat"></i> ${session.messages?.filter(m => m.type !== 'system').length || 0} messages</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.switchToSession = switchToSession;
+
+        window.confirmDeleteSession = async function(sessionId) {
+            if (confirm('Delete this chat session?')) {
+                await deleteSession(sessionId);
+                if (sessionId === currentSessionId) {
+                    await startNewSession();
+                }
+                await renderSessionList();
+            }
+        };
+
+        // Add message to UI only (for restoring sessions)
+        function addMessageToUI(type, text, sources = []) {
+            const div = document.createElement('div');
+            div.className = `message message-${type}`;
+
+            let content = `<div class="message-bubble">`;
+
+            if (type === 'system') {
+                content += `<i class="bi bi-info-circle me-1"></i>${text}`;
+            } else if (type === 'bot') {
+                content += formatMarkdown(text);
+
+                if (sources.length > 0) {
+                    content += `
+                        <div class="sources-section">
+                            <div class="sources-toggle" onclick="toggleSources(this)">
+                                <i class="bi bi-database"></i>
+                                Sources (${sources.length})
+                                <i class="bi bi-chevron-down"></i>
+                            </div>
+                            <div class="sources-list" style="display: none;">
+                                ${sources.map((s, i) => `
+                                    <div class="source-item">
+                                        <div class="source-match">"${(s.childText || '').slice(0, 80)}..."</div>
+                                        <div class="source-context" id="source-${Date.now()}-${i}">${s.parentText || ''}</div>
+                                        <small class="text-primary" style="cursor:pointer" onclick="toggleSourceContext(this)">Show full context</small>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                content += text;
+            }
+
+            content += `</div>`;
+            div.innerHTML = content;
+            messagesEl.appendChild(div);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        // Add message and save to session
+        function addMessage(type, text, sources = []) {
+            addMessageToUI(type, text, sources);
+
+            // Save non-system messages to chat history
+            if (type !== 'system') {
+                chatMessages.push({ type, text, sources });
+                saveSession(); // Auto-save after each message
+            }
+        }
+
+        function formatMarkdown(text) {
+            return text
+                .replace(/```([\s\S]*?)```/g, '<pre class="bg-dark text-success p-2 rounded mt-2 mb-2"><code>$1</code></pre>')
+                .replace(/`([^`]+)`/g, '<code class="bg-light px-1 rounded">$1</code>')
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        }
+
+        window.toggleSources = function(el) {
+            const list = el.nextElementSibling;
+            const icon = el.querySelector('.bi-chevron-down, .bi-chevron-up');
+            if (list.style.display === 'none') {
+                list.style.display = 'block';
+                icon.className = 'bi bi-chevron-up';
+            } else {
+                list.style.display = 'none';
+                icon.className = 'bi bi-chevron-down';
+            }
+        };
+
+        window.toggleSourceContext = function(el) {
+            const context = el.previousElementSibling;
+            context.classList.toggle('expanded');
+            el.textContent = context.classList.contains('expanded') ? 'Show less' : 'Show full context';
+        };
+
+        // ==================== SETTINGS ====================
+        function loadSettings() {
+            currentProvider = localStorage.getItem(STORAGE_KEYS.provider) || 'local';
+            const savedKey = localStorage.getItem(STORAGE_KEYS.apiKey) || '';
+            apiKeyInput.value = savedKey;
+
+            updateSettingsUI();
+        }
+
+        function updateSettingsUI() {
+            const localOption = document.getElementById('option-local');
+            const anthropicOption = document.getElementById('option-anthropic');
+            const providerLocal = document.getElementById('provider-local');
+            const providerAnthropic = document.getElementById('provider-anthropic');
+
+            if (currentProvider === 'local') {
+                localOption.classList.add('selected');
+                anthropicOption.classList.remove('selected');
+                providerLocal.checked = true;
+                apiKeySectionEl.style.display = 'none';
+            } else {
+                localOption.classList.remove('selected');
+                anthropicOption.classList.add('selected');
+                providerAnthropic.checked = true;
+                apiKeySectionEl.style.display = 'block';
+            }
+        }
+
+        window.selectModelOption = function(option) {
+            currentProvider = option;
+            updateSettingsUI();
+        };
+
+        function saveSettings() {
+            localStorage.setItem(STORAGE_KEYS.provider, currentProvider);
+            if (currentProvider === 'anthropic') {
+                localStorage.setItem(STORAGE_KEYS.apiKey, apiKeyInput.value);
+            }
+            settingsModal.hide();
+
+            // Reinitialize LLM if needed
+            if (currentProvider === 'local' && !webllmEngine) {
+                initWebLLM();
+            } else if (currentProvider === 'anthropic') {
+                isLLMReady = true;
+                updateLLMStatus('ready', 'Claude API');
+                checkAllReady();
+            }
+        }
+
+        async function checkWebGPU() {
+            if (!navigator.gpu) {
+                webgpuStatusEl.innerHTML = `
+                    <div class="alert alert-warning mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>WebGPU not available.</strong> Your browser doesn't support WebGPU.
+                        Try Chrome 113+, Edge 113+, or enable experimental flags.
+                    </div>
+                `;
+                return false;
+            }
+
+            try {
+                const adapter = await navigator.gpu.requestAdapter();
+                if (!adapter) {
+                    webgpuStatusEl.innerHTML = `
+                        <div class="alert alert-warning mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>No GPU adapter found.</strong> WebGPU is supported but no compatible GPU was detected.
+                        </div>
+                    `;
+                    return false;
+                }
+
+                webgpuStatusEl.innerHTML = `
+                    <div class="alert alert-success mb-0">
+                        <i class="bi bi-check-circle me-2"></i>
+                        <strong>WebGPU available!</strong> Your browser supports running local AI models.
+                    </div>
+                `;
+                return true;
+            } catch (e) {
+                webgpuStatusEl.innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        <i class="bi bi-x-circle me-2"></i>
+                        <strong>WebGPU error:</strong> ${e.message}
+                    </div>
+                `;
+                return false;
+            }
+        }
+
+        async function checkModelCache() {
+            if (!window.webllm) return false;
+
+            try {
+                const hasCache = await window.webllm.hasModelInCache(MODEL_ID);
+                if (hasCache) {
+                    cacheStatusEl.style.display = 'block';
+                }
+                return hasCache;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // ==================== WebLLM INITIALIZATION ====================
+        async function initWebLLM() {
+            if (!window.webllm) {
+                await new Promise(resolve => {
+                    window.addEventListener('webllmReady', resolve, { once: true });
+                    setTimeout(resolve, 15000);
+                });
+            }
+
+            if (!window.webllm) {
+                updateLLMStatus('error', 'WebLLM failed to load');
+                addMessage('system', 'Failed to load WebLLM library. Try using the Anthropic API option in settings.');
+                return;
+            }
+
+            const hasGPU = await checkWebGPU();
+            if (!hasGPU) {
+                updateLLMStatus('error', 'No WebGPU');
+                addMessage('system', 'WebGPU is not available. Please use the Anthropic API option in settings, or try a WebGPU-enabled browser.');
+                return;
+            }
+
+            const isCached = await checkModelCache();
+
+            try {
+                updateLLMStatus('loading', isCached ? 'loading from cache...' : 'downloading...');
+
+                if (!isCached) {
+                    downloadOverlay.style.display = 'flex';
+                }
+
+                const initProgressCallback = (report) => {
+                    if (report.progress !== undefined) {
+                        const pct = Math.round(report.progress * 100);
+                        downloadProgress.style.width = pct + '%';
+                        downloadProgress.textContent = pct + '%';
+                    }
+                    if (report.text) {
+                        downloadStatus.textContent = report.text;
+                    }
+                };
+
+                webllmEngine = await window.webllm.CreateMLCEngine(MODEL_ID, {
+                    initProgressCallback,
+                    logLevel: 'SILENT'
+                });
+
+                downloadOverlay.style.display = 'none';
+                isLLMReady = true;
+                updateLLMStatus('ready', 'Llama 3.2 3B');
+                addMessage('system', 'Local LLM ready! Model is running entirely in your browser.');
+                checkAllReady();
+
+            } catch (error) {
+                console.error('WebLLM init error:', error);
+                downloadOverlay.style.display = 'none';
+                updateLLMStatus('error', 'failed');
+                addMessage('system', 'Failed to load local model: ' + error.message + '. Try using the Anthropic API option in settings.');
+            }
+        }
+
+        // ==================== RAG FUNCTIONS ====================
+        function cosineSimilarity(vecA, vecB) {
+            let dot = 0, magA = 0, magB = 0;
+            for (let i = 0; i < vecA.length; i++) {
+                dot += vecA[i] * vecB[i];
+                magA += vecA[i] * vecA[i];
+                magB += vecB[i] * vecB[i];
+            }
+            magA = Math.sqrt(magA);
+            magB = Math.sqrt(magB);
+            return (magA && magB) ? dot / (magA * magB) : 0;
+        }
+
+        // Chunk text and return chunks (doesn't modify globals)
+        function chunkText(text) {
+            const parentChunks = new Map();
+            const childChunks = [];
+
+            const paragraphs = text.split(/\n\s*\n+/).filter(p => p.trim());
+            let parentId = 0;
+
+            for (const para of paragraphs) {
+                const trimmed = para.trim();
+                if (trimmed.length > 1500) {
+                    const sentences = trimmed.split(/(?<=[.!?])\s+/);
+                    let chunk = [];
+                    let len = 0;
+
+                    for (const sent of sentences) {
+                        if (len + sent.length > 1500 && chunk.length) {
+                            parentChunks.set(`parent-${parentId}`, chunk.join(' '));
+                            parentId++;
+                            chunk = [];
+                            len = 0;
+                        }
+                        chunk.push(sent);
+                        len += sent.length;
+                    }
+                    if (chunk.length) {
+                        parentChunks.set(`parent-${parentId}`, chunk.join(' '));
+                        parentId++;
+                    }
+                } else {
+                    parentChunks.set(`parent-${parentId}`, trimmed);
+                    parentId++;
+                }
+            }
+
+            parentChunks.forEach((pText, pId) => {
+                const sentences = pText.split(/(?<=[.!?])\s+/);
+                let chunk = [];
+                let len = 0;
+
+                for (let i = 0; i < sentences.length; i++) {
+                    if (len + sentences[i].length > 200 && chunk.length) {
+                        childChunks.push({
+                            id: `child-${childChunks.length}`,
+                            text: chunk.join(' '),
+                            parentId: pId
+                        });
+                        chunk = chunk.length > 1 ? [chunk[chunk.length - 1]] : [];
+                        len = chunk.length ? chunk[0].length : 0;
+                    }
+                    chunk.push(sentences[i]);
+                    len += sentences[i].length;
+                }
+
+                if (chunk.length) {
+                    childChunks.push({
+                        id: `child-${childChunks.length}`,
+                        text: chunk.join(' '),
+                        parentId: pId
+                    });
+                }
+            });
+
+            return { parentChunks, childChunks };
+        }
+
+        // Search across all documents
+        function retrieveDocuments(queryEmbedding, topN = 20) {
+            // Build combined index across all documents
+            const allChunks = [];
+            documents.forEach(doc => {
+                doc.childChunks.forEach((chunk, i) => {
+                    allChunks.push({
+                        chunk,
+                        embedding: doc.embeddings[i],
+                        parentChunks: doc.parentChunks,
+                        docName: doc.name
+                    });
+                });
+            });
+
+            // Calculate similarities
+            const sims = allChunks.map((item, i) => ({
+                index: i,
+                sim: cosineSimilarity(queryEmbedding, item.embedding),
+                item
+            }));
+
+            sims.sort((a, b) => b.sim - a.sim);
+
+            // Get unique parent contexts
+            const uniqueParents = new Map();
+            for (const { item } of sims.slice(0, topN)) {
+                const key = `${item.docName}-${item.chunk.parentId}`;
+                if (!uniqueParents.has(key)) {
+                    // parentChunks is a Map, need to convert if stored as object
+                    let parentText = '';
+                    if (item.parentChunks instanceof Map) {
+                        parentText = item.parentChunks.get(item.chunk.parentId);
+                    } else if (item.parentChunks && typeof item.parentChunks === 'object') {
+                        // Handle case where Map was serialized to object
+                        parentText = item.parentChunks[item.chunk.parentId];
+                    }
+                    uniqueParents.set(key, {
+                        parentText: parentText || item.chunk.text,
+                        childText: item.chunk.text,
+                        docName: item.docName
+                    });
+                }
+            }
+
+            return Array.from(uniqueParents.values());
+        }
+
+        // Remove a document
+        window.removeDocument = async function(docId) {
+            documents = documents.filter(d => d.id !== docId);
+            updateDocumentBar();
+            displayEmbeddings();
+            await saveSession();
+
+            if (documents.length === 0) {
+                addMessage('system', 'All documents removed. Add a new document to continue.');
+            }
+        };
+
+        // Generate heatmap HTML for embedding visualization
+        function generateEmbeddingHeatmap(embedding, sampleSize = 50, isFirst = false) {
+            if (!embedding || embedding.length === 0) return '';
+
+            // Sample evenly-spaced dimensions
+            const step = Math.max(1, Math.floor(embedding.length / sampleSize));
+            const sampled = [];
+            for (let i = 0; i < embedding.length; i += step) {
+                sampled.push(embedding[i]);
+            }
+
+            // Find min/max for normalization
+            const min = Math.min(...sampled);
+            const max = Math.max(...sampled);
+            const range = max - min || 1;
+
+            // Generate color bars (Google-style blue/red)
+            const bars = sampled.map(val => {
+                const normalized = (val - min) / range; // 0 to 1
+                let r, g, b;
+                if (normalized < 0.5) {
+                    // Blue (#4285f4) to white
+                    const t = normalized * 2;
+                    r = Math.round(66 + (255 - 66) * t);
+                    g = Math.round(133 + (255 - 133) * t);
+                    b = Math.round(244 + (255 - 244) * t);
+                } else {
+                    // White to red (#ea4335)
+                    const t = (normalized - 0.5) * 2;
+                    r = Math.round(255 - (255 - 234) * t);
+                    g = Math.round(255 - (255 - 67) * t);
+                    b = Math.round(255 - (255 - 53) * t);
+                }
+                return `<div class="embedding-heatmap-bar" style="background: rgb(${r},${g},${b})"></div>`;
+            }).join('');
+
+            // Only show detailed explanation on first chunk
+            const explanation = isFirst ? `
+                <div class="embedding-explanation">
+                    Each bar = one learned "feature". The AI converted this text into ${embedding.length} numbers.
+                    Color shows how strongly each feature activates for this text.
+                </div>
+            ` : '';
+
+            const insight = isFirst ? `
+                <div class="embedding-insight">
+                    <i class="bi bi-lightbulb"></i>
+                    <span><strong>Key insight:</strong> Similar text creates similar patterns! When you search,
+                    the AI compares these patterns to find the best matches.</span>
+                </div>
+            ` : '';
+
+            return `
+                <div class="embedding-section">
+                    <div class="embedding-header">
+                        <span class="embedding-title">
+                            <i class="bi bi-fingerprint"></i>
+                            Semantic Fingerprint
+                        </span>
+                        <span class="embedding-dims">${embedding.length} dimensions</span>
+                    </div>
+                    ${explanation}
+                    <div class="embedding-heatmap-container">
+                        <div class="embedding-heatmap">${bars}</div>
+                        <div class="embedding-scale">
+                            <span>Weak</span>
+                            <div class="scale-gradient"></div>
+                            <span>Strong</span>
+                        </div>
+                    </div>
+                    ${insight}
+                </div>
+            `;
+        }
+
+        function displayEmbeddings() {
+            if (documents.length === 0) {
+                embeddingsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-database"></i>
+                        <p>Upload a document to see embeddings</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Calculate aggregate stats
+            let totalChars = 0;
+            let totalParentChunks = 0;
+            let totalChildChunks = 0;
+            let embeddingDims = 0;
+
+            documents.forEach(doc => {
+                totalChars += doc.text.length;
+                // Handle both Map and Object for parentChunks
+                if (doc.parentChunks instanceof Map) {
+                    totalParentChunks += doc.parentChunks.size;
+                } else if (doc.parentChunks) {
+                    totalParentChunks += Object.keys(doc.parentChunks).length;
+                }
+                totalChildChunks += doc.childChunks.length;
+                if (doc.embeddings[0]) embeddingDims = doc.embeddings[0].length;
+            });
+
+            let html = `
+                <!-- Pipeline Visualization -->
+                <div class="pipeline-section">
+                    <div class="pipeline-title">How RAG Chunking & Embeddings Work</div>
+                    <div class="pipeline-steps">
+                        <div class="pipeline-step">
+                            <i class="bi bi-file-text"></i>
+                            <span>Document</span>
+                        </div>
+                        <i class="bi bi-arrow-right pipeline-arrow"></i>
+                        <div class="pipeline-step">
+                            <i class="bi bi-scissors"></i>
+                            <span>Chunking</span>
+                        </div>
+                        <i class="bi bi-arrow-right pipeline-arrow"></i>
+                        <div class="pipeline-step">
+                            <i class="bi bi-grid-3x3"></i>
+                            <span>Embeddings</span>
+                        </div>
+                        <i class="bi bi-arrow-right pipeline-arrow"></i>
+                        <div class="pipeline-step">
+                            <i class="bi bi-search"></i>
+                            <span>Search</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Bar -->
+                <div class="stats-bar">
+                    <div class="stat-card">
+                        <div class="stat-value">${documents.length}</div>
+                        <div class="stat-label">Documents</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${totalChars.toLocaleString()}</div>
+                        <div class="stat-label">Characters</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${totalChildChunks}</div>
+                        <div class="stat-label">Chunks</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${embeddingDims}</div>
+                        <div class="stat-label">Dimensions</div>
+                    </div>
+                </div>
+
+                <!-- Info Card -->
+                <div class="info-card">
+                    <strong>Parent vs Child Chunks:</strong> Parent chunks preserve context (full paragraphs).
+                    Child chunks are smaller pieces used for precise matching. When a child matches your query,
+                    the full parent context is retrieved for the LLM.
+                </div>
+            `;
+
+            // Render each document
+            let isFirstChunk = true;
+            documents.forEach((doc, docIndex) => {
+                const parentChunks = doc.parentChunks instanceof Map ? doc.parentChunks : new Map(Object.entries(doc.parentChunks || {}));
+                const parentCount = parentChunks.size;
+
+                html += `
+                    <div class="section-header">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <h5>${doc.name}</h5>
+                        <span class="badge bg-primary">${parentCount} parents / ${doc.childChunks.length} children</span>
+                    </div>
+                `;
+
+                const groupedByParent = {};
+                doc.childChunks.forEach((child, idx) => {
+                    if (!groupedByParent[child.parentId]) {
+                        groupedByParent[child.parentId] = [];
+                    }
+                    groupedByParent[child.parentId].push({ ...child, embIdx: idx });
+                });
+
+                let parentIndex = 0;
+                parentChunks.forEach((pText, pId) => {
+                    const children = groupedByParent[pId] || [];
+                    parentIndex++;
+
+                    html += `
+                        <div class="parent-chunk">
+                            <div class="parent-chunk-header" onclick="toggleParentChunk('${doc.id}-${pId}')">
+                                <div class="parent-header-row">
+                                    <span class="parent-badge">
+                                        <i class="bi bi-folder2"></i>
+                                        Parent ${parentIndex}
+                                    </span>
+                                    <span class="child-count-badge">
+                                        <i class="bi bi-diagram-2"></i>
+                                        ${children.length} child${children.length !== 1 ? 'ren' : ''}
+                                    </span>
+                                </div>
+                                <div class="parent-chunk-text" id="ptext-${doc.id}-${pId}">${pText}</div>
+                            </div>
+                            <div class="child-chunks" id="children-${doc.id}-${pId}">
+                                <div class="child-chunks-label">Child Chunks (used for search)</div>
+                                ${children.map((c, idx) => {
+                                    const showExplanation = isFirstChunk;
+                                    isFirstChunk = false;
+                                    return `
+                                    <div class="child-chunk">
+                                        <div class="child-header">
+                                            <span class="child-id">
+                                                <i class="bi bi-hash"></i>${c.id}
+                                            </span>
+                                            <small class="text-muted">${c.text.length} chars</small>
+                                        </div>
+                                        <div class="child-text" id="ctext-${doc.id}-${c.id}">${c.text}</div>
+                                        ${generateEmbeddingHeatmap(doc.embeddings[c.embIdx], 50, showExplanation)}
+                                    </div>
+                                `}).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+
+            embeddingsContainer.innerHTML = html;
+        }
+
+        window.toggleParentText = function(pId) {
+            const el = document.getElementById(`ptext-${pId}`);
+            el.classList.toggle('expanded');
+        };
+
+        window.toggleParentChunk = function(pId) {
+            const textEl = document.getElementById(`ptext-${pId}`);
+            textEl.classList.toggle('expanded');
+        };
+
+        window.toggleChildText = function(cId) {
+            const el = document.getElementById(`ctext-${cId}`);
+            el.classList.toggle('expanded');
+        };
+
+        // ==================== DOCUMENT PROCESSING ====================
+        async function processDocument(text, name) {
+            if (!workerReady) {
+                addMessage('system', 'Please wait for the embedding model to load.');
+                return;
+            }
+
+            // Show processing indicator and disable buttons
+            showProcessingIndicator(name);
+            updateDocStatus('Processing...', false);
+            addDocBtn.disabled = true;
+            sampleBtn.disabled = true;
+
+            try {
+                // Chunk text (fast, stays on main thread)
+                updateProcessingProgress(0, 100, 'Splitting into chunks...');
+                const { parentChunks, childChunks } = chunkText(text);
+
+                if (childChunks.length === 0) {
+                    hideProcessingIndicator();
+                    addMessage('system', 'Document is empty or could not be processed.');
+                    addDocBtn.disabled = false;
+                    sampleBtn.disabled = false;
+                    return;
+                }
+
+                // Generate embeddings in worker (off main thread)
+                updateProcessingProgress(0, childChunks.length, `Embedding 0/${childChunks.length}`);
+                const embeddings = await generateEmbeddingsInWorker(childChunks);
+
+                // Hide processing indicator
+                hideProcessingIndicator();
+
+                // Create document object and add to array
+                const doc = {
+                    id: generateId(),
+                    name: name,
+                    text: text,
+                    parentChunks: Object.fromEntries(parentChunks), // Convert Map to Object for IndexedDB
+                    childChunks: childChunks,
+                    embeddings: embeddings
+                };
+
+                documents.push(doc);
+
+                // Update UI
+                updateDocumentBar();
+                displayEmbeddings();
+
+                // Save session
+                await saveSession();
+
+                addMessage('system', `Document loaded! ${parentChunks.size} sections, ${childChunks.length} chunks. Ask me anything!`);
+
+                // Re-enable buttons
+                addDocBtn.disabled = false;
+                sampleBtn.disabled = false;
+
+            } catch (error) {
+                console.error('Processing error:', error);
+                hideProcessingIndicator();
+                addMessage('system', 'Error processing document: ' + error.message);
+                updateDocStatus('Error', false);
+                addDocBtn.disabled = false;
+                sampleBtn.disabled = false;
+            }
+        }
+
+        // ==================== CHAT ====================
+        async function generateWithWebLLM(systemPrompt, userPrompt) {
+            const response = await webllmEngine.chat.completions.create({
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userPrompt }
+                ],
+                max_tokens: 1000,
+                temperature: 0.7
+            });
+            return response.choices[0].message.content;
+        }
+
+        async function generateWithAnthropic(systemPrompt, userPrompt) {
+            const apiKey = localStorage.getItem(STORAGE_KEYS.apiKey);
+            if (!apiKey) {
+                throw new Error('No Anthropic API key configured. Please add your key in settings.');
+            }
+
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'anthropic-dangerous-direct-browser-access': 'true'
+                },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 1000,
+                    system: systemPrompt,
+                    messages: [{ role: 'user', content: userPrompt }]
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'API request failed');
+            }
+
+            const data = await response.json();
+            return data.content?.[0]?.text || 'Sorry, I could not generate a response.';
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text || documents.length === 0) return;
+
+            if (!isLLMReady) {
+                addMessage('system', 'Please wait for the LLM to finish loading.');
+                return;
+            }
+
+            addMessage('user', text);
+            userInput.value = '';
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                // Generate query embedding
+                const queryOutput = await extractor(text, { pooling: 'mean', normalize: true });
+                const queryEmbedding = Array.from(queryOutput.data);
+
+                // Retrieve contexts
+                const contexts = retrieveDocuments(queryEmbedding);
+                const contextTexts = contexts.map(c => c.parentText);
+
+                // Build prompt
+                const systemPrompt = isStrictMode
+                    ? 'You are a helpful assistant. Answer using ONLY the provided context. If the answer is not in the context, say so clearly. Be concise.'
+                    : 'You are a helpful assistant. Use the provided context to answer. You may also use general knowledge if helpful. Be concise.';
+
+                const userPrompt = `Context:\n${contextTexts.join('\n\n')}\n\nQuestion: ${text}`;
+
+                // Generate response based on provider
+                let botResponse;
+                if (currentProvider === 'local') {
+                    botResponse = await generateWithWebLLM(systemPrompt, userPrompt);
+                } else {
+                    botResponse = await generateWithAnthropic(systemPrompt, userPrompt);
+                }
+
+                // Hide typing indicator before showing response
+                hideTypingIndicator();
+
+                addMessage('bot', botResponse, contexts);
+            } catch (error) {
+                console.error('Error:', error);
+                hideTypingIndicator();
+                addMessage('system', 'Error: ' + error.message);
+            } finally {
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="bi bi-send"></i>';
+                userInput.focus();
+            }
+        }
+
+        // ==================== EVENT LISTENERS ====================
+        settingsBtn.addEventListener('click', async () => {
+            await checkWebGPU();
+            await checkModelCache();
+            updateSettingsUI();
+            settingsModal.show();
+        });
+
+        saveSettingsBtn.addEventListener('click', saveSettings);
+
+        document.getElementById('toggle-key-visibility').addEventListener('click', () => {
+            const input = apiKeyInput;
+            const icon = document.querySelector('#toggle-key-visibility i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        });
+
+        // Document management
+        addDocBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.txt')) {
+                addMessage('system', 'Please upload a .txt file.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => processDocument(e.target.result, file.name);
+            reader.onerror = () => addMessage('system', 'Error reading file.');
+            reader.readAsText(file);
+
+            // Reset file input so same file can be added again
+            fileInput.value = '';
+        });
+
+        sampleBtn.addEventListener('click', () => {
+            processDocument(SAMPLE_DOCUMENT, 'AI in Education (Sample)');
+        });
+
+        // Chat history
+        historyBtn.addEventListener('click', async () => {
+            await renderSessionList();
+            historyModal.show();
+        });
+
+        newChatBtn.addEventListener('click', async () => {
+            await startNewSession();
+            historyModal.hide();
+        });
+
+        // Mode toggle
+        modeToggle.addEventListener('change', () => {
+            isStrictMode = !modeToggle.checked;
+            modeStrictLabel.className = isStrictMode ? 'small text-primary fw-medium mode-label' : 'small text-muted mode-label';
+            modeGeneralLabel.className = !isStrictMode ? 'small text-primary fw-medium mode-label' : 'small text-muted mode-label';
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // ==================== CHECK READY STATE ====================
+        function checkAllReady() {
+            if (isEmbeddingReady) {
+                addDocBtn.disabled = false;
+                sampleBtn.disabled = false;
+            }
+            // Enable chat if we have documents and LLM is ready
+            if (documents.length > 0 && isLLMReady) {
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+            }
+        }
+
+        // ==================== INITIALIZATION ====================
+        async function initEmbeddings() {
+            updateEmbeddingStatus('loading', 'loading worker...');
+
+            try {
+                // Create the web worker for document embeddings
+                // This loads the model in a separate thread
+                createEmbeddingWorker();
+
+                // Also load main-thread extractor for quick query embeddings
+                // Wait for transformers.js to be ready
+                if (!window.transformersPipeline) {
+                    await new Promise(resolve => {
+                        window.addEventListener('transformersReady', resolve, { once: true });
+                        setTimeout(resolve, 15000);
+                    });
+                }
+
+                if (window.transformersPipeline) {
+                    window.transformersEnv.allowLocalModels = false;
+                    extractor = await window.transformersPipeline(
+                        'feature-extraction',
+                        'Xenova/bge-small-en-v1.5',
+                        { quantized: false }
+                    );
+                }
+
+                // Worker ready status is handled by createEmbeddingWorker callback
+            } catch (error) {
+                console.error('Embedding init error:', error);
+                updateEmbeddingStatus('error', 'failed');
+                addMessage('system', 'Failed to load embedding model: ' + error.message);
+            }
+        }
+
+        async function init() {
+            addMessage('system', 'Initializing... This may take a moment on first load.');
+
+            // Load saved settings
+            loadSettings();
+
+            // Initialize IndexedDB
+            try {
+                await openDatabase();
+
+                // Try to load the most recent session
+                const sessions = await getAllSessions();
+                if (sessions.length > 0) {
+                    const lastSession = sessions[0]; // Already sorted by timestamp desc
+                    currentSessionId = lastSession.id;
+                    chatMessages = lastSession.messages || [];
+                    documents = lastSession.documents || [];
+
+                    // Restore UI
+                    messagesEl.innerHTML = '';
+                    chatMessages.forEach(msg => {
+                        addMessageToUI(msg.type, msg.text, msg.sources || []);
+                    });
+                    updateDocumentBar();
+                    displayEmbeddings();
+
+                    addMessage('system', 'Restored your previous session. You can start a new chat from the history menu.');
+                } else {
+                    // No existing sessions, start fresh
+                    currentSessionId = generateId();
+                }
+            } catch (error) {
+                console.error('IndexedDB init error:', error);
+                currentSessionId = generateId();
+            }
+
+            // Initialize embeddings (always needed)
+            initEmbeddings();
+
+            // Initialize LLM based on provider setting
+            if (currentProvider === 'local') {
+                initWebLLM();
+            } else {
+                // Using Anthropic API
+                const hasKey = localStorage.getItem(STORAGE_KEYS.apiKey);
+                if (hasKey) {
+                    isLLMReady = true;
+                    updateLLMStatus('ready', 'Claude API');
+                    addMessage('system', 'Using Anthropic Claude API. You can change this in settings.');
+                } else {
+                    updateLLMStatus('error', 'No API key');
+                    addMessage('system', 'No Anthropic API key configured. Please add your key in settings, or switch to local model.');
+                }
+                checkAllReady();
+            }
+        }
+
+        // Start initialization when page loads
+        init();
+    </script>
+</body>
+</html>
