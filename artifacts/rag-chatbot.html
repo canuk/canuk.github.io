@@ -614,6 +614,113 @@
             -webkit-line-clamp: unset;
         }
 
+        /* Query Visualization */
+        .query-viz {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .query-viz-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .query-text {
+            font-size: 0.75rem;
+            color: #495057;
+            margin-bottom: 0.5rem;
+            font-style: italic;
+        }
+
+        .query-fingerprint {
+            margin-bottom: 0.5rem;
+        }
+
+        .match-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 0.375rem;
+            margin-bottom: 0.375rem;
+            border: 1px solid #e9ecef;
+        }
+
+        .match-score {
+            flex-shrink: 0;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .match-score.high {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .match-score.medium {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+        }
+
+        .match-score.low {
+            background: linear-gradient(135deg, #6c757d, #adb5bd);
+        }
+
+        .match-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .match-text {
+            font-size: 0.7rem;
+            color: #495057;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .match-doc {
+            font-size: 0.6rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+
+        .match-fingerprint {
+            margin-top: 0.375rem;
+        }
+
+        .semantic-toggle {
+            margin-top: 0.5rem;
+            font-size: 0.7rem;
+            color: #667eea;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            transition: background 0.2s;
+        }
+
+        .semantic-toggle:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .semantic-toggle.active {
+            background: rgba(102, 126, 234, 0.15);
+        }
+
         .input-section {
             padding: 1rem;
             background: #f8f9fa;
@@ -723,8 +830,24 @@
             align-items: center;
             gap: 0.5rem;
             margin: 1.25rem 0 0.75rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid #667eea;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            background: linear-gradient(135deg, #667eea10, #764ba210);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .section-header:hover {
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+        }
+
+        .section-header .toggle-icon {
+            transition: transform 0.2s;
+        }
+
+        .section-header.collapsed .toggle-icon {
+            transform: rotate(-90deg);
         }
 
         .section-header h5 {
@@ -732,10 +855,19 @@
             font-size: 0.9rem;
             font-weight: 600;
             color: #333;
+            flex: 1;
         }
 
         .section-header .badge {
             font-size: 0.65rem;
+        }
+
+        .document-content {
+            transition: all 0.3s ease;
+        }
+
+        .document-content.collapsed {
+            display: none;
         }
 
         /* Parent Chunk Cards */
@@ -1023,6 +1155,26 @@
             margin-bottom: 1rem;
         }
 
+        /* Document Preview Modal */
+        .preview-text-container {
+            max-height: 350px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            background: #f8f9fa;
+        }
+
+        .preview-text {
+            margin: 0;
+            padding: 1rem;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #495057;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;
+        }
+
         /* Settings Modal */
         .settings-section {
             margin-bottom: 1.5rem;
@@ -1196,7 +1348,7 @@
             <div class="tab-pane fade show active" id="chat-pane" role="tabpanel">
                 <!-- Document Bar -->
                 <div class="document-bar" id="document-bar">
-                    <input type="file" id="file-input" accept=".txt" class="d-none">
+                    <input type="file" id="file-input" accept=".txt,.md,.pdf" class="d-none">
                     <div class="document-bar-empty" id="doc-empty-state">
                         <i class="bi bi-file-earmark-text"></i>
                         <span>No documents loaded</span>
@@ -1336,6 +1488,38 @@
         </div>
     </div>
 
+    <!-- Document Preview Modal -->
+    <div class="modal fade" id="preview-modal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-file-earmark-text me-2"></i>Document Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <strong id="preview-filename"></strong>
+                        <span class="badge bg-secondary ms-2" id="preview-filetype"></span>
+                    </div>
+                    <p class="text-muted small">This is what the LLM will see:</p>
+                    <div class="preview-text-container">
+                        <pre id="preview-text" class="preview-text"></pre>
+                    </div>
+                    <div class="alert alert-info mt-3 mb-0 small" id="preview-note">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <span id="preview-note-text">Text content ready for processing.</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="preview-process-btn">
+                        <i class="bi bi-cpu me-1"></i>Process Document
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Download Progress Overlay -->
     <div class="download-overlay" id="download-overlay" style="display: none;">
         <div class="download-card">
@@ -1351,6 +1535,13 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- PDF.js for PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Set PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
 
     <!-- WebLLM -->
     <script type="module">
@@ -1643,6 +1834,64 @@ Looking ahead, AI will likely become more integrated into educational settings. 
             }
         }
 
+        // ==================== PDF EXTRACTION ====================
+        async function extractTextFromPDF(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += `\n--- Page ${i} ---\n${pageText}`;
+            }
+
+            return fullText.trim();
+        }
+
+        // ==================== DOCUMENT PREVIEW ====================
+        const previewModal = new bootstrap.Modal(document.getElementById('preview-modal'));
+        const previewFilename = document.getElementById('preview-filename');
+        const previewFiletype = document.getElementById('preview-filetype');
+        const previewText = document.getElementById('preview-text');
+        const previewNoteText = document.getElementById('preview-note-text');
+        const previewProcessBtn = document.getElementById('preview-process-btn');
+
+        let pendingDocumentText = null;
+        let pendingDocumentName = null;
+
+        function showDocumentPreview(name, text, fileType) {
+            previewFilename.textContent = name;
+            previewFiletype.textContent = fileType.toUpperCase();
+            previewText.textContent = text.length > 50000
+                ? text.substring(0, 50000) + '\n\n... [truncated for preview, full text will be processed]'
+                : text;
+
+            // Set appropriate note based on file type
+            if (fileType === 'pdf') {
+                previewNoteText.textContent = 'PDF extracted as text. Images, tables, and formatting are not captured.';
+            } else if (fileType === 'md') {
+                previewNoteText.textContent = 'Markdown will be processed as plain text (formatting preserved).';
+            } else {
+                previewNoteText.textContent = 'Text content ready for processing.';
+            }
+
+            pendingDocumentText = text;
+            pendingDocumentName = name;
+
+            previewModal.show();
+        }
+
+        previewProcessBtn.addEventListener('click', () => {
+            if (pendingDocumentText && pendingDocumentName) {
+                previewModal.hide();
+                processDocument(pendingDocumentText, pendingDocumentName);
+                pendingDocumentText = null;
+                pendingDocumentName = null;
+            }
+        });
+
         // ==================== WEB WORKER ====================
         function createEmbeddingWorker() {
             const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
@@ -1888,8 +2137,29 @@ Looking ahead, AI will likely become more integrated into educational settings. 
             }
         };
 
+        // Generate a small inline heatmap bar for visualization
+        function generateMiniHeatmap(embedding, width = 100) {
+            if (!embedding || embedding.length === 0) return '';
+
+            const step = Math.max(1, Math.floor(embedding.length / width));
+            const sampled = [];
+            for (let i = 0; i < embedding.length; i += step) {
+                sampled.push(embedding[i]);
+            }
+
+            const bars = sampled.slice(0, width).map(val => {
+                const normalized = (val + 1) / 2; // -1 to 1 → 0 to 1
+                const hue = normalized < 0.5 ? 220 : 0; // Blue for low, red for high
+                const saturation = Math.abs(normalized - 0.5) * 200;
+                const lightness = 50 + (1 - Math.abs(normalized - 0.5) * 2) * 40;
+                return `<span style="display:inline-block;width:2px;height:12px;background:hsl(${hue},${saturation}%,${lightness}%)"></span>`;
+            }).join('');
+
+            return `<div style="display:flex;gap:0;border-radius:3px;overflow:hidden;border:1px solid #e9ecef">${bars}</div>`;
+        }
+
         // Add message to UI only (for restoring sessions)
-        function addMessageToUI(type, text, sources = []) {
+        function addMessageToUI(type, text, sources = [], queryEmbedding = null, queryText = '') {
             const div = document.createElement('div');
             div.className = `message message-${type}`;
 
@@ -1901,6 +2171,18 @@ Looking ahead, AI will likely become more integrated into educational settings. 
                 content += formatMarkdown(text);
 
                 if (sources.length > 0) {
+                    const msgId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                    const hasEmbeddings = queryEmbedding &&
+                                          Array.isArray(queryEmbedding) &&
+                                          queryEmbedding.length > 0 &&
+                                          sources.some(s => s.embedding && Array.isArray(s.embedding) && s.embedding.length > 0);
+                    console.log('hasEmbeddings check:', {
+                        hasQueryEmb: !!queryEmbedding,
+                        queryEmbLength: queryEmbedding?.length,
+                        sourcesWithEmb: sources.filter(s => s.embedding && Array.isArray(s.embedding)).length,
+                        result: hasEmbeddings
+                    });
+
                     content += `
                         <div class="sources-section">
                             <div class="sources-toggle" onclick="toggleSources(this)">
@@ -1912,11 +2194,26 @@ Looking ahead, AI will likely become more integrated into educational settings. 
                                 ${sources.map((s, i) => `
                                     <div class="source-item">
                                         <div class="source-match">"${(s.childText || '').slice(0, 80)}..."</div>
-                                        <div class="source-context" id="source-${Date.now()}-${i}">${s.parentText || ''}</div>
+                                        <div class="source-context" id="source-${msgId}-${i}">${s.parentText || ''}</div>
                                         <small class="text-primary" style="cursor:pointer" onclick="toggleSourceContext(this)">Show full context</small>
                                     </div>
                                 `).join('')}
                             </div>
+                            ${hasEmbeddings ? `
+                                <div class="semantic-toggle" onclick="toggleSemanticView(this, '${msgId}')">
+                                    <i class="bi bi-graph-up"></i> Show semantic analysis
+                                </div>
+                                <div class="query-viz" id="semantic-${msgId}" style="display: none;"
+                                     data-query-text="${encodeURIComponent(queryText)}"
+                                     data-query-embedding="${encodeURIComponent(JSON.stringify(queryEmbedding))}"
+                                     data-sources="${encodeURIComponent(JSON.stringify(sources.slice(0, 3).map(s => ({
+                                         childText: s.childText,
+                                         docName: s.docName,
+                                         similarity: s.similarity,
+                                         embedding: s.embedding
+                                     }))))}">
+                                </div>
+                            ` : ''}
                         </div>
                     `;
                 }
@@ -1931,12 +2228,18 @@ Looking ahead, AI will likely become more integrated into educational settings. 
         }
 
         // Add message and save to session
-        function addMessage(type, text, sources = []) {
-            addMessageToUI(type, text, sources);
+        function addMessage(type, text, sources = [], queryEmbedding = null, queryText = '') {
+            addMessageToUI(type, text, sources, queryEmbedding, queryText);
 
             // Save non-system messages to chat history
+            // Note: We don't save embeddings to session storage (too large)
             if (type !== 'system') {
-                chatMessages.push({ type, text, sources });
+                chatMessages.push({ type, text, sources: sources.map(s => ({
+                    parentText: s.parentText,
+                    childText: s.childText,
+                    docName: s.docName,
+                    similarity: s.similarity
+                }))});
                 saveSession(); // Auto-save after each message
             }
         }
@@ -1966,6 +2269,59 @@ Looking ahead, AI will likely become more integrated into educational settings. 
             const context = el.previousElementSibling;
             context.classList.toggle('expanded');
             el.textContent = context.classList.contains('expanded') ? 'Show less' : 'Show full context';
+        };
+
+        window.toggleSemanticView = function(toggleEl, msgId) {
+            const vizEl = document.getElementById('semantic-' + msgId);
+            const isVisible = vizEl.style.display !== 'none';
+
+            if (isVisible) {
+                vizEl.style.display = 'none';
+                toggleEl.classList.remove('active');
+                toggleEl.innerHTML = '<i class="bi bi-graph-up"></i> Show semantic analysis';
+            } else {
+                // Populate the visualization if not already done
+                if (!vizEl.dataset.populated) {
+                    const queryText = decodeURIComponent(vizEl.dataset.queryText);
+                    const queryEmbedding = JSON.parse(decodeURIComponent(vizEl.dataset.queryEmbedding));
+                    const sources = JSON.parse(decodeURIComponent(vizEl.dataset.sources));
+
+                    let vizHtml = `
+                        <div class="query-viz-header">
+                            <i class="bi bi-search"></i> Semantic Search Results
+                        </div>
+                        <div class="query-text">"${queryText}"</div>
+                        <div class="query-fingerprint">
+                            ${generateMiniHeatmap(queryEmbedding, 80)}
+                            <div style="font-size:0.55rem;color:#6c757d;margin-top:2px">Your query's semantic fingerprint</div>
+                        </div>
+                    `;
+
+                    sources.forEach(s => {
+                        const score = Math.round((s.similarity || 0) * 100);
+                        const scoreClass = score >= 80 ? 'high' : score >= 60 ? 'medium' : 'low';
+                        vizHtml += `
+                            <div class="match-item">
+                                <div class="match-score ${scoreClass}">${score}%</div>
+                                <div class="match-content">
+                                    <div class="match-text">${(s.childText || '').slice(0, 120)}...</div>
+                                    <div class="match-doc"><i class="bi bi-file-earmark-text"></i> ${s.docName || 'Document'}</div>
+                                    <div class="match-fingerprint">
+                                        ${generateMiniHeatmap(s.embedding, 60)}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    vizEl.innerHTML = vizHtml;
+                    vizEl.dataset.populated = 'true';
+                }
+
+                vizEl.style.display = 'block';
+                toggleEl.classList.add('active');
+                toggleEl.innerHTML = '<i class="bi bi-graph-up"></i> Hide semantic analysis';
+            }
         };
 
         // ==================== SETTINGS ====================
@@ -2219,13 +2575,21 @@ Looking ahead, AI will likely become more integrated into educational settings. 
             // Build combined index across all documents
             const allChunks = [];
             documents.forEach(doc => {
+                console.log(`Building index for ${doc.name}: ${doc.childChunks?.length || 0} chunks, ${doc.embeddings?.length || 0} embeddings`);
+                if (!doc.embeddings || doc.embeddings.length === 0) {
+                    console.warn(`Document ${doc.name} has no embeddings!`);
+                    return; // Skip this document
+                }
                 doc.childChunks.forEach((chunk, i) => {
-                    allChunks.push({
-                        chunk,
-                        embedding: doc.embeddings[i],
-                        parentChunks: doc.parentChunks,
-                        docName: doc.name
-                    });
+                    const emb = doc.embeddings[i];
+                    if (emb && Array.isArray(emb) && emb.length > 0) {
+                        allChunks.push({
+                            chunk,
+                            embedding: emb,
+                            parentChunks: doc.parentChunks,
+                            docName: doc.name
+                        });
+                    }
                 });
             });
 
@@ -2238,9 +2602,9 @@ Looking ahead, AI will likely become more integrated into educational settings. 
 
             sims.sort((a, b) => b.sim - a.sim);
 
-            // Get unique parent contexts
+            // Get unique parent contexts with similarity scores
             const uniqueParents = new Map();
-            for (const { item } of sims.slice(0, topN)) {
+            for (const { item, sim } of sims.slice(0, topN)) {
                 const key = `${item.docName}-${item.chunk.parentId}`;
                 if (!uniqueParents.has(key)) {
                     // parentChunks is a Map, need to convert if stored as object
@@ -2254,7 +2618,9 @@ Looking ahead, AI will likely become more integrated into educational settings. 
                     uniqueParents.set(key, {
                         parentText: parentText || item.chunk.text,
                         childText: item.chunk.text,
-                        docName: item.docName
+                        docName: item.docName,
+                        similarity: sim,
+                        embedding: item.embedding
                     });
                 }
             }
@@ -2440,11 +2806,13 @@ Looking ahead, AI will likely become more integrated into educational settings. 
                 const parentCount = parentChunks.size;
 
                 html += `
-                    <div class="section-header">
+                    <div class="section-header" onclick="toggleDocumentSection('doc-${doc.id}')">
+                        <i class="bi bi-chevron-down toggle-icon" id="toggle-doc-${doc.id}"></i>
                         <i class="bi bi-file-earmark-text"></i>
                         <h5>${doc.name}</h5>
                         <span class="badge bg-primary">${parentCount} parents / ${doc.childChunks.length} children</span>
                     </div>
+                    <div class="document-content" id="doc-${doc.id}">
                 `;
 
                 const groupedByParent = {};
@@ -2496,10 +2864,21 @@ Looking ahead, AI will likely become more integrated into educational settings. 
                         </div>
                     `;
                 });
+
+                html += `</div>`; // Close document-content div
             });
 
             embeddingsContainer.innerHTML = html;
         }
+
+        window.toggleDocumentSection = function(docId) {
+            const content = document.getElementById(docId);
+            const toggle = document.getElementById('toggle-' + docId);
+            const header = toggle.closest('.section-header');
+
+            content.classList.toggle('collapsed');
+            header.classList.toggle('collapsed');
+        };
 
         window.toggleParentText = function(pId) {
             const el = document.getElementById(`ptext-${pId}`);
@@ -2647,12 +3026,25 @@ Looking ahead, AI will likely become more integrated into educational settings. 
             showTypingIndicator();
 
             try {
-                // Generate query embedding
-                const queryOutput = await extractor(text, { pooling: 'mean', normalize: true });
-                const queryEmbedding = Array.from(queryOutput.data);
+                // Generate query embedding (if extractor available)
+                let queryEmbedding = null;
+                if (extractor) {
+                    const queryOutput = await extractor(text, { pooling: 'mean', normalize: true });
+                    queryEmbedding = Array.from(queryOutput.data);
+                    console.log('Query embedding generated, length:', queryEmbedding.length);
+                } else {
+                    console.warn('Main thread extractor not available, semantic visualization disabled');
+                }
 
-                // Retrieve contexts
+                // Retrieve contexts (need query embedding for retrieval)
+                if (!queryEmbedding) {
+                    hideTypingIndicator();
+                    addMessage('system', 'Embedding model still loading. Please wait a moment and try again.');
+                    return;
+                }
+
                 const contexts = retrieveDocuments(queryEmbedding);
+                console.log('Retrieved contexts:', contexts.length, 'with embeddings:', contexts.filter(c => c.embedding).length);
                 const contextTexts = contexts.map(c => c.parentText);
 
                 // Build prompt
@@ -2673,7 +3065,7 @@ Looking ahead, AI will likely become more integrated into educational settings. 
                 // Hide typing indicator before showing response
                 hideTypingIndicator();
 
-                addMessage('bot', botResponse, contexts);
+                addMessage('bot', botResponse, contexts, queryEmbedding, text);
             } catch (error) {
                 console.error('Error:', error);
                 hideTypingIndicator();
@@ -2711,26 +3103,58 @@ Looking ahead, AI will likely become more integrated into educational settings. 
         // Document management
         addDocBtn.addEventListener('click', () => fileInput.click());
 
-        fileInput.addEventListener('change', (e) => {
+        fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            if (!file.name.endsWith('.txt')) {
-                addMessage('system', 'Please upload a .txt file.');
+            const fileName = file.name.toLowerCase();
+            const isPDF = fileName.endsWith('.pdf');
+            const isMD = fileName.endsWith('.md');
+            const isTXT = fileName.endsWith('.txt');
+
+            if (!isPDF && !isMD && !isTXT) {
+                addMessage('system', 'Please upload a .txt, .md, or .pdf file.');
+                fileInput.value = '';
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = (e) => processDocument(e.target.result, file.name);
-            reader.onerror = () => addMessage('system', 'Error reading file.');
-            reader.readAsText(file);
+            try {
+                let text;
+                let fileType;
+
+                if (isPDF) {
+                    fileType = 'pdf';
+                    addMessage('system', 'Extracting text from PDF...');
+                    text = await extractTextFromPDF(file);
+                    if (!text || text.trim().length === 0) {
+                        addMessage('system', 'Could not extract text from PDF. The file might be image-based or protected.');
+                        fileInput.value = '';
+                        return;
+                    }
+                } else {
+                    fileType = isMD ? 'md' : 'txt';
+                    text = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = () => reject(new Error('Error reading file'));
+                        reader.readAsText(file);
+                    });
+                }
+
+                // Show preview modal
+                showDocumentPreview(file.name, text, fileType);
+
+            } catch (error) {
+                console.error('File processing error:', error);
+                addMessage('system', 'Error processing file: ' + error.message);
+            }
 
             // Reset file input so same file can be added again
             fileInput.value = '';
         });
 
         sampleBtn.addEventListener('click', () => {
-            processDocument(SAMPLE_DOCUMENT, 'AI in Education (Sample)');
+            showDocumentPreview('AI in Education (Sample)', SAMPLE_DOCUMENT, 'txt');
         });
 
         // Chat history
@@ -2790,11 +3214,15 @@ Looking ahead, AI will likely become more integrated into educational settings. 
 
                 if (window.transformersPipeline) {
                     window.transformersEnv.allowLocalModels = false;
+                    console.log('Loading main thread extractor...');
                     extractor = await window.transformersPipeline(
                         'feature-extraction',
                         'Xenova/bge-small-en-v1.5',
                         { quantized: false }
                     );
+                    console.log('Main thread extractor loaded successfully');
+                } else {
+                    console.warn('window.transformersPipeline not available');
                 }
 
                 // Worker ready status is handled by createEmbeddingWorker callback
@@ -2822,6 +3250,12 @@ Looking ahead, AI will likely become more integrated into educational settings. 
                     currentSessionId = lastSession.id;
                     chatMessages = lastSession.messages || [];
                     documents = lastSession.documents || [];
+
+                    // Debug: check if documents have embeddings
+                    console.log('Restored session with', documents.length, 'documents');
+                    documents.forEach((doc, i) => {
+                        console.log(`Doc ${i} (${doc.name}): ${doc.childChunks?.length || 0} chunks, ${doc.embeddings?.length || 0} embeddings`);
+                    });
 
                     // Restore UI
                     messagesEl.innerHTML = '';
