@@ -553,11 +553,254 @@
     .demo-mode-notice.hidden {
       display: none;
     }
+
+    /* Document input overlay */
+    .doc-input-overlay {
+      position: fixed;
+      inset: 0;
+      background: #fafaf9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 2rem;
+    }
+
+    .doc-input-overlay.hidden {
+      display: none;
+    }
+
+    .doc-input-content {
+      max-width: 36rem;
+      width: 100%;
+      text-align: center;
+    }
+
+    .doc-input-icon {
+      width: 4rem;
+      height: 4rem;
+      margin: 0 auto 1.5rem;
+      color: #57534e;
+    }
+
+    .doc-input-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #292524;
+      margin-bottom: 0.75rem;
+    }
+
+    .doc-input-subtitle {
+      font-size: 1rem;
+      color: #78716c;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+      max-width: 28rem;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .demo-btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.875rem 1.75rem;
+      background: #292524;
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 2rem;
+    }
+
+    .demo-btn-primary:hover {
+      background: #44403c;
+      transform: translateY(-1px);
+    }
+
+    .demo-btn-primary svg {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    .input-section-title {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #a8a29e;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .doc-input-methods {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .upload-zone {
+      border: 2px dashed #d6d3d1;
+      border-radius: 0.75rem;
+      padding: 2rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+      border-color: #78716c;
+      background: #f5f5f4;
+    }
+
+    .upload-zone-icon {
+      width: 3rem;
+      height: 3rem;
+      margin: 0 auto 1rem;
+      color: #78716c;
+    }
+
+    .upload-zone-text {
+      font-size: 0.9375rem;
+      color: #44403c;
+      margin-bottom: 0.25rem;
+    }
+
+    .upload-zone-hint {
+      font-size: 0.8125rem;
+      color: #a8a29e;
+    }
+
+    .input-divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: #a8a29e;
+      font-size: 0.8125rem;
+    }
+
+    .input-divider::before,
+    .input-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #e7e5e4;
+    }
+
+    .paste-area {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .paste-textarea {
+      width: 100%;
+      height: 12rem;
+      padding: 1rem;
+      border: 1px solid #d6d3d1;
+      border-radius: 0.5rem;
+      font-family: Georgia, serif;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      resize: none;
+      background: white;
+      color: #44403c;
+    }
+
+    .paste-textarea:focus {
+      outline: none;
+      border-color: #78716c;
+    }
+
+    .paste-textarea::placeholder {
+      color: #a8a29e;
+    }
+
+    .submit-btn {
+      padding: 0.75rem 1.5rem;
+      background: #292524;
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: #44403c;
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* New document button in header */
+    .new-doc-btn {
+      padding: 0.375rem 0.75rem;
+      background: #f5f5f4;
+      border: 1px solid #e7e5e4;
+      border-radius: 0.375rem;
+      font-size: 0.8125rem;
+      color: #57534e;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .new-doc-btn:hover {
+      background: #e7e5e4;
+      color: #292524;
+    }
   </style>
 </head>
 <body>
+  <!-- Document input overlay -->
+  <div class="doc-input-overlay" id="docInputOverlay">
+    <div class="doc-input-content">
+      <svg class="doc-input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+      </svg>
+      <h2 class="doc-input-title">Semantic Zoom Editor</h2>
+      <p class="doc-input-subtitle">
+        Explore documents at different levels of detail. AI-powered summaries let you zoom smoothly between full text and high-level abstracts.
+      </p>
+
+      <button class="demo-btn-primary" id="loadDemoBtn">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Try the Demo
+      </button>
+
+      <div class="input-section-title">Or use your own document</div>
+
+      <div class="doc-input-methods">
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fileInput" accept=".txt,.md,.text" style="display: none;">
+          <svg class="upload-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          <div class="upload-zone-text">Drop a file here or click to upload</div>
+          <div class="upload-zone-hint">Supports .txt and .md files</div>
+        </div>
+        <div class="input-divider">or paste your text</div>
+        <div class="paste-area">
+          <textarea class="paste-textarea" id="pasteTextarea" placeholder="Paste or type your document here..."></textarea>
+          <button class="submit-btn" id="submitTextBtn" disabled>Process Document</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Model loading overlay -->
-  <div class="model-overlay" id="modelOverlay">
+  <div class="model-overlay hidden" id="modelOverlay">
     <div class="model-loading-content" id="overlayContent">
       <!-- Content set dynamically -->
     </div>
@@ -575,6 +818,7 @@
               </h1>
               <div class="subtitle" id="levelDescription">Full Text · Every word as written</div>
             </div>
+            <button class="new-doc-btn" id="newDocBtn">New Document</button>
             <div class="loading-badge" id="generatingBadge" style="display: none;">
               <div class="spinner"></div>
               Generating summaries...
@@ -672,7 +916,7 @@ Technology has transformed how we write, but the fundamentals remain unchanged. 
 
     // State
     let state = {
-      content: SAMPLE_TEXT,
+      content: '',
       zoomLevel: 100,
       prevZoomLevel: 100,
       paragraphs: [],
@@ -684,7 +928,9 @@ Technology has transformed how we write, but the fundamentals remain unchanged. 
       transitionKey: 0,
       engine: null,
       webGPUSupported: false,
-      fallbackMode: false
+      fallbackMode: false,
+      documentLoaded: false,
+      isDemo: false
     };
 
     // DOM elements
@@ -700,7 +946,14 @@ Technology has transformed how we write, but the fundamentals remain unchanged. 
       zoomInBtn: document.getElementById('zoomInBtn'),
       zoomOutBtn: document.getElementById('zoomOutBtn'),
       fallbackBadge: document.getElementById('fallbackBadge'),
-      demoNotice: document.getElementById('demoNotice')
+      demoNotice: document.getElementById('demoNotice'),
+      docInputOverlay: document.getElementById('docInputOverlay'),
+      uploadZone: document.getElementById('uploadZone'),
+      fileInput: document.getElementById('fileInput'),
+      pasteTextarea: document.getElementById('pasteTextarea'),
+      submitTextBtn: document.getElementById('submitTextBtn'),
+      loadDemoBtn: document.getElementById('loadDemoBtn'),
+      newDocBtn: document.getElementById('newDocBtn')
     };
 
     // Utility functions
@@ -727,17 +980,17 @@ Technology has transformed how we write, but the fundamentals remain unchanged. 
 
     function getPromptForLevel(text, level, isFullDocument = false) {
       if (isFullDocument) {
-        return `Summarize this entire document in 2-3 sentences. Plain text only, no markdown:\n\n${text}`;
+        return `Summarize this document in 2-3 sentences. Output ONLY the summary, nothing else. No introductions, no explanations, no commentary.\n\n${text}`;
       }
       switch (level) {
         case 75:
-          return `Tighten this paragraph by removing filler words and redundancy. Keep it as flowing prose, just more concise. Plain text only:\n\n${text}`;
+          return `Rewrite this paragraph more concisely by removing filler words and redundancy. Output ONLY the rewritten paragraph, nothing else. No introductions like "Here is..." and no explanations after.\n\n${text}`;
         case 50:
-          return `Distill this paragraph to its 2-3 most important sentences or ideas. Plain text only:\n\n${text}`;
+          return `Extract the 2-3 most important sentences from this paragraph. Output ONLY those sentences, nothing else. No introductions and no commentary.\n\n${text}`;
         case 25:
-          return `Summarize this paragraph in exactly one sentence. Plain text only:\n\n${text}`;
+          return `Summarize this paragraph in one sentence. Output ONLY that sentence, nothing else.\n\n${text}`;
         case 10:
-          return `What is the main theme of this paragraph in 3-5 words? No punctuation, plain text only:\n\n${text}`;
+          return `State the main theme of this paragraph in 3-5 words. Output ONLY those words, nothing else. No punctuation.\n\n${text}`;
         default:
           return text;
       }
@@ -755,6 +1008,34 @@ Technology has transformed how we write, but the fundamentals remain unchanged. 
         .replace(/^\d+\.\s+/gm, '')
         .replace(/\[(.*?)\]\(.*?\)/g, '$1')
         .trim();
+    }
+
+    function cleanLLMResponse(text) {
+      let cleaned = stripMarkdown(text);
+
+      // Remove common preamble patterns
+      const preamblePatterns = [
+        /^here (?:is|are) (?:the |a |my )?(?:summary|rewritten|condensed|concise|tightened|distilled|extracted|main|key|important|2-3|one)[^:]*:\s*/i,
+        /^(?:the |a )?(?:summary|rewritten|condensed|concise|tightened|main theme)[^:]*:\s*/i,
+        /^(?:sure|okay|certainly)[,!.]?\s*(?:here (?:is|are))?[^:]*:\s*/i,
+      ];
+
+      for (const pattern of preamblePatterns) {
+        cleaned = cleaned.replace(pattern, '');
+      }
+
+      // Remove common postamble patterns
+      const postamblePatterns = [
+        /\n+(?:this |the )?(?:concise |rewritten |condensed )?(?:version |summary |paragraph )?(?:maintains|preserves|keeps|retains|captures)[^.]*\.?\s*$/i,
+        /\n+(?:i |i've |this )?(?:have )?(?:removed|eliminated|cut|trimmed)[^.]*\.?\s*$/i,
+        /\n+let me know if[^.]*\.?\s*$/i,
+      ];
+
+      for (const pattern of postamblePatterns) {
+        cleaned = cleaned.replace(pattern, '');
+      }
+
+      return cleaned.trim();
     }
 
     function getDisplayText(para, index, level) {
@@ -792,6 +1073,7 @@ Technology has transformed how we write, but the fundamentals remain unchanged. 
     }
 
     function showLoadingOverlay() {
+      elements.modelOverlay.classList.remove('hidden');
       elements.overlayContent.innerHTML = `
         <svg class="model-loading-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -806,6 +1088,7 @@ Technology has transformed how we write, but the fundamentals remain unchanged. 
     }
 
     function showErrorOverlay(reason) {
+      elements.modelOverlay.classList.remove('hidden');
       elements.overlayContent.innerHTML = `
         <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -935,7 +1218,7 @@ Technology has transformed how we write, but the fundamentals remain unchanged. 
           max_tokens: maxTokens,
           temperature: 0.3
         });
-        return stripMarkdown(response.choices[0].message.content);
+        return cleanLLMResponse(response.choices[0].message.content);
       } catch (error) {
         console.error('LLM call failed:', error);
         return null;
@@ -1241,10 +1524,103 @@ Technology has transformed how we write, but the fundamentals remain unchanged. 
       if (idx < ZOOM_LEVELS.length - 1) setZoomLevel(ZOOM_LEVELS[idx + 1].value);
     });
 
-    // Initialize
-    state.paragraphs = state.content.split('\n\n').filter(p => p.trim().length > 0);
+    // Document input functions
+    function loadDocument(text, isDemo = false) {
+      state.content = text.trim();
+      state.paragraphs = state.content.split('\n\n').filter(p => p.trim().length > 0);
+      state.summaryCache = {};
+      state.generatingLevels = new Set();
+      state.isGenerating = false;
+      state.expandedParagraphs = new Set();
+      state.previousTexts = {};
+      state.transitionKey = 0;
+      state.zoomLevel = 100;
+      state.documentLoaded = true;
+      state.isDemo = isDemo;
+
+      elements.docInputOverlay.classList.add('hidden');
+      elements.pasteTextarea.value = '';
+
+      if (isDemo) {
+        loadFallbackSummaries();
+      }
+
+      updateUI();
+
+      if (state.engine && !isDemo) {
+        generateAllSummaries();
+      } else if (!state.engine && !isDemo) {
+        initializeEngine();
+      }
+    }
+
+    function showDocumentInput() {
+      elements.docInputOverlay.classList.remove('hidden');
+      elements.pasteTextarea.value = '';
+      elements.submitTextBtn.disabled = true;
+    }
+
+    // File upload handling
+    elements.uploadZone.addEventListener('click', () => {
+      elements.fileInput.click();
+    });
+
+    elements.fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const text = await file.text();
+        loadDocument(text);
+      }
+      e.target.value = '';
+    });
+
+    // Drag and drop
+    elements.uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      elements.uploadZone.classList.add('drag-over');
+    });
+
+    elements.uploadZone.addEventListener('dragleave', () => {
+      elements.uploadZone.classList.remove('drag-over');
+    });
+
+    elements.uploadZone.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      elements.uploadZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && (file.name.endsWith('.txt') || file.name.endsWith('.md') || file.name.endsWith('.text'))) {
+        const text = await file.text();
+        loadDocument(text);
+      }
+    });
+
+    // Paste textarea handling
+    elements.pasteTextarea.addEventListener('input', () => {
+      const hasText = elements.pasteTextarea.value.trim().length > 0;
+      elements.submitTextBtn.disabled = !hasText;
+    });
+
+    elements.submitTextBtn.addEventListener('click', () => {
+      const text = elements.pasteTextarea.value.trim();
+      if (text) {
+        loadDocument(text);
+      }
+    });
+
+    // Demo button
+    elements.loadDemoBtn.addEventListener('click', () => {
+      loadDocument(SAMPLE_TEXT, true);
+      elements.fallbackBadge.classList.remove('hidden');
+      elements.demoNotice.classList.remove('hidden');
+    });
+
+    // New document button
+    elements.newDocBtn.addEventListener('click', () => {
+      showDocumentInput();
+    });
+
+    // Initialize - show document input overlay
     updateUI();
-    initializeEngine();
   </script>
 </body>
 </html>
