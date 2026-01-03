@@ -562,9 +562,10 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       z-index: 50;
-      padding: 2rem;
+      padding: 3rem 2rem;
+      overflow-y: auto;
     }
 
     .doc-input-overlay.hidden {
@@ -578,9 +579,9 @@
     }
 
     .doc-input-icon {
-      width: 4rem;
-      height: 4rem;
-      margin: 0 auto 1.5rem;
+      width: 3rem;
+      height: 3rem;
+      margin: 0 auto 1rem;
       color: #57534e;
     }
 
@@ -594,8 +595,8 @@
     .doc-input-subtitle {
       font-size: 1rem;
       color: #78716c;
-      margin-bottom: 2rem;
-      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
       max-width: 28rem;
       margin-left: auto;
       margin-right: auto;
@@ -605,7 +606,7 @@
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.875rem 1.75rem;
+      padding: 0.75rem 1.5rem;
       background: #292524;
       color: white;
       border: none;
@@ -614,7 +615,7 @@
       font-weight: 500;
       cursor: pointer;
       transition: all 0.15s;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
     }
 
     .demo-btn-primary:hover {
@@ -639,13 +640,13 @@
     .doc-input-methods {
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 1rem;
     }
 
     .upload-zone {
       border: 2px dashed #d6d3d1;
       border-radius: 0.75rem;
-      padding: 2rem;
+      padding: 1.5rem;
       cursor: pointer;
       transition: all 0.2s;
       background: white;
@@ -658,9 +659,9 @@
     }
 
     .upload-zone-icon {
-      width: 3rem;
-      height: 3rem;
-      margin: 0 auto 1rem;
+      width: 2.5rem;
+      height: 2.5rem;
+      margin: 0 auto 0.75rem;
       color: #78716c;
     }
 
@@ -699,7 +700,7 @@
 
     .paste-textarea {
       width: 100%;
-      height: 12rem;
+      height: 8rem;
       padding: 1rem;
       border: 1px solid #d6d3d1;
       border-radius: 0.5rem;
