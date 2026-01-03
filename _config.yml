@@ -7,11 +7,10 @@
 
 # Site settings
 title: Reuben Thiessen
-email: your-email@domain.com
-description: > # this means to ignore newlines until "baseurl:"
-  Personal and Portfolio Website for Reuben Thiessen.
+email: reubenthiessen@gmail.com
+description: "Reuben Thiessen - Emerging Technology Lead at Stanford's Accelerator for Learning. Full-stack developer and former CTO building AI-powered educational platforms."
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://reubenthiessen.com" # the base hostname & protocol for your site
+url: "https://reubenthiessen.com" # the base hostname & protocol for your site
 twitter_username: reubenthiessen
 github_username:  canuk
 

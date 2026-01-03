@@ -2,15 +2,58 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</title>
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="{% if page.description %}{{ page.description | escape }}{% else %}Reuben Thiessen - Emerging Technology Lead at Stanford's Accelerator for Learning. Full-stack developer, former CTO, building AI-powered educational platforms and immersive 3D experiences.{% endif %}">
+    <meta name="author" content="Reuben Thiessen">
+    <meta name="keywords" content="Reuben Thiessen, Stanford, education technology, edtech, full-stack developer, AI, generative AI, learning design, JavaScript, Ruby, Rails">
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ page.url | absolute_url }}">
+    <meta property="og:title" content="{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}">
+    <meta property="og:description" content="{% if page.description %}{{ page.description | escape }}{% else %}Emerging Technology Lead at Stanford's Accelerator for Learning. Full-stack developer and former CTO building educational technology.{% endif %}">
+    <meta property="og:image" content="{{ '/img/og-image.webp' | absolute_url }}">
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{{ page.url | absolute_url }}">
+    <meta name="twitter:title" content="{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}">
+    <meta name="twitter:description" content="{% if page.description %}{{ page.description | escape }}{% else %}Emerging Technology Lead at Stanford's Accelerator for Learning. Full-stack developer and former CTO building educational technology.{% endif %}">
+    <meta name="twitter:image" content="{{ '/img/og-image.webp' | absolute_url }}">
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "Reuben Thiessen",
+      "jobTitle": "Emerging Technology Lead",
+      "worksFor": {
+        "@type": "Organization",
+        "name": "Stanford Accelerator for Learning",
+        "url": "https://acceleratelearning.stanford.edu"
+      },
+      "url": "https://reubenthiessen.com",
+      "sameAs": [
+        "https://github.com/canuk",
+        "https://www.linkedin.com/in/reubenthiessen/"
+      ],
+      "knowsAbout": ["Education Technology", "Learning Design", "Artificial Intelligence", "Generative AI", "Educational Research", "Immersive Learning"]
+    }
+    </script>
     <!-- Bootstrap 5.3.3 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="{{ "/css/styles.css" | prepend: site.baseurl }}"/> 
+    <link rel="stylesheet" type="text/css" href="{{ "/css/styles.css" | prepend: site.baseurl }}"/>
+    <link rel="icon" type="image/x-icon" href="{{ '/favicon.ico' | prepend: site.baseurl }}">
     <link rel="canonical" href="{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}"/>
     <link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="{{ "/feed.xml" | prepend: site.baseurl | prepend: site.url }}"/>
+    <!-- Highlight.js for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
 </head>

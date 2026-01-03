@@ -1,0 +1,396 @@
+---
+layout: default
+title: Building OpenEngineData
+description: "How I built OpenEngineData - an open-source aviation engine data platform. From reverse-engineering JPI binary files to a full Ruby gem, TypeScript parser, Rails web app, and Electron desktop app."
+---
+
+<div class="container py-5">
+  <article class="article-content mx-auto">
+
+    <!-- Hero Section -->
+    <header class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3">Building OpenEngineData</h1>
+      <p class="lead text-secondary">From Reverse-Engineering Binary Files to a Full Aviation Data Platform</p>
+      <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+        <span class="badge" style="background-color: #CC342D;"><i class="bi bi-gem me-1"></i>Ruby</span>
+        <span class="badge" style="background-color: #3178C6;"><i class="bi bi-braces me-1"></i>TypeScript</span>
+        <span class="badge" style="background-color: #CC0000;"><i class="bi bi-train-front me-1"></i>Rails 8</span>
+        <span class="badge" style="background-color: #47848F;"><i class="bi bi-window me-1"></i>Electron</span>
+      </div>
+    </header>
+
+    <!-- Table of Contents -->
+    <nav class="toc card card-modern p-4 mb-5">
+      <h5 class="fw-bold mb-3"><i class="bi bi-list-ol me-2"></i>Contents</h5>
+      <ol class="mb-0">
+        <li><a href="#the-problem">The Problem</a></li>
+        <li><a href="#cracking-the-format">Phase 1: Cracking the Format</a></li>
+        <li><a href="#ruby-gem">Phase 2: The Ruby Gem</a></li>
+        <li><a href="#going-client-side">Phase 3: Going Client-Side</a></li>
+        <li><a href="#web-platform">Phase 4: The Web Platform</a></li>
+        <li><a href="#desktop-app">Phase 5: Desktop App</a></li>
+        <li><a href="#byte-offset-bug">Technical Deep Dive: The 0-1 Byte Offset Bug</a></li>
+        <li><a href="#lessons-learned">Lessons Learned</a></li>
+        <li><a href="#links">Links & Resources</a></li>
+      </ol>
+    </nav>
+
+    <!-- The Problem -->
+    <section id="the-problem" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-exclamation-circle-fill text-warning me-2"></i>The Problem</h2>
+
+      <p>General aviation pilots who care about their engines invest in engine monitors, a popular choice are the <strong>JPI Engine Data Management (EDM)</strong> devices. These instruments continuously record critical engine parameters during flight: exhaust gas temperatures (EGT), cylinder head temperatures (CHT), fuel flow, RPM, manifold pressure, oil temperature, and more. For pilots flying piston aircraft, this data is invaluable for detecting problems early and optimizing engine performance.</p>
+
+      <p>The challenge? JPI stores this data in a <strong>proprietary binary format</strong> with no publicly available specification. The official JPI software, EZTrends, only runs on Windows and hasn't been significantly updated in years. Third-party services like SavvyAnalysis exist, but require uploading your data to their servers and subscribing to their service.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-lightbulb-fill me-2"></i>The Goal</h6>
+        <p class="mb-0">Create an open-source toolkit that lets pilots analyze their own engine data—locally if they prefer—without vendor lock-in or mandatory subscriptions.</p>
+      </div>
+
+      <p>This project evolved through four distinct phases: reverse-engineering the file format, building a Ruby gem, porting to TypeScript for browser use, creating a full web platform, and finally packaging a desktop app. Each phase built on the previous one, and each brought its own technical challenges.</p>
+    </section>
+
+    <!-- Phase 1: Cracking the Format -->
+    <section id="cracking-the-format" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-unlock-fill text-primary me-2"></i>Phase 1: Cracking the Format</h2>
+
+      <p>The first step was understanding how JPI encodes flight data. Through clean-room analysis—examining real JPI files and cross-referencing with community forum discussions—I pieced together the binary format.</p>
+
+      <h4>ASCII Headers with XOR Checksums</h4>
+      <p>JPI files begin with an ASCII header containing metadata about the recording device and configuration. Each line ends with a checksum calculated by XORing all characters:</p>
+
+      <pre><code class="language-ruby"># Simplified checksum validation
+def valid_checksum?(line)
+  data, checksum = line[0..-3], line[-2..-1]
+  calculated = data.bytes.reduce(0) { |acc, b| acc ^ b }
+  calculated.to_s(16).upcase.rjust(2, '0') == checksum
+end</code></pre>
+
+      <h4>Delta Compression</h4>
+      <p>The real complexity is in the flight data. JPI doesn't store absolute values for each parameter—it uses <strong>delta compression</strong>. Each record only stores the <em>change</em> from the previous record. A bitmask indicates which fields changed:</p>
+
+      <pre><code class="language-ruby"># Simplified delta decompression
+def decompress_record(bitmask, data_stream, previous_values)
+  current = previous_values.dup
+
+  FIELD_ORDER.each_with_index do |field, index|
+    if bitmask[index] == 1  # Field changed
+      delta = read_signed_byte(data_stream)
+      current[field] += delta
+    end
+  end
+
+  current
+end</code></pre>
+
+      <h4>GPS Coordinate Handling</h4>
+      <p>GPS data added another layer of complexity. Initial coordinates are stored as 32-bit integers with 1/6000 degree resolution. Subsequent positions use 8-bit or 16-bit deltas. And there's a quirk: it appears when the GPS powers on, my Garmin 430 report coordinates in <em>Kansas</em> (the Garmin headquarters location) until lock is reacquired. The parser needs to detect and ignore these "Kansas" values.</p>
+
+      <pre><code class="language-ruby"># GPS uses special "handshake" values to indicate lock status
+HANDSHAKE_VALUE = 100  # ±100 indicates GPS state change
+
+def gps_handshake?(lat_delta, lon_delta)
+  lat_delta.abs == HANDSHAKE_VALUE || lon_delta.abs == HANDSHAKE_VALUE
+end</code></pre>
+    </section>
+
+    <!-- Phase 2: Ruby Gem -->
+    <section id="ruby-gem" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-gem text-danger me-2"></i>Phase 2: The Ruby Gem</h2>
+
+      <p>With the format understood, I built <code>jpi_edm_parser</code>—a Ruby gem that handles all the complexity of parsing JPI files.</p>
+
+      <h4>Architecture</h4>
+      <p>The gem follows a clean object hierarchy:</p>
+
+      <pre><code class="language-ruby">JpiEdmParser::File          # Entry point, handles file I/O
+  ├── HeaderParser          # ASCII header parsing, checksum validation
+  ├── Flight                # Individual flight with metadata
+  │    └── FlightRecord     # Per-6-second data points
+  └── IndexEntry            # Flight index for multi-flight files</code></pre>
+
+      <h4>Usage</h4>
+      <pre><code class="language-ruby">require 'jpi_edm_parser'
+
+jpi = JpiEdmParser::File.new('path/to/file.jpi')
+
+puts "Tail Number: #{jpi.tail_number}"
+puts "EDM Model: #{jpi.model}"
+puts "Found #{jpi.flights.count} flights"
+
+jpi.flights.each do |flight|
+  puts "Flight #{flight.flight_number}: #{flight.date}"
+  puts "  Duration: #{flight.duration_hours} hours"
+  puts "  Records: #{flight.records.count}"
+
+  flight.records.each do |record|
+    puts "  EGT1: #{record[:egt1]}°F, CHT1: #{record[:cht1]}°F"
+  end
+end</code></pre>
+
+      <p>The gem supports all JPI EDM models (700, 730, 800, 830, 900/930/960 series) and extracts 48+ parameters including EGT, CHT, TIT, oil temperature/pressure, fuel flow, RPM, manifold pressure, and GPS coordinates.</p>
+    </section>
+
+    <!-- Phase 3: Going Client-Side -->
+    <section id="going-client-side" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-braces text-warning me-2"></i>Phase 3: Going Client-Side</h2>
+
+      <p>The Ruby gem works great for server-side processing, but some pilots are hesitant to upload their flight data to external servers. The solution: <strong>port the parser to TypeScript</strong> so it can run entirely in the browser.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-shield-check me-2"></i>Privacy First</h6>
+        <p class="mb-0">With the TypeScript parser, pilots can analyze their data without it ever leaving their computer. The browser does all the work locally.</p>
+      </div>
+
+      <h4>Porting Challenges</h4>
+      <p>Ruby and TypeScript handle binary data very differently. Ruby's <code>String#unpack</code> makes it easy to interpret byte sequences, while TypeScript requires working with <code>DataView</code> and <code>ArrayBuffer</code>:</p>
+
+      <pre><code class="language-typescript">// TypeScript binary reading
+class BinaryReader {
+  private view: DataView;
+  private offset: number = 0;
+
+  readInt16LE(): number {
+    const value = this.view.getInt16(this.offset, true);
+    this.offset += 2;
+    return value;
+  }
+
+  readSignedByte(): number {
+    const value = this.view.getInt8(this.offset);
+    this.offset += 1;
+    return value;
+  }
+}</code></pre>
+
+      <p>The core parsing logic—delta decompression, GPS handling, checksum validation—remained identical. The TypeScript version produces the same output as the Ruby gem, ensuring consistency across platforms.</p>
+    </section>
+
+    <!-- Phase 4: Web Platform -->
+    <section id="web-platform" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-globe2 text-success me-2"></i>Phase 4: The Web Platform</h2>
+
+      <p>With both server-side (Ruby) and client-side (TypeScript) parsers available, I built <a href="https://openenginedata.org" target="_blank">OpenEngineData.org</a>—a full-featured web platform for engine data analysis.</p>
+
+      <figure class="figure my-4 w-100">
+        <img src="/img/projects/oed-flight-chart.webp" alt="OpenEngineData flight chart showing EGT and CHT temperatures" class="figure-img img-fluid rounded shadow">
+        <figcaption class="figure-caption text-center">Flight chart view with EGT, CHT, and overlay parameters</figcaption>
+      </figure>
+
+      <h4>Technology Stack</h4>
+      <div class="tech-stack-grid">
+        <div class="tech-item">
+          <strong>Rails 8.1</strong>
+          <span>with Solid Stack (no Redis needed)</span>
+        </div>
+        <div class="tech-item">
+          <strong>PostgreSQL</strong>
+          <span>with TimescaleDB extension for time-series</span>
+        </div>
+        <div class="tech-item">
+          <strong>Hotwire</strong>
+          <span>Turbo + Stimulus for interactivity</span>
+        </div>
+        <div class="tech-item">
+          <strong>Action Cable</strong>
+          <span>Real-time WebSocket updates</span>
+        </div>
+        <div class="tech-item">
+          <strong>ApexCharts</strong>
+          <span>Interactive data visualization</span>
+        </div>
+        <div class="tech-item">
+          <strong>Leaflet</strong>
+          <span>GPS track mapping</span>
+        </div>
+      </div>
+
+      <h4>Real-Time Upload Progress</h4>
+      <p>When you upload a JPI file, the browser immediately shows processing status via WebSockets. The navbar shows a spinner during processing, then updates to show how many flights were imported—all without page refreshes.</p>
+
+      <pre><code class="language-ruby"># Broadcasting upload progress via Action Cable
+class ParseFlightJob < ApplicationJob
+  def perform(aircraft_id, blob_id, upload_id)
+    upload = Upload.find(upload_id)
+    upload.update!(status: :processing)
+    broadcast_status(upload)
+
+    # Parse the file...
+    flights_created = parse_jpi_file(blob_id, aircraft_id)
+
+    upload.update!(status: :complete, flight_count: flights_created)
+    broadcast_status(upload)
+  end
+
+  private
+
+  def broadcast_status(upload)
+    UploadNotificationsChannel.broadcast_to(
+      upload.user,
+      { upload_id: upload.id, status: upload.status }
+    )
+  end
+end</code></pre>
+
+      <h4>Key Features</h4>
+      <ul>
+        <li><strong>Multi-aircraft management</strong> — Track multiple aircraft with photos and engine configurations</li>
+        <li><strong>Interactive charts</strong> — EGT, CHT with drag-to-zoom and customizable overlays</li>
+        <li><strong>GPS track visualization</strong> — See your flight path on an interactive map</li>
+        <li><strong>Flight sharing</strong> — Generate secure links to share flights with mechanics</li>
+        <li><strong>CSV export</strong> — Download your data in a universal format</li>
+      </ul>
+    </section>
+
+    <!-- Phase 5: Desktop App -->
+    <section id="desktop-app" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-display text-info me-2"></i>Phase 5: Desktop App</h2>
+
+      <p>For pilots who want a native app experience—or who don't want to use a web browser at all—I built <strong>OED Viewer</strong> using Electron.</p>
+
+      <figure class="figure my-4 w-100">
+        <img src="/img/projects/oed-viewer.webp" alt="OED Viewer desktop application" class="figure-img img-fluid rounded shadow">
+        <figcaption class="figure-caption text-center">OED Viewer desktop app running on macOS</figcaption>
+      </figure>
+
+      <h4>Cross-Platform Distribution</h4>
+      <p>OED Viewer is built for all major platforms:</p>
+      <ul>
+        <li><strong>macOS</strong> — DMG installer, signed and notarized by Apple</li>
+        <li><strong>Windows</strong> — NSIS installer and portable executable</li>
+        <li><strong>Linux</strong> — AppImage and Debian packages</li>
+      </ul>
+
+      <h4>Auto-Updates</h4>
+      <p>Using <code>electron-updater</code>, the app checks for updates automatically on launch. When a new version is available, users see a toast notification and can download and install with one click.</p>
+
+      <pre><code class="language-typescript">// Auto-update initialization
+autoUpdater.autoDownload = false;  // Let user choose
+autoUpdater.autoInstallOnAppQuit = true;
+
+autoUpdater.on('update-available', (info) => {
+  sendUpdateStatus(mainWindow, 'available', {
+    version: info.version,
+    releaseNotes: info.releaseNotes
+  });
+});
+
+autoUpdater.on('download-progress', (progress) => {
+  sendUpdateStatus(mainWindow, 'downloading', {
+    percent: progress.percent,
+    transferred: progress.transferred,
+    total: progress.total
+  });
+});</code></pre>
+
+      <h4>Code Signing & Notarization</h4>
+      <p>For macOS, Apple requires apps to be signed and notarized. This involves:</p>
+      <ol>
+        <li>Signing with a Developer ID certificate</li>
+        <li>Submitting to Apple's notarization service</li>
+        <li>Stapling the notarization ticket to the app</li>
+      </ol>
+      <p>The build process handles all of this automatically using <code>electron-builder</code> with appropriate entitlements.</p>
+    </section>
+
+    <!-- Technical Deep Dive: The 0-1 Byte Offset Bug -->
+    <section id="byte-offset-bug" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-bug-fill text-danger me-2"></i>Technical Deep Dive: The 0-1 Byte Offset Bug</h2>
+      <h4>The Symptom</h4>
+      <p>Some JPI files parsed perfectly. Others would start correctly, then produce garbage data partway through—or miss flights entirely. The pattern seemed random.</p>
+
+      <h4>The Root Cause</h4>
+      <p>JPI files use <strong>word-aligned</strong> (2-byte) lengths in their flight index, but actual data can have <strong>odd byte counts</strong>. When calculating where each flight starts in the file:</p>
+
+      <pre><code class="language-ruby"># The index entry stores data_words (2-byte units)
+# But actual data can have odd byte lengths!
+
+# WRONG: This sometimes misses by 1 byte
+position = previous_position + (index_entry.data_words * 2)
+
+# CORRECT: Account for potential padding
+actual_data_length = index_entry.data_length  # May be odd
+position = previous_position + actual_data_length
+# But index_entry.data_words * 2 might round up!</code></pre>
+
+      <h4>The Fix</h4>
+      <p>The solution required carefully tracking actual byte positions rather than trusting the word-aligned values from the index. For each flight, we scan forward to find the actual flight header magic bytes, accounting for ±1 byte variance:</p>
+
+      <pre><code class="language-ruby">def find_flight_at_position(expected_position)
+  # Search within a small window around expected position
+  (-1..1).each do |offset|
+    pos = expected_position + offset
+    if valid_flight_header_at?(pos)
+      return pos
+    end
+  end
+  nil
+end</code></pre>
+
+      <p>This fix had to be carefully ported to both the Ruby and TypeScript implementations, and tested against dozens of real-world JPI files to ensure consistency.</p>
+    </section>
+
+    <!-- Lessons Learned -->
+    <section id="lessons-learned" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-mortarboard-fill text-primary me-2"></i>Lessons Learned</h2>
+
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-lightning-fill me-2 text-success"></i>Fewer dependencies, fewer problems</h5>
+            <p class="mb-0 text-secondary">Rails 8's Solid Stack eliminated Redis. The TypeScript parser has zero dependencies. Simplicity pays dividends in maintenance.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-arrow-left-right me-2 text-info"></i>Port logic carefully</h5>
+            <p class="mb-0 text-secondary">When implementing the same algorithm in multiple languages, test with identical inputs and verify byte-for-byte output consistency.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-layers-fill me-2 text-warning"></i>Build the core once, deploy everywhere</h5>
+            <p class="mb-0 text-secondary">A well-tested parsing library became a Ruby gem, a TypeScript module, a web app backend, and an Electron app—all from the same logic.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-book-fill me-2 text-danger"></i>Document as you decode</h5>
+            <p class="mb-0 text-secondary">Writing detailed format documentation while reverse engineering saves future debugging. Your notes become the spec that doesn't exist.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Links & Resources -->
+    <section id="links" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-link-45deg text-secondary me-2"></i>Links & Resources</h2>
+
+      <div class="list-group">
+        <a href="https://openenginedata.org" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-globe2 me-2"></i>OpenEngineData.org</span>
+          <span class="badge bg-primary">Web Platform</span>
+        </a>
+        <a href="https://openenginedata.org/viewer" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-download me-2"></i>OED Viewer Download</span>
+          <span class="badge bg-success">Desktop App</span>
+        </a>
+        <a href="https://github.com/canuk/oed-viewer-releases" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-github me-2"></i>OED Viewer Releases</span>
+          <span class="badge bg-secondary">GitHub</span>
+        </a>
+        <a href="https://github.com/canuk/jpi_edm_parser" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-github me-2"></i>jpi_edm_parser</span>
+          <span class="badge bg-danger">Ruby Gem</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center text-secondary pt-4 border-top">
+      <p>Built with <i class="bi bi-heart-fill text-danger"></i> for the general aviation community</p>
+    </footer>
+
+  </article>
+</div>
