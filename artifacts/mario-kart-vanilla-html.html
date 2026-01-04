@@ -622,10 +622,13 @@
         </div>
 
         <div class="content-box">
+            <!-- Rainbow border effect - purely decorative -->
             <div class="rainbow-border">
-                <div class="inner-content">
-                    <!-- Mood Matcher Content -->
-                    <div id="moodContent">
+                <div style="position: absolute; inset: 0; background: white; border-radius: 0.5rem;"></div>
+            </div>
+
+            <!-- Mood Matcher Content -->
+            <div id="moodContent" class="inner-content">
                         <div class="mood-header">
                             <h2>
                                 <span class="mood-icon">?</span>
@@ -639,14 +642,12 @@
                             </div>
                         </div>
                         <div id="recommendationSection" class="hidden"></div>
-                    </div>
+            </div>
 
-                    <!-- Personality Quiz Content -->
-                    <div id="quizContent" class="hidden">
-                        <div id="quizQuestions" style="padding: 1.5rem;"></div>
-                        <div id="quizResults" class="hidden" style="padding: 1.5rem;"></div>
-                    </div>
-                </div>
+            <!-- Personality Quiz Content -->
+            <div id="quizContent" class="inner-content hidden">
+                <div id="quizQuestions" style="padding: 1.5rem;"></div>
+                <div id="quizResults" class="hidden" style="padding: 1.5rem;"></div>
             </div>
         </div>
 
