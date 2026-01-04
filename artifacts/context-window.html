@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context Window Demo</title>
+    <meta name="description" content="Interactive demonstration of how token context windows work in Large Language Models">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .chat-container {
+            height: 500px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+        }
+
+        .message {
+            transition: opacity 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .message.out-of-context {
+            opacity: 0.3;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 12px 20px;
+            border-radius: 20px;
+            position: relative;
+            word-spacing: 3px;
+        }
+
+        .assistant .message-bubble {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            margin-right: auto;
+        }
+
+        .user .message-bubble {
+            background: #0d6efd;
+            color: white;
+            margin-left: auto;
+        }
+
+        .token-count {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+        .assistant .token-count {
+            text-align: left;
+        }
+
+        .user .token-count {
+            text-align: right;
+        }
+
+        .context-info {
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            border: 1px solid #dee2e6;
+        }
+
+        .total-tokens {
+            font-weight: bold;
+            color: #0d6efd;
+        }
+
+        .progress {
+            background-color: #e9ecef;
+        }
+
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+
+        .token {
+            display: inline-block;
+            padding: 0 2px;
+            border-radius: 3px;
+            transition: background-color 0.3s ease;
+        }
+
+        .highlight-tokens .token {
+            background-color: #e9ecef;
+            margin: 0 1px;
+        }
+
+        .user .highlight-tokens .token {
+            color: #000;
+        }
+
+        .user .highlight-tokens .token:nth-child(8n+1) { background-color: #f0e6ff; }
+        .user .highlight-tokens .token:nth-child(8n+2) { background-color: #fff2cc; }
+        .user .highlight-tokens .token:nth-child(8n+3) { background-color: #ffe6e6; }
+        .user .highlight-tokens .token:nth-child(8n+4) { background-color: #e6f3ff; }
+        .user .highlight-tokens .token:nth-child(8n+5) { background-color: #e6ffe6; }
+        .user .highlight-tokens .token:nth-child(8n+6) { background-color: #fff0e6; }
+        .user .highlight-tokens .token:nth-child(8n+7) { background-color: #f2e6ff; }
+        .user .highlight-tokens .token:nth-child(8n) { background-color: #e6ffff; }
+
+        .highlight-tokens .token:nth-child(8n+1) { background-color: #f0e6ff; }
+        .highlight-tokens .token:nth-child(8n+2) { background-color: #fff2cc; }
+        .highlight-tokens .token:nth-child(8n+3) { background-color: #ffe6e6; }
+        .highlight-tokens .token:nth-child(8n+4) { background-color: #e6f3ff; }
+        .highlight-tokens .token:nth-child(8n+5) { background-color: #e6ffe6; }
+        .highlight-tokens .token:nth-child(8n+6) { background-color: #fff0e6; }
+        .highlight-tokens .token:nth-child(8n+7) { background-color: #f2e6ff; }
+        .highlight-tokens .token:nth-child(8n) { background-color: #e6ffff; }
+
+        .user .highlight-tokens .token {
+            filter: brightness(130%) saturate(70%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <h1 class="h3 mb-4"><i class="bi bi-window-stack"></i> Context Window Demo</h1>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="highlightTokens" checked>
+                                <label class="form-check-label" for="highlightTokens">
+                                    Highlight Tokens
+                                </label>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <label class="me-2">Context Size:</label>
+                                <select id="contextSize" class="form-select form-select-sm" style="width: 140px;">
+                                    <option value="100" selected>100 tokens</option>
+                                    <option value="200">200 tokens</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="chat-container mb-3">
+                            <div class="context-info shadow-sm">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Total Tokens: <span class="total-tokens" id="totalTokens">0</span></span>
+                                    <span>Context Window: <span class="total-tokens" id="contextWindow">100</span></span>
+                                </div>
+                                <div class="progress mt-2" style="height: 6px;">
+                                    <div class="progress-bar" id="contextProgress" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div id="messageContainer"></div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button id="addMessage" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Add Exchange
+                            </button>
+                            <button id="reset" class="btn btn-secondary">
+                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-info-circle"></i> About This Demo</h5>
+                        <p class="card-text">This demonstration shows how token context windows work in Large Language Models:</p>
+                        <ul class="mb-3">
+                            <li>Each message shows its token count</li>
+                            <li>Messages outside the context window appear faded</li>
+                            <li>Like an LLM's active memory, only the most recent tokens within the context window are available for processing - older tokens "fade" from memory</li>
+                        </ul>
+                        <p class="card-text mb-0">
+                            <i class="bi bi-link-45deg"></i> Want to learn more about Tokens? Check out the
+                            <a href="https://huggingface.co/spaces/Xenova/the-tokenizer-playground" target="_blank">Tokenizer Playground</a>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const exchanges = [
+            {
+                assistant: {
+                    text: "Hello! How can I help you today?",
+                    tokens: ["Hello", "!", "How", "can", "I", "help", "you", "today", "?"]
+                },
+                user: {
+                    text: "I'm curious about how language models process text. Can you explain?",
+                    tokens: ["I'm", "curious", "about", "how", "language", "models", "process", "text", ".", "Can", "you", "explain", "?"]
+                }
+            },
+            {
+                assistant: {
+                    text: "Language models process text by breaking it down into smaller pieces called tokens. Each word might be one or more tokens.",
+                    tokens: ["Language", "models", "process", "text", "by", "breaking", "it", "down", "into", "smaller", "pieces", "called", "tokens", ".", "Each", "word", "might", "be", "one", "or", "more", "tokens", "."]
+                },
+                user: {
+                    text: "That's interesting! Can you show me an example of how words get split into tokens?",
+                    tokens: ["That's", "interesting", "!", "Can", "you", "show", "me", "an", "example", "of", "how", "words", "get", "split", "into", "tokens", "?"]
+                }
+            },
+            {
+                assistant: {
+                    text: "Sure! For example, the word 'understanding' might become 'under' and 'standing'. Similarly, 'blockchain' could be 'block' and 'chain'.",
+                    tokens: ["Sure", "!", "For", "example", ",", "the", "word", "'", "understanding", "'", "might", "become", "'", "under", "'", "and", "'", "standing", "'", ".", "Similarly", ",", "'", "blockchain", "'", "could", "be", "'", "block", "'", "and", "'", "chain", "'", "."]
+                },
+                user: {
+                    text: "Do special characters and punctuation count as tokens too?",
+                    tokens: ["Do", "special", "characters", "and", "punctuation", "count", "as", "tokens", "too", "?"]
+                }
+            },
+            {
+                assistant: {
+                    text: "Yes! Punctuation marks, special characters, and even spaces can be their own tokens. For instance, '!' and '?' are usually separate tokens.",
+                    tokens: ["Yes", "!", "Punctuation", "marks", ",", "special", "characters", ",", "and", "even", "spaces", "can", "be", "their", "own", "tokens", ".", "For", "instance", ",", "'", "!", "'", "and", "'", "?", "'", "are", "usually", "separate", "tokens", "."]
+                },
+                user: {
+                    text: "This helps me understand why context windows matter. Each token takes up space!",
+                    tokens: ["This", "helps", "me", "understand", "why", "context", "windows", "matter", ".", "Each", "token", "takes", "up", "space", "!"]
+                }
+            }
+        ];
+
+        let currentExchangeIndex = 0;
+        let totalTokens = 0;
+
+        function updateContextWindow() {
+            const contextSize = parseInt(document.getElementById('contextSize').value);
+            document.getElementById('contextWindow').textContent = contextSize.toLocaleString();
+            updateTokenDisplay();
+        }
+
+        function createTokenizedText(tokens) {
+            return tokens.map(token => `<span class="token">${token}</span>`).join('');
+        }
+
+        function updateTokenDisplay() {
+            const contextSize = parseInt(document.getElementById('contextSize').value);
+            document.getElementById('totalTokens').textContent = totalTokens.toLocaleString();
+            const progress = (totalTokens / contextSize) * 100;
+            const progressBar = document.getElementById('contextProgress');
+            progressBar.style.width = `${Math.min(progress, 100)}%`;
+
+            // Update progress bar color based on usage
+            if (progress > 90) {
+                progressBar.classList.remove('bg-primary', 'bg-warning');
+                progressBar.classList.add('bg-danger');
+            } else if (progress > 70) {
+                progressBar.classList.remove('bg-primary', 'bg-danger');
+                progressBar.classList.add('bg-warning');
+            } else {
+                progressBar.classList.remove('bg-warning', 'bg-danger');
+                progressBar.classList.add('bg-primary');
+            }
+
+            // Update message opacity based on token count
+            const messages = document.getElementsByClassName('message');
+            let runningTokens = 0;
+
+            // Count from the most recent message
+            for (let i = messages.length - 1; i >= 0; i--) {
+                const tokenCount = parseInt(messages[i].dataset.tokens);
+                runningTokens += tokenCount;
+
+                if (runningTokens > contextSize) {
+                    messages[i].classList.add('out-of-context');
+                } else {
+                    messages[i].classList.remove('out-of-context');
+                }
+            }
+
+            // Update button states
+            const addButton = document.getElementById('addMessage');
+            const resetButton = document.getElementById('reset');
+
+            if (currentExchangeIndex >= exchanges.length) {
+                addButton.disabled = true;
+                resetButton.classList.remove('btn-secondary');
+                resetButton.classList.add('btn-primary');
+            } else {
+                addButton.disabled = false;
+                resetButton.classList.remove('btn-primary');
+                resetButton.classList.add('btn-secondary');
+            }
+        }
+
+        function addExchange() {
+            if (currentExchangeIndex >= exchanges.length) return;
+
+            const exchange = exchanges[currentExchangeIndex];
+            const messageContainer = document.getElementById('messageContainer');
+
+            // Assistant message
+            const assistantTokens = exchange.assistant.tokens.length;
+            totalTokens += assistantTokens;
+            const assistantMessage = `
+                <div class="message assistant" data-tokens="${assistantTokens}">
+                    <div class="message-bubble">
+                        <span class="highlight-tokens">
+                            ${createTokenizedText(exchange.assistant.tokens)}
+                        </span>
+                    </div>
+                    <div class="token-count">${assistantTokens} tokens</div>
+                </div>
+            `;
+            messageContainer.insertAdjacentHTML('beforeend', assistantMessage);
+
+            // User message
+            const userTokens = exchange.user.tokens.length;
+            totalTokens += userTokens;
+            const userMessage = `
+                <div class="message user" data-tokens="${userTokens}">
+                    <div class="message-bubble">
+                        <span class="highlight-tokens">
+                            ${createTokenizedText(exchange.user.tokens)}
+                        </span>
+                    </div>
+                    <div class="token-count">${userTokens} tokens</div>
+                </div>
+            `;
+            messageContainer.insertAdjacentHTML('beforeend', userMessage);
+
+            currentExchangeIndex++;
+            updateTokenDisplay();
+
+            // Scroll to bottom
+            const chatContainer = document.querySelector('.chat-container');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function reset() {
+            document.getElementById('messageContainer').innerHTML = '';
+            currentExchangeIndex = 0;
+            totalTokens = 0;
+            updateTokenDisplay();
+        }
+
+        // Toggle token highlighting
+        document.getElementById('highlightTokens').addEventListener('change', function(e) {
+            const messages = document.querySelectorAll('.message-bubble');
+            messages.forEach((message, idx) => {
+                const exchangeIdx = Math.floor(idx / 2);
+                if (exchangeIdx >= exchanges.length) return;
+
+                const exchange = exchanges[exchangeIdx];
+                const isUser = message.parentElement.classList.contains('user');
+                const tokens = isUser ? exchange.user.tokens : exchange.assistant.tokens;
+
+                if (e.target.checked) {
+                    message.innerHTML = `<span class="highlight-tokens">${createTokenizedText(tokens)}</span>`;
+                } else {
+                    message.innerHTML = isUser ? exchange.user.text : exchange.assistant.text;
+                }
+            });
+        });
+
+        // Event listeners
+        document.getElementById('addMessage').addEventListener('click', addExchange);
+        document.getElementById('reset').addEventListener('click', reset);
+        document.getElementById('contextSize').addEventListener('change', updateContextWindow);
+    </script>
+</body>
+</html>
