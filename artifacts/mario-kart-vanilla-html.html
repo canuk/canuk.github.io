@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Find your perfect Mario Kart character based on your personality and current mood. Fun interactive quiz with character recommendations.">
+    <meta name="tags" content="fun, quiz, games">
+    <meta name="created" content="2025-01-04">
+    <title>Mario Kart Personality & Mood Matcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(to bottom, #3b82f6, #93c5fd);
+            min-height: 100vh;
+            padding: 2rem 1rem 4rem;
+        }
+
+        .container {
+            max-width: 48rem;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header-title {
+            background: #dc2626;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            display: inline-block;
+            font-size: 2.5rem;
+            font-weight: bold;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+            margin-bottom: 0.75rem;
+            transition: transform 0.3s;
+        }
+
+        .header-title:hover {
+            transform: scale(1.05);
+        }
+
+        .header-subtitle {
+            background: #fbbf24;
+            color: #1e3a8a;
+            padding: 0.5rem 1.5rem;
+            border-radius: 9999px;
+            display: inline-block;
+            font-weight: bold;
+            font-size: 1.125rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 0;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 0.75rem 1.5rem;
+            font-size: 1.125rem;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            border-radius: 0.75rem 0.75rem 0 0;
+            transition: all 0.3s;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #2563eb;
+            border-top: 2px solid #93c5fd;
+            border-left: 2px solid #93c5fd;
+            border-right: 2px solid #93c5fd;
+        }
+
+        .tab-button:not(.active) {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .tab-button:not(.active):hover {
+            background: #60a5fa;
+        }
+
+        .content-box {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 20px 25px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .rainbow-border {
+            position: absolute;
+            inset: 0;
+            padding: 2px;
+            background: linear-gradient(to right, #ef4444, #fbbf24, #4ade80, #3b82f6, #a855f7);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .inner-content {
+            position: relative;
+            background: white;
+            border-radius: 0.5rem;
+        }
+
+        .mood-header {
+            background: linear-gradient(to right, #1d4ed8, #3b82f6);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem 0.75rem 0 0;
+        }
+
+        .mood-header h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .mood-icon {
+            background: #fbbf24;
+            color: #1e3a8a;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.5rem;
+            font-weight: bold;
+        }
+
+        .mood-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        @media (min-width: 768px) {
+            .mood-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .mood-button {
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            background: #3b82f6;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .mood-button:hover {
+            background: #60a5fa;
+            transform: scale(1.05);
+        }
+
+        .mood-button.selected {
+            background: #fbbf24;
+            color: #1e3a8a;
+            font-weight: bold;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .random-button {
+            background: linear-gradient(to right, #dc2626, #ef4444);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 9999px;
+            font-size: 1.125rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        .random-button:hover {
+            background: linear-gradient(to right, #b91c1c, #dc2626);
+            transform: scale(1.05);
+        }
+
+        .random-button.spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .recommendation-section {
+            padding: 1.5rem;
+        }
+
+        .recommendation-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .recommendation-badge {
+            background: #2563eb;
+            color: white;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            font-size: 1.5rem;
+        }
+
+        .setup-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .setup-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .setup-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+            border: 2px solid;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .setup-card:hover {
+            transform: scale(1.05);
+        }
+
+        .setup-card.character { border-color: #f87171; }
+        .setup-card.kart { border-color: #60a5fa; }
+        .setup-card.wheels { border-color: #c084fc; }
+        .setup-card.glider { border-color: #4ade80; }
+
+        .setup-header {
+            color: white;
+            padding: 0.5rem;
+            margin: -1rem -1rem 1rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+            font-weight: bold;
+        }
+
+        .setup-card.character .setup-header { background: #ef4444; }
+        .setup-card.kart .setup-header { background: #3b82f6; }
+        .setup-card.wheels .setup-header { background: #a855f7; }
+        .setup-card.glider .setup-header { background: #22c55e; }
+
+        .setup-icon {
+            width: 4rem;
+            height: 4rem;
+            margin: 0 auto 0.75rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .setup-card.character .setup-icon { background: #dbeafe; }
+        .setup-card.kart .setup-icon { background: #fee2e2; }
+        .setup-card.wheels .setup-icon { background: #f3e8ff; }
+        .setup-card.glider .setup-icon { background: #dcfce7; }
+
+        .setup-name {
+            background: #fef3c7;
+            padding: 0.25rem;
+            border-radius: 9999px;
+            font-weight: bold;
+            font-size: 1.125rem;
+        }
+
+        .explanation-box {
+            background: linear-gradient(to right, #fffbeb, #fef3c7);
+            border: 2px solid #fcd34d;
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .explanation-title {
+            font-size: 1.125rem;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .explanation-text {
+            color: #1f2937;
+            font-size: 1.125rem;
+            line-height: 1.75;
+        }
+
+        .mood-quote {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            text-align: center;
+            font-style: italic;
+            color: #1e40af;
+        }
+
+        .quiz-progress {
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 1rem;
+            background: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, #3b82f6, #93c5fd);
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.25rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .question-box {
+            background: #eff6ff;
+            border: 2px solid #bfdbfe;
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .question-text {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 1rem;
+        }
+
+        .likert-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 0.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .likert-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+
+        .likert-button {
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .likert-button.agreement {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .likert-button.agreement:hover {
+            background: #bfdbfe;
+        }
+
+        .likert-button.agreement.selected {
+            background: #3b82f6;
+            color: white;
+            font-weight: bold;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .likert-button.frequency {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .likert-button.frequency:hover {
+            background: #bbf7d0;
+        }
+
+        .likert-button.frequency.selected {
+            background: #22c55e;
+            color: white;
+            font-weight: bold;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .nav-button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .nav-button:disabled {
+            background: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .nav-button:not(:disabled) {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .nav-button:not(:disabled):hover {
+            background: #60a5fa;
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        }
+
+        .results-box {
+            text-align: center;
+        }
+
+        .results-badge {
+            background: #fbbf24;
+            color: #1e3a8a;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            display: inline-block;
+            font-weight: bold;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .results-title {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(to right, #2563eb, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.5rem;
+        }
+
+        .personality-description {
+            background: #eff6ff;
+            border: 2px solid #bfdbfe;
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: left;
+        }
+
+        .personality-description p {
+            font-size: 1.125rem;
+            color: #1f2937;
+            line-height: 1.75;
+        }
+
+        .restart-button {
+            background: linear-gradient(to right, #dc2626, #ef4444);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 9999px;
+            font-size: 1.125rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 2rem;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        .restart-button:hover {
+            background: linear-gradient(to right, #b91c1c, #dc2626);
+            transform: scale(1.05);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .footer-box {
+            background: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            display: inline-block;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+
+        .footer-text {
+            color: #1e40af;
+            font-weight: bold;
+        }
+
+        .footer-credit {
+            background: #dc2626;
+            color: white;
+            padding: 0.5rem 1.25rem;
+            border-radius: 0.5rem;
+            display: inline-block;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .footer-small {
+            color: white;
+            opacity: 0.8;
+            font-size: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .title-icon {
+            color: #fbbf24;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-title">Mario Kart Match</div>
+            <div class="header-subtitle">Find your perfect racing style!</div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" id="moodTab" onclick="switchTab('mood')">
+                ⭐ Mood Matcher
+            </button>
+            <button class="tab-button" id="personalityTab" onclick="switchTab('personality')">
+                👤 Personality Quiz
+            </button>
+        </div>
+
+        <div class="content-box">
+            <div class="rainbow-border">
+                <div class="inner-content">
+                    <!-- Mood Matcher Content -->
+                    <div id="moodContent">
+                        <div class="mood-header">
+                            <h2>
+                                <span class="mood-icon">?</span>
+                                What's your racing mood today?
+                            </h2>
+                            <div class="mood-grid" id="moodGrid"></div>
+                            <div style="text-align: center;">
+                                <button class="random-button" id="randomButton" onclick="selectRandomMood()">
+                                    🎲 Random Mood! 🎲
+                                </button>
+                            </div>
+                        </div>
+                        <div id="recommendationSection" class="hidden"></div>
+                    </div>
+
+                    <!-- Personality Quiz Content -->
+                    <div id="quizContent" class="hidden">
+                        <div id="quizQuestions" style="padding: 1.5rem;"></div>
+                        <div id="quizResults" class="hidden" style="padding: 1.5rem;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-box">
+                <p class="footer-text">Find your perfect Mario Kart match!</p>
+            </div>
+            <div class="footer-credit">
+                <span style="color: #fcd34d;">★</span>
+                Created with ❤️ for Mario Kart fans everywhere
+                <span style="color: #fcd34d;">★</span>
+            </div>
+            <p class="footer-small">Based on Mario Kart 8 Deluxe for Nintendo Switch</p>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let currentTab = 'mood';
+        let selectedMood = null;
+        let quizStep = 0;
+        let quizAnswers = {};
+
+        // Data
+        const moods = [
+            { id: 'competitive', name: 'Competitive/Victory-focused', emoji: '🏆' },
+            { id: 'laidback', name: 'Laid-back/Casual', emoji: '😎' },
+            { id: 'chaotic', name: 'Chaotic/Unpredictable', emoji: '🌪️' },
+            { id: 'nostalgic', name: 'Nostalgic/Traditional', emoji: '🕰️' },
+            { id: 'quirky', name: 'Quirky/Standing Out', emoji: '🤪' },
+            { id: 'stylish', name: 'Stylish/Fashionable', emoji: '💅' },
+            { id: 'edgy', name: 'Edgy/Rebellious', emoji: '😈' },
+            { id: 'cute', name: 'Cute/Adorable', emoji: '🥰' },
+            { id: 'powerful', name: 'Powerful/Dominant', emoji: '💪' },
+            { id: 'balanced', name: 'Balanced/Versatile', emoji: '⚖️' }
+        ];
+
+        const recommendations = {
+            competitive: {
+                character: 'Funky Kong', kart: 'Wild Wiggler', wheels: 'Roller', glider: 'Super Glider',
+                explanation: "You're all about winning! Funky Kong with the Wild Wiggler, Roller wheels, and Super Glider gives you incredible speed, acceleration, and drift capabilities to leave opponents in the dust. This combo is perfect for those who want to be first across the finish line, every time."
+            },
+            laidback: {
+                character: 'Toad', kart: 'Standard Kart', wheels: 'Standard', glider: 'Cloud Glider',
+                explanation: "You're here for a good time, not a stressful one. Toad with the Standard Kart, Standard wheels, and Cloud Glider offers balanced stats and easy handling, perfect for just cruising and enjoying the race without overthinking your strategy."
+            },
+            chaotic: {
+                character: 'Waluigi', kart: 'Flame Rider', wheels: 'Monster', glider: 'Bowser Kite',
+                explanation: "You thrive in unpredictable situations! Waluigi with the Flame Rider, Monster wheels, and Bowser Kite is perfect for causing mayhem and embracing the unexpected. This combo lets you recover quickly from crashes while maintaining good speed to keep the chaos flowing."
+            },
+            nostalgic: {
+                character: 'Mario', kart: 'Pipe Frame', wheels: 'Blue Standard', glider: 'Parachute',
+                explanation: "You appreciate the classics! Mario with the Pipe Frame, Blue Standard wheels, and Parachute is a throwback to simpler times, offering that traditional Mario Kart experience that's kept players coming back since the beginning."
+            },
+            quirky: {
+                character: 'Shy Guy', kart: 'Biddybuggy', wheels: 'Button', glider: 'MKTV Parafoil',
+                explanation: "You like to do things differently! Shy Guy with the Biddybuggy, Button wheels, and MKTV Parafoil is an unconventional but surprisingly effective combo that will raise eyebrows and possibly win races, perfect for those who never follow the crowd."
+            },
+            stylish: {
+                character: 'Rosalina', kart: 'Cat Cruiser', wheels: 'Crimson Slim', glider: 'Flower Glider',
+                explanation: "You race with elegance and flair! Rosalina with the Cat Cruiser, Crimson Slim wheels, and Flower Glider is not only visually stunning but offers a smooth driving experience with excellent drift capabilities, making you look good while performing well."
+            },
+            edgy: {
+                character: 'Dry Bowser', kart: 'Bone Rattler', wheels: 'Metal', glider: 'Wario Wing',
+                explanation: "You've got attitude to spare! Dry Bowser with the Bone Rattler, Metal wheels, and Wario Wing screams 'don't mess with me' and delivers with heavyweight power that can push opponents aside while maintaining intimidating speed."
+            },
+            cute: {
+                character: 'Baby Peach', kart: 'Teddy Buggy', wheels: 'Azure Roller', glider: 'Peach Parasol',
+                explanation: "You bring the adorable factor to every race! Baby Peach with the Teddy Buggy, Azure Roller wheels, and Peach Parasol creates the cutest combo on the track, with excellent acceleration and handling that belies its charming appearance."
+            },
+            powerful: {
+                character: 'Bowser', kart: 'Badwagon', wheels: 'Hot Monster', glider: 'Plane Glider',
+                explanation: "You're all about raw power! Bowser with the Badwagon, Hot Monster wheels, and Plane Glider creates an unstoppable force with top-tier weight and speed that can bulldoze through obstacles and opponents alike. Perfect for those who want to dominate the track."
+            },
+            balanced: {
+                character: 'Luigi', kart: 'Mach 8', wheels: 'Cushion', glider: 'Parafoil',
+                explanation: "You value versatility above all! Luigi with the Mach 8, Cushion wheels, and Parafoil gives you balanced stats across the board, making this combo adaptable to any track or racing situation. A solid choice for those who want to be prepared for anything."
+            }
+        };
+
+        const questions = [
+            { id: 'q1', text: 'I prefer taking shortcuts even if they are risky.', type: 'agreement' },
+            { id: 'q2', text: 'When I play, winning is more important than having fun.', type: 'agreement' },
+            { id: 'q3', text: 'How often do you use items strategically rather than right away?', type: 'frequency' },
+            { id: 'q4', text: 'I enjoy using heavy characters that can push others out of the way.', type: 'agreement' },
+            { id: 'q5', text: 'How often do you drift around corners to get mini-turbo boosts?', type: 'frequency' },
+            { id: 'q6', text: "I'm more focused on having a good-looking character and kart than on stats.", type: 'agreement' },
+            { id: 'q7', text: 'How often do you find yourself helping other players during multiplayer games?', type: 'frequency' },
+            { id: 'q8', text: "I get frustrated when things don't go my way in a race.", type: 'agreement' },
+            { id: 'q9', text: 'I prefer courses that are straightforward rather than complex and full of obstacles.', type: 'agreement' },
+            { id: 'q10', text: 'How often do you experiment with different character and kart combinations?', type: 'frequency' }
+        ];
+
+        const agreementOptions = [
+            { value: 1, label: 'Strongly Disagree' },
+            { value: 2, label: 'Disagree' },
+            { value: 3, label: 'Neutral' },
+            { value: 4, label: 'Agree' },
+            { value: 5, label: 'Strongly Agree' }
+        ];
+
+        const frequencyOptions = [
+            { value: 1, label: 'Almost Never' },
+            { value: 2, label: 'Rarely' },
+            { value: 3, label: 'Sometimes' },
+            { value: 4, label: 'Often' },
+            { value: 5, label: 'Almost Always' }
+        ];
+
+        const personalities = {
+            speedDemon: {
+                title: "Speed Demon",
+                description: "You live for the thrill of high-speed racing! You're all about going fast and taking risks, even if it means occasionally flying off the track. You prefer straightforward courses where you can really let loose and show off your speed.",
+                character: "Dry Bowser", kart: "Circuit Special", wheels: "Slick", glider: "Super Glider",
+                explanation: "This powerful combo maximizes speed and acceleration, perfect for straightaway bursts. Dry Bowser adds weight to prevent being pushed around, while the Circuit Special with Slick wheels gives you incredible top speed. The Super Glider helps with those risky jumps you love to take!"
+            },
+            technicalMaster: {
+                title: "Technical Master",
+                description: "You approach Mario Kart like a science, mastering every technique from drift-boosting to item strategy. You excel on technical courses with lots of turns where your precision shines. While others might have raw speed, your technical prowess puts you ahead.",
+                character: "Yoshi", kart: "Sport Bike", wheels: "Roller", glider: "Cloud Glider",
+                explanation: "This setup is perfect for technical players who value handling and acceleration over raw speed. Yoshi provides balanced stats, while the Sport Bike gives you inside drifting for tight corners. Roller wheels maximize acceleration and mini-turbo potential, with the Cloud Glider adding a handling boost."
+            },
+            strategist: {
+                title: "The Strategist",
+                description: "You're always thinking two steps ahead. You know exactly when to use items, when to take shortcuts, and how to set traps for opponents. Every race is a chess match, and you're the grandmaster plotting the perfect path to victory.",
+                character: "Waluigi", kart: "Wild Wiggler", wheels: "Azure Roller", glider: "Paper Glider",
+                explanation: "This combination gives you the versatility a strategic player needs. Waluigi has good speed without sacrificing handling, the Wild Wiggler provides excellent mini-turbo stats, and Azure Roller wheels give you quick acceleration. The Paper Glider rounds out this setup by adding extra control for precise maneuvering."
+            },
+            battleMaster: {
+                title: "Battle Master",
+                description: "You're all about the combat aspect of Mario Kart! You'd rather take down opponents with well-placed shells and bananas than worry about clean racing. For you, the best defense is a good offense, and you're always looking for the next opportunity to strike.",
+                character: "King Boo", kart: "Splat Buggy", wheels: "Off-Road", glider: "Bowser Kite",
+                explanation: "This aggressive setup lets you focus on what you do best - causing chaos! King Boo gives you good weight and handling, the Splat Buggy provides solid acceleration and off-road capability, and the Off-Road wheels keep you moving no matter the terrain. The Bowser Kite adds a touch of air handling for those post-jump item deployments."
+            },
+            stylishCruiser: {
+                title: "Stylish Cruiser",
+                description: "For you, looking good is just as important as racing well. You choose your setup based on aesthetics and enjoy showcasing your personality through your character and kart choices. Racing isn't just about winning—it's about making a statement while doing it.",
+                character: "Rosalina", kart: "Cat Cruiser", wheels: "Crimson Slim", glider: "Flower Glider",
+                explanation: "This elegant setup perfectly matches your desire for style and performance. Rosalina brings grace and poise, while the Cat Cruiser's sleek design turns heads. The Crimson Slim wheels add a pop of color, and the Flower Glider completes this visually stunning combination that still performs admirably on the track."
+            },
+            partyRacer: {
+                title: "Party Racer",
+                description: "You're in it for the fun and laughs! You don't stress about winning or losing—you're all about creating memorable moments and enjoying the ride. You might not take the most optimal racing lines, but you're guaranteed to have the best time.",
+                character: "Toad", kart: "Teddy Buggy", wheels: "Button", glider: "Peach Parasol",
+                explanation: "This adorable combo is all about having fun! Toad's cheerful personality matches your approach to racing, while the Teddy Buggy brings whimsy to your driving style. Button wheels add to the cute factor, and the Peach Parasol tops off this delightful setup that emphasizes enjoyment over pure performance."
+            },
+            adaptiveRacer: {
+                title: "Adaptive Racer",
+                description: "You're the ultimate all-rounder, able to adapt to any situation the race throws at you. Whether it's a technical course, a battle mode, or a straightaway speed challenge, you adjust your strategy on the fly and always remain competitive.",
+                character: "Luigi", kart: "Standard Bike", wheels: "Standard", glider: "MKTV Parafoil",
+                explanation: "This balanced setup gives you versatility for any racing situation. Luigi provides well-rounded stats, while the Standard Bike offers a good mix of speed and handling. Standard wheels ensure consistent performance on all terrains, and the MKTV Parafoil adds just enough glide for those longer jumps without sacrificing control."
+            },
+            classicPurist: {
+                title: "Classic Purist",
+                description: "You appreciate the traditional Mario Kart experience and prefer to stick with the classics. You likely have been playing since the early games and value consistency and familiarity in your racing approach.",
+                character: "Mario", kart: "Pipe Frame", wheels: "Blue Standard", glider: "Super Glider",
+                explanation: "This nostalgic setup pays homage to the classic Mario Kart experience you love. Mario is the original racer with balanced stats, while the Pipe Frame kart evokes the classic go-kart feel from earlier games. Blue Standard wheels provide reliable performance, and the Super Glider keeps things simple and effective."
+            }
+        };
+
+        // Initialize
+        function init() {
+            renderMoodGrid();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // Update tab buttons
+            document.getElementById('moodTab').classList.toggle('active', tab === 'mood');
+            document.getElementById('personalityTab').classList.toggle('active', tab === 'personality');
+            
+            // Update content
+            document.getElementById('moodContent').classList.toggle('hidden', tab !== 'mood');
+            document.getElementById('quizContent').classList.toggle('hidden', tab !== 'personality');
+            
+            if (tab === 'personality') {
+                renderQuiz();
+            }
+        }
+
+        function renderMoodGrid() {
+            const grid = document.getElementById('moodGrid');
+            grid.innerHTML = moods.map(mood => `
+                <button class="mood-button" onclick="selectMood('${mood.id}')">
+                    <span>${mood.emoji}</span>
+                    <span>${mood.name}</span>
+                </button>
+            `).join('');
+        }
+
+        function selectMood(moodId) {
+            selectedMood = moodId;
+            
+            // Update button states
+            const buttons = document.querySelectorAll('.mood-button');
+            buttons.forEach((btn, idx) => {
+                btn.classList.toggle('selected', moods[idx].id === moodId);
+            });
+            
+            // Show recommendation
+            setTimeout(() => showRecommendation(moodId), 500);
+        }
+
+        function selectRandomMood() {
+            const btn = document.getElementById('randomButton');
+            btn.classList.add('spinning');
+            
+            setTimeout(() => {
+                const randomMood = moods[Math.floor(Math.random() * moods.length)];
+                btn.classList.remove('spinning');
+                selectMood(randomMood.id);
+            }, 1200);
+        }
+
+        function showRecommendation(moodId) {
+            const mood = moods.find(m => m.id === moodId);
+            const rec = recommendations[moodId];
+            
+            const section = document.getElementById('recommendationSection');
+            section.className = 'recommendation-section fade-in';
+            section.innerHTML = `
+                <h2 class="recommendation-title">
+                    <span class="recommendation-badge">${mood.emoji}</span>
+                    <span style="background: linear-gradient(to right, #2563eb, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                        ${mood.name} Mood
+                    </span>
+                </h2>
+                
+                <div style="background: linear-gradient(to bottom right, #eff6ff, #dbeafe); border: 2px solid #93c5fd; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 10px 15px rgba(0,0,0,0.1);">
+                    <div class="setup-grid">
+                        <div class="setup-card character">
+                            <div class="setup-header">Character</div>
+                            <div class="setup-icon">👤</div>
+                            <div class="setup-name">${rec.character}</div>
+                        </div>
+                        <div class="setup-card kart">
+                            <div class="setup-header">Kart</div>
+                            <div class="setup-icon">🏎️</div>
+                            <div class="setup-name">${rec.kart}</div>
+                        </div>
+                        <div class="setup-card wheels">
+                            <div class="setup-header">Wheels</div>
+                            <div class="setup-icon">🛞</div>
+                            <div class="setup-name">${rec.wheels}</div>
+                        </div>
+                        <div class="setup-card glider">
+                            <div class="setup-header">Glider</div>
+                            <div class="setup-icon">🪂</div>
+                            <div class="setup-name">${rec.glider}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="explanation-box">
+                        <h3 class="explanation-title">
+                            <span style="background: #fbbf24; padding: 0.25rem; border-radius: 9999px; margin-right: 0.5rem;">💡</span>
+                            Why This Combo?
+                        </h3>
+                        <p class="explanation-text">${rec.explanation}</p>
+                        <div class="mood-quote">
+                            "If you're in a <strong style="color: #dc2626;">${mood.name.toLowerCase()}</strong> mood, this is the kart for you!"
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderQuiz() {
+            if (quizStep >= questions.length) {
+                showQuizResults();
+                return;
+            }
+            
+            const question = questions[quizStep];
+            const options = question.type === 'agreement' ? agreementOptions : frequencyOptions;
+            const progress = ((quizStep + 1) / questions.length) * 100;
+            
+            document.getElementById('quizQuestions').innerHTML = `
+                <div class="quiz-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progress}%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span>Question ${quizStep + 1} of ${questions.length}</span>
+                        <span>${Math.round(progress)}% Complete</span>
+                    </div>
+                </div>
+                
+                <div class="question-box">
+                    <h2 class="question-text">${question.text}</h2>
+                    <div class="likert-grid">
+                        ${options.map(opt => `
+                            <button class="likert-button ${question.type} ${quizAnswers[question.id] === opt.value ? 'selected' : ''}" 
+                                    onclick="selectAnswer('${question.id}', ${opt.value})">
+                                ${opt.label}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="nav-buttons">
+                    <button class="nav-button" ${quizStep === 0 ? 'disabled' : ''} onclick="previousQuestion()">
+                        ◀ Previous
+                    </button>
+                    <button class="nav-button" ${!quizAnswers[question.id] ? 'disabled' : ''} onclick="nextQuestion()">
+                        ${quizStep === questions.length - 1 ? 'Complete Quiz' : 'Next'} ▶
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('quizResults').classList.add('hidden');
+        }
+
+        function selectAnswer(questionId, value) {
+            quizAnswers[questionId] = value;
+            renderQuiz();
+        }
+
+        function previousQuestion() {
+            if (quizStep > 0) {
+                quizStep--;
+                renderQuiz();
+            }
+        }
+
+        function nextQuestion() {
+            if (quizStep < questions.length - 1) {
+                quizStep++;
+                renderQuiz();
+            } else {
+                analyzePersonality();
+            }
+        }
+
+        function analyzePersonality() {
+            const scores = {
+                riskTaking: quizAnswers.q1 || 3,
+                competitive: quizAnswers.q2 || 3,
+                strategic: quizAnswers.q3 || 3,
+                aggressive: quizAnswers.q4 || 3,
+                technical: quizAnswers.q5 || 3,
+                stylish: quizAnswers.q6 || 3,
+                supportive: quizAnswers.q7 || 3,
+                temperamental: quizAnswers.q8 || 3,
+                simplicity: quizAnswers.q9 || 3,
+                experimental: quizAnswers.q10 || 3
+            };
+
+            let personalityType;
+            if (scores.riskTaking >= 4 && scores.competitive >= 4 && scores.simplicity >= 3) {
+                personalityType = personalities.speedDemon;
+            } else if (scores.technical >= 4 && scores.strategic >= 3 && scores.experimental >= 3) {
+                personalityType = personalities.technicalMaster;
+            } else if (scores.strategic >= 4 && scores.experimental >= 3) {
+                personalityType = personalities.strategist;
+            } else if (scores.aggressive >= 4 && scores.temperamental >= 3) {
+                personalityType = personalities.battleMaster;
+            } else if (scores.stylish >= 4) {
+                personalityType = personalities.stylishCruiser;
+            } else if (scores.supportive >= 4 && scores.competitive <= 2) {
+                personalityType = personalities.partyRacer;
+            } else if (scores.experimental >= 4) {
+                personalityType = personalities.adaptiveRacer;
+            } else {
+                personalityType = personalities.classicPurist;
+            }
+            
+            showQuizResults(personalityType);
+        }
+
+        function showQuizResults(personality) {
+            document.getElementById('quizQuestions').classList.add('hidden');
+            const resultsDiv = document.getElementById('quizResults');
+            resultsDiv.classList.remove('hidden');
+            resultsDiv.className = 'results-box fade-in';
+            
+            resultsDiv.innerHTML = `
+                <div class="results-badge">Your Mario Kart Personality Is:</div>
+                <h2 class="results-title">${personality.title}</h2>
+                
+                <div class="personality-description">
+                    <p>🏆 ${personality.description}</p>
+                </div>
+                
+                <h3 class="section-title">
+                    <span class="title-icon">🏁</span>
+                    Your Recommended Setup:
+                </h3>
+                
+                <div class="setup-grid">
+                    <div class="setup-card character">
+                        <div class="setup-header">Character</div>
+                        <div class="setup-icon">👤</div>
+                        <div class="setup-name">${personality.character}</div>
+                    </div>
+                    <div class="setup-card kart">
+                        <div class="setup-header">Kart</div>
+                        <div class="setup-icon">🏎️</div>
+                        <div class="setup-name">${personality.kart}</div>
+                    </div>
+                    <div class="setup-card wheels">
+                        <div class="setup-header">Wheels</div>
+                        <div class="setup-icon">🛞</div>
+                        <div class="setup-name">${personality.wheels}</div>
+                    </div>
+                    <div class="setup-card glider">
+                        <div class="setup-header">Glider</div>
+                        <div class="setup-icon">🪂</div>
+                        <div class="setup-name">${personality.glider}</div>
+                    </div>
+                </div>
+                
+                <div class="explanation-box">
+                    <h3 class="explanation-title">
+                        <span style="color: #fbbf24; margin-right: 0.5rem;">⚡</span>
+                        Why This Setup Works For You:
+                    </h3>
+                    <p class="explanation-text">${personality.explanation}</p>
+                </div>
+                
+                <button class="restart-button" onclick="restartQuiz()">
+                    ✓ Take The Quiz Again
+                </button>
+            `;
+        }
+
+        function restartQuiz() {
+            quizStep = 0;
+            quizAnswers = {};
+            renderQuiz();
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
