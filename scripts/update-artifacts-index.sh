@@ -101,14 +101,21 @@ for file in "$ARTIFACTS_DIR"/*.html; do
     tags=$(sed -n 's/.*<meta name="tags" content="\([^"]*\)".*/\1/p' "$file" | head -1)
     tags_normalized=$(echo "$tags" | tr ',' '\n' | sed 's/^ *//;s/ *$//' | tr '\n' ',' | sed 's/,$//')
 
-    # Get last modified date (for display and sorting)
+    # Get created date from meta tag (fallback to file modification date)
+    date_sort=$(sed -n 's/.*<meta name="created" content="\([^"]*\)".*/\1/p' "$file" | head -1)
+    if [[ -z "$date_sort" ]]; then
+        # Fallback to file modification date
+        if [[ "$(uname)" == "Darwin" ]]; then
+            date_sort=$(stat -f "%Sm" -t "%Y-%m-%d" "$file")
+        else
+            date_sort=$(date -r "$file" "+%Y-%m-%d")
+        fi
+    fi
+    # Format for display (e.g., "Dec 12, 2025")
     if [[ "$(uname)" == "Darwin" ]]; then
-        last_edited=$(stat -f "%Sm" -t "%b %d, %Y" "$file")
-        # ISO date for sorting
-        date_sort=$(stat -f "%Sm" -t "%Y-%m-%d" "$file")
+        created_display=$(date -j -f "%Y-%m-%d" "$date_sort" "+%b %d, %Y" 2>/dev/null || echo "$date_sort")
     else
-        last_edited=$(date -r "$file" "+%b %d, %Y")
-        date_sort=$(date -r "$file" "+%Y-%m-%d")
+        created_display=$(date -d "$date_sort" "+%b %d, %Y" 2>/dev/null || echo "$date_sort")
     fi
 
     # Check if thumbnail exists for image or placeholder
@@ -138,7 +145,7 @@ for file in "$ARTIFACTS_DIR"/*.html; do
             <div class=\"mt-2\">$tag_badges</div>
           </div>
           <div class=\"card-footer bg-transparent border-0 text-secondary small\">
-            Last edited: $last_edited
+            Created: $created_display
           </div>
         </a>
       </div>
