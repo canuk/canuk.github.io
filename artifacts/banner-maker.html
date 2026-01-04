@@ -458,12 +458,17 @@
         <div class="shared-controls">
             <h3>Options</h3>
             <div class="control-grid">
-                <div class="input-group full-width">
+                <div class="input-group">
                     <label>Orientation</label>
                     <select id="orientation">
-                        <option value="landscape">Landscape (11 × 8.5) - Best for banners</option>
+                        <option value="landscape">Landscape (11 × 8.5)</option>
                         <option value="portrait">Portrait (8.5 × 11)</option>
                     </select>
+                </div>
+                <div class="input-group">
+                    <label>Page Overlap (inches)</label>
+                    <input type="number" id="pageOverlap" value="0.8" min="0" max="2" step="0.1">
+                    <div class="suggestion">0.8" for standard printers</div>
                 </div>
             </div>
         </div>
@@ -556,14 +561,12 @@
 
         // ============ TEXT BANNER ============
 
-        // Printer margin in inches (10mm ≈ 0.4 inches)
-        const PRINTER_MARGIN_INCHES = 0.4;
-
         function generateTextBanner() {
             const text = document.getElementById('bannerText').value.trim();
             const fontName = document.getElementById('fontSelect').value;
             const pagesWide = parseInt(document.getElementById('textPagesWide').value);
             const orientation = document.getElementById('orientation').value;
+            const overlapInches = parseFloat(document.getElementById('pageOverlap').value) || 0.8;
 
             if (!text) {
                 showError('Please enter some text for your banner.');
@@ -577,7 +580,7 @@
 
             // Paper dimensions in pixels (use higher DPI for better quality)
             const DPI = 150;
-            const MARGIN = PRINTER_MARGIN_INCHES * DPI;
+            const MARGIN = (overlapInches / 2) * DPI; // Half the overlap on each side
 
             let paperW, paperH, paperW_in, paperH_in;
 
@@ -615,13 +618,11 @@
             measureCtx.font = `bold ${refSize}px "${fontName}", sans-serif`;
             const refWidth = measureCtx.measureText(text).width;
 
-            // Calculate font size to fit the assembled width (with small padding)
-            const paddingPercent = 0.05;
-            const availableWidth = totalAssembledWidth * (1 - paddingPercent * 2);
-            const fontSizeForWidth = (availableWidth / refWidth) * refSize;
+            // Calculate font size to fit the assembled width (no padding - edge to edge)
+            const fontSizeForWidth = (totalAssembledWidth / refWidth) * refSize;
 
-            // Limit font height to 80% of printable height
-            const maxFontHeight = printableHeight * 0.8;
+            // Maximize font height (95% of printable height for minimal breathing room)
+            const maxFontHeight = printableHeight * 0.95;
             const fontSize = Math.min(fontSizeForWidth, maxFontHeight);
 
             // Calculate actual text width at final font size
@@ -629,19 +630,19 @@
             const actualTextWidth = measureCtx.measureText(text).width;
 
             // Calculate suggested pages for optimal size
-            updatePageSuggestion(text, fontName, orientation);
+            updatePageSuggestion(text, fontName, orientation, overlapInches);
 
             // Render each page
-            renderTextBanner(text, pagesWide, paperW, paperH, fontSize, fontName, MARGIN, printableWidth, actualTextWidth, totalAssembledWidth, orientation);
+            renderTextBanner(text, pagesWide, paperW, paperH, fontSize, fontName, MARGIN, printableWidth, actualTextWidth, totalAssembledWidth, orientation, overlapInches);
         }
 
-        function updatePageSuggestion(text, fontName, orientation) {
+        function updatePageSuggestion(text, fontName, orientation, overlapInches) {
             const suggestionEl = document.getElementById('pageSuggestion');
 
             // Calculate optimal pages based on making text as large as possible
-            // while keeping font height at 80% of printable height
+            // while keeping font height at 95% of printable height
             const DPI = 150;
-            const MARGIN = PRINTER_MARGIN_INCHES * DPI;
+            const MARGIN = (overlapInches / 2) * DPI;
 
             let paperW, paperH;
             if (orientation === 'landscape') {
@@ -654,7 +655,7 @@
 
             const printableWidth = paperW - 2 * MARGIN;
             const printableHeight = paperH - 2 * MARGIN;
-            const maxFontHeight = printableHeight * 0.8;
+            const maxFontHeight = printableHeight * 0.95;
 
             // Measure text at max font height
             const measureCanvas = document.createElement('canvas');
@@ -662,8 +663,8 @@
             measureCtx.font = `bold ${maxFontHeight}px "${fontName}", sans-serif`;
             const textWidthAtMaxSize = measureCtx.measureText(text).width;
 
-            // How many pages needed to fit this text at max size?
-            const suggestedPages = Math.ceil(textWidthAtMaxSize / (printableWidth * 0.9)); // 90% to leave some padding
+            // How many pages needed to fit this text at max size (edge to edge)?
+            const suggestedPages = Math.ceil(textWidthAtMaxSize / printableWidth);
 
             const currentPages = parseInt(document.getElementById('textPagesWide').value);
 
@@ -679,13 +680,13 @@
             generateTextBanner();
         }
 
-        function renderTextBanner(text, pageCount, paperW, paperH, fontSize, fontName, margin, printableWidth, textWidth, totalAssembledWidth, orientation) {
+        function renderTextBanner(text, pageCount, paperW, paperH, fontSize, fontName, margin, printableWidth, textWidth, totalAssembledWidth, orientation, overlapInches) {
             const output = document.getElementById('output');
             output.innerHTML = '';
 
             const orientationLabel = orientation === 'landscape' ? '11×8.5"' : '8.5×11"';
             document.getElementById('output-info').innerText =
-                `${pageCount} pages (${orientationLabel} each). Overlap pages by ${(PRINTER_MARGIN_INCHES * 2).toFixed(1)}" when assembling.`;
+                `${pageCount} pages (${orientationLabel} each). Overlap pages by ${overlapInches}" when assembling.`;
 
             // Center text in the assembled banner
             const textStartInAssembled = (totalAssembledWidth - textWidth) / 2;
@@ -861,6 +862,13 @@
 
         // Regenerate on orientation change
         document.getElementById('orientation').addEventListener('change', () => {
+            if (currentMode === 'text' && document.getElementById('bannerText').value.trim()) {
+                generateTextBanner();
+            }
+        });
+
+        // Regenerate on overlap change
+        document.getElementById('pageOverlap').addEventListener('change', () => {
             if (currentMode === 'text' && document.getElementById('bannerText').value.trim()) {
                 generateTextBanner();
             }
