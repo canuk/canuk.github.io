@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive priority quadrant for evaluating AI tools in education. Drag and drop items to map impact vs effort.">
+    <meta name="tags" content="ai, education, planning">
+    <meta name="created" content="2025-01-04">
+    <title>AI in Education Priority Quadrant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/interact.js/1.10.17/interact.min.js"></script>
+    <style>
+        body {
+            background-color: #f5f5f5;
+            overflow-x: hidden;
+        }
+        
+        .side-panel {
+            width: 150px;
+            background-color: #ffffff;
+            padding: 20px 10px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        .main-content {
+            margin-left: 150px;
+            padding: 20px;
+        }
+        
+        .quadrant {
+            position: relative;
+            width: calc(100vw - 210px);
+            height: calc(100vh - 120px);
+            background-color: white;
+            border: 2px solid #333;
+            overflow: hidden;
+        }
+        
+        .axis-label {
+            position: absolute;
+            color: #333;
+            font-weight: bold;
+            z-index: 0;
+        }
+        
+        .axis-label.x-left {
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .axis-label.x-right {
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .axis-label.y-top {
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .axis-label.y-bottom {
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .axis-line {
+            position: absolute;
+            background-color: #999;
+            z-index: 0;
+        }
+        
+        .axis-line.vertical {
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+        }
+        
+        .axis-line.horizontal {
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+        }
+        
+        .sticky-note {
+            width: 120px;
+            height: 120px;
+            margin: 10px auto;
+            padding: 10px;
+            font-size: 12px;
+            font-family: 'Arial', sans-serif;
+            cursor: move;
+            position: relative;
+            transition: transform 0.2s;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            word-wrap: break-word;
+            user-select: none;
+            z-index: 10;
+            touch-action: none;
+        }
+        
+        .sticky-note:nth-child(odd) {
+            background-color: #feff9c;
+            transform: rotate(-2deg);
+        }
+        
+        .sticky-note:nth-child(even) {
+            background-color: #fff740;
+            transform: rotate(2deg);
+        }
+        
+        .sticky-note:hover {
+            transform: scale(1.1) rotate(0deg);
+            z-index: 100;
+        }
+        
+        .sticky-note.dragging {
+            opacity: 0.7;
+            z-index: 1000;
+        }
+        
+        .button-container {
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            margin-right: 10px;
+        }
+        
+        .placed-note {
+            position: absolute;
+        }
+        
+        .drop-zone {
+            background-color: rgba(40, 167, 69, 0.1);
+            border: 2px dashed #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="side-panel" id="sidePanel">
+        <!-- Sticky notes will be generated here -->
+    </div>
+    
+    <div class="main-content">
+        <div class="button-container">
+            <button class="btn btn-primary" id="suggestedLayout">Suggested Layout</button>
+            <button class="btn btn-secondary" id="reset">Reset</button>
+        </div>
+        
+        <div class="quadrant" id="quadrant">
+            <div class="axis-line vertical"></div>
+            <div class="axis-line horizontal"></div>
+            <div class="axis-label x-left">Low Priority</div>
+            <div class="axis-label x-right">High Priority</div>
+            <div class="axis-label y-top">High Influence</div>
+            <div class="axis-label y-bottom">Low Influence</div>
+        </div>
+    </div>
+
+    <script>
+        const concepts = [
+            "AI for creative ideas in class",
+            "AI in lesson planning",
+            "Creating worksheets with AI",
+            "AI for quiz/test creation",
+            "AI for detecting cheating/plagiarism",
+            "AI for building teacher background knowledge",
+            "AI for writing notes to students/parents",
+            "Adapting content for different learning levels with AI",
+            "AI for grading and reviewing student work",
+            "AI chatbots for student homework help",
+            "AI for studying and test preparation",
+            "AI-assisted essay writing",
+            "AI for deepening subject knowledge",
+            "Creating presentations with AI",
+            "AI to explain complicated concepts",
+            "AI for faster, more efficient learning",
+            "Developing AI literacy curriculum",
+            "AI training for teachers",
+            "Data privacy concerns with AI",
+            "Potential AI bias in education"
+        ];
+        
+        const suggestedPositions = {
+            "AI for creative ideas in class": {x: 70, y: 60},
+            "AI in lesson planning": {x: 60, y: 70},
+            "Creating worksheets with AI": {x: 40, y: 80},
+            "AI for quiz/test creation": {x: 55, y: 75},
+            "AI for detecting cheating/plagiarism": {x: 80, y: 50},
+            "AI for building teacher background knowledge": {x: 30, y: 60},
+            "AI for writing notes to students/parents": {x: 20, y: 70},
+            "Adapting content for different learning levels with AI": {x: 75, y: 65},
+            "AI for grading and reviewing student work": {x: 65, y: 55},
+            "AI chatbots for student homework help": {x: 85, y: 40},
+            "AI for studying and test preparation": {x: 70, y: 45},
+            "AI-assisted essay writing": {x: 90, y: 30},
+            "AI for deepening subject knowledge": {x: 55, y: 65},
+            "Creating presentations with AI": {x: 45, y: 75},
+            "AI to explain complicated concepts": {x: 80, y: 60},
+            "AI for faster, more efficient learning": {x: 75, y: 70},
+            "Developing AI literacy curriculum": {x: 40, y: 90},
+            "AI training for teachers": {x: 30, y: 85},
+            "Data privacy concerns with AI": {x: 85, y: 80},
+            "Potential AI bias in education": {x: 80, y: 85}
+        };
+
+        function createStickyNote(text, index) {
+            const note = document.createElement('div');
+            note.className = 'sticky-note';
+            note.textContent = text;
+            note.dataset.concept = text;
+            note.id = `sticky-note-${index}`;
+            
+            return note;
+        }
+
+        function initializeSidePanel() {
+            const sidePanel = document.getElementById('sidePanel');
+            sidePanel.innerHTML = '';
+            concepts.forEach((concept, index) => {
+                const note = createStickyNote(concept, index);
+                sidePanel.appendChild(note);
+                setupDraggable(note);
+            });
+        }
+
+        function setupDraggable(element) {
+            interact(element)
+                .draggable({
+                    inertia: true,
+                    modifiers: [
+                        interact.modifiers.restrictRect({
+                            restriction: 'body',
+                            endOnly: true
+                        })
+                    ],
+                    autoScroll: true,
+                    listeners: {
+                        start(event) {
+                            event.target.classList.add('dragging');
+                        },
+                        move(event) {
+                            const target = event.target;
+                            // Store the current position
+                            const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                            const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+                            
+                            // Translate the element
+                            target.style.transform = `translate(${x}px, ${y}px)`;
+                            
+                            // Update the position attributes
+                            target.setAttribute('data-x', x);
+                            target.setAttribute('data-y', y);
+                        },
+                        end(event) {
+                            event.target.classList.remove('dragging');
+                        }
+                    }
+                });
+        }
+
+        // Make the quadrant a dropzone
+        interact('#quadrant').dropzone({
+            accept: '.sticky-note',
+            overlap: 0.01,
+            ondropactivate: function (event) {
+                event.target.classList.add('drop-zone');
+            },
+            ondragenter: function (event) {
+                // You can add visual feedback here
+            },
+            ondragleave: function (event) {
+                // You can remove visual feedback here
+            },
+            ondrop: function (event) {
+                const draggableElement = event.relatedTarget;
+                const dropzoneElement = event.target;
+                
+                const quadrantRect = dropzoneElement.getBoundingClientRect();
+                const elementRect = draggableElement.getBoundingClientRect();
+                
+                // Calculate the final position relative to the quadrant
+                const x = elementRect.left - quadrantRect.left;
+                const y = elementRect.top - quadrantRect.top;
+                
+                // If the element was from the side panel, clone it
+                if (draggableElement.parentElement.id === 'sidePanel') {
+                    const placedNote = createStickyNote(draggableElement.dataset.concept, draggableElement.id.split('-')[2]);
+                    placedNote.classList.add('placed-note');
+                    placedNote.style.left = `${x}px`;
+                    placedNote.style.top = `${y}px`;
+                    dropzoneElement.appendChild(placedNote);
+                    setupDraggable(placedNote);
+                    
+                    // Remove the original from side panel
+                    draggableElement.remove();
+                } else {
+                    // If already in the quadrant, update its position
+                    draggableElement.classList.add('placed-note');
+                    draggableElement.style.left = `${x}px`;
+                    draggableElement.style.top = `${y}px`;
+                    draggableElement.style.transform = '';
+                    draggableElement.removeAttribute('data-x');
+                    draggableElement.removeAttribute('data-y');
+                }
+            },
+            ondropdeactivate: function (event) {
+                event.target.classList.remove('drop-zone');
+            }
+        });
+
+        document.getElementById('suggestedLayout').addEventListener('click', () => {
+            initializeSidePanel();
+            const quadrant = document.getElementById('quadrant');
+            quadrant.innerHTML = `
+                <div class="axis-line vertical"></div>
+                <div class="axis-line horizontal"></div>
+                <div class="axis-label x-left">Low Priority</div>
+                <div class="axis-label x-right">High Priority</div>
+                <div class="axis-label y-top">High Influence</div>
+                <div class="axis-label y-bottom">Low Influence</div>
+            `;
+            
+            const rect = quadrant.getBoundingClientRect();
+            concepts.forEach((concept, index) => {
+                const position = suggestedPositions[concept];
+                const x = (position.x / 100) * rect.width - 60;
+                const y = ((100 - position.y) / 100) * rect.height - 60;
+                
+                const note = createStickyNote(concept, index);
+                note.classList.add('placed-note');
+                note.style.left = `${x}px`;
+                note.style.top = `${y}px`;
+                quadrant.appendChild(note);
+                setupDraggable(note);
+            });
+            
+            // Clear side panel
+            document.getElementById('sidePanel').innerHTML = '';
+        });
+
+        document.getElementById('reset').addEventListener('click', () => {
+            initializeSidePanel();
+            const placedNotes = document.querySelectorAll('.placed-note');
+            placedNotes.forEach(note => note.remove());
+        });
+
+        // Initialize
+        initializeSidePanel();
+    </script>
+</body>
+</html>

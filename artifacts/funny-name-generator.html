@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generate hilarious random names with alliterative combinations. Perfect for characters, usernames, or just for fun.">
+    <meta name="tags" content="generator, text, fun">
+    <meta name="created" content="2025-01-04">
+    <title>Funny Name Generator</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.5s ease-out;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // Lucide React Icons as SVG components
+        const Smile = ({ className = "" }) => (
+            <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                <line x1="15" y1="9" x2="15.01" y2="9"></line>
+            </svg>
+        );
+
+        const RefreshCw = ({ className = "" }) => (
+            <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+        );
+
+        const Shuffle = ({ className = "" }) => (
+            <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="16 3 21 3 21 8"></polyline>
+                <line x1="4" y1="20" x2="21" y2="3"></line>
+                <polyline points="21 16 21 21 16 21"></polyline>
+                <line x1="15" y1="15" x2="21" y2="21"></line>
+                <line x1="4" y1="4" x2="9" y2="9"></line>
+            </svg>
+        );
+
+        const FunnyNameGenerator = () => {
+            const [firstName, setFirstName] = useState('');
+            const [lastName, setLastName] = useState('');
+            const [generatedNames, setGeneratedNames] = useState([]);
+            const [isGenerating, setIsGenerating] = useState(false);
+
+            // Comprehensive funny name databases
+            const funnyFirstNames = {
+                A: ['Absurd', 'Alphabetti', 'Anchovy', 'Awkward', 'Aardvark', 'Applause'],
+                B: ['Bubbles', 'Banana', 'Biscuit', 'Bumbling', 'Booger', 'Buttercup'],
+                C: ['Chuckles', 'Cucumber', 'Chaos', 'Cranberry', 'Captain', 'Cupcake'],
+                D: ['Dizzy', 'Donut', 'Dandelion', 'Doodle', 'Dancing', 'Pickles'],
+                E: ['Elbow', 'Exploding', 'Ecstatic', 'Elephant', 'Electric', 'Eyeball'],
+                F: ['Fizzy', 'Flamingo', 'Fudge', 'Frizzled', 'Flying', 'Fantastic'],
+                G: ['Giggles', 'Gummy', 'Galloping', 'Glitter', 'Goofball', 'Grapes'],
+                H: ['Hiccup', 'Hamburger', 'Hopping', 'Hippo', 'Hilarious', 'Honey'],
+                I: ['Igloo', 'Invisible', 'Itchy', 'Ice-cream', 'Incredible', 'Iguana'],
+                J: ['Jelly', 'Jumping', 'Juicy', 'Jester', 'Jiggly', 'Jellybean'],
+                K: ['Kooky', 'Kangaroo', 'Ketchup', 'Kaleidoscope', 'Knuckles', 'Kiwi'],
+                L: ['Loopy', 'Llama', 'Lemon', 'Laughing', 'Lightning', 'Lollipop'],
+                M: ['Marshmallow', 'Monkey', 'Muffin', 'Magnificent', 'Mustache', 'Melting'],
+                N: ['Noodle', 'Ninja', 'Nutty', 'Narwhal', 'Napping', 'Nonsense'],
+                O: ['Obnoxious', 'Octopus', 'Orange', 'Outrageous', 'Oozing', 'Orbit'],
+                P: ['Pickle', 'Penguin', 'Pudding', 'Popcorn', 'Prancing', 'Purple'],
+                Q: ['Quirky', 'Quacking', 'Queen', 'Quiver', 'Quantum', 'Quiche'],
+                R: ['Rainbow', 'Rubber', 'Ridiculous', 'Rocking', 'Rocket', 'Radish'],
+                S: ['Silly', 'Sparkles', 'Sandwich', 'Sneezing', 'Spaghetti', 'Superhero'],
+                T: ['Ticklish', 'Tornado', 'Tacos', 'Tumbling', 'Tremendous', 'Turkey'],
+                U: ['Umbrella', 'Upside-down', 'Unicorn', 'Ultimate', 'Unusual', 'Underwear'],
+                V: ['Vibrating', 'Vanilla', 'Volcano', 'Velvet', 'Vampire', 'Victory'],
+                W: ['Wiggly', 'Watermelon', 'Wacky', 'Whistling', 'Wonderful', 'Walrus'],
+                X: ['X-ray', 'Xylem', 'Xerox', 'Xylophone', 'Extreme', 'Xavier'],
+                Y: ['Yodeling', 'Yummy', 'Yellow', 'Yapping', 'Yo-yo', 'Yak'],
+                Z: ['Zany', 'Zigzag', 'Zombie', 'Zeppelin', 'Zucchini', 'Zoomies']
+            };
+
+            const funnyLastNames = {
+                A: ['Applebottom', 'Antelope', 'Astronaut', 'Accordion', 'Avocado', 'Airplane'],
+                B: ['Buttercream', 'Balloon', 'Broccoli', 'Bumblebee', 'Bicycle', 'Banana-split'],
+                C: ['Cheesecake', 'Caterpillar', 'Corndog', 'Carousel', 'Chicken-nugget', 'Calculator'],
+                D: ['Dragonfly', 'Dishwasher', 'Dinosaur', 'Dumpling', 'Doorknob', 'Dandelion'],
+                E: ['Eggplant', 'Elevator', 'Envelope', 'Earwig', 'Explosion', 'Escalator'],
+                F: ['Firecracker', 'Fishstick', 'Flamingo', 'Football', 'Frankfurter', 'Ferris-wheel'],
+                G: ['Grasshopper', 'Garbage-truck', 'Gingerbread', 'Gorilla', 'Guitar', 'Gumball'],
+                H: ['Helicopter', 'Hamster', 'Hotdog', 'Hurricane', 'Harmonica', 'Hedgehog'],
+                I: ['Ice-cube', 'Iguana', 'Instrument', 'Internet', 'Island', 'Invention'],
+                J: ['Jellyfish', 'Jackhammer', 'Jukebox', 'Jungle-gym', 'Jawbreaker', 'Jackrabbit'],
+                K: ['Keyboard', 'Kangaroo', 'Ketchup-bottle', 'Kaleidoscope', 'Kitchen-sink', 'Koala'],
+                L: ['Ladybug', 'Lawnmower', 'Lightning-bolt', 'Licorice', 'Lobster', 'Lunchbox'],
+                M: ['Microwave', 'Mushroom', 'Motorcycle', 'Moonbeam', 'Marshmallow', 'Magnifying-glass'],
+                N: ['Necklace', 'Nutcracker', 'Newspaper', 'Ninja-turtle', 'Nightlight', 'Noodle-soup'],
+                O: ['Octopus', 'Ostrich', 'Orange-juice', 'Orchestra', 'Oven-mitt', 'Oatmeal'],
+                P: ['Pancake', 'Parachute', 'Pineapple', 'Playground', 'Penguin', 'Popcorn-maker'],
+                Q: ['Quarterback', 'Quilt', 'Question-mark', 'Quail', 'Queen-bee', 'Quicksand'],
+                R: ['Refrigerator', 'Rhinoceros', 'Rainbow', 'Rocking-chair', 'Roller-coaster', 'Robot'],
+                S: ['Spaceship', 'Spaghetti', 'Submarine', 'Sunflower', 'Saxophone', 'Snowglobe'],
+                T: ['Toothbrush', 'Trampoline', 'Telescope', 'Thunderstorm', 'Taco-bell', 'Typewriter'],
+                U: ['Umbrella-stand', 'Underwear-drawer', 'Unicycle', 'Universe', 'Upholstery', 'Utensil'],
+                V: ['Vacuum-cleaner', 'Volleyball', 'Violin', 'Volcano', 'Vegetable', 'Video-game'],
+                W: ['Waterslide', 'Windmill', 'Waffle-iron', 'Wheelbarrow', 'Walrus', 'Weather-vane'],
+                X: ['X-ray-machine', 'Xylophone', 'X-wing', 'Xbox', 'X-factor', 'Xerox-machine'],
+                Y: ['Yo-yo', 'Yardstick', 'Yacht', 'Yeti', 'Yogurt-cup', 'Yellow-submarine'],
+                Z: ['Zamboni', 'Zeppelin', 'Zigzag-pattern', 'Zoo-keeper', 'Zucchini-bread', 'Zipper']
+            };
+
+            const generateNames = (firstInitial, lastInitial) => {
+                const firstNames = funnyFirstNames[firstInitial] || ['Mystery'];
+                const lastNames = funnyLastNames[lastInitial] || ['Person'];
+                
+                const names = [];
+                for (let i = 0; i < 5; i++) {
+                    const randomFirst = firstNames[Math.floor(Math.random() * firstNames.length)];
+                    const randomLast = lastNames[Math.floor(Math.random() * lastNames.length)];
+                    names.push(`${randomFirst} ${randomLast}`);
+                }
+                return names;
+            };
+
+            const handleGenerate = () => {
+                const firstInitial = firstName.charAt(0).toUpperCase();
+                const lastInitial = lastName.charAt(0).toUpperCase();
+                
+                if (!firstInitial || !lastInitial) return;
+                
+                setIsGenerating(true);
+                setTimeout(() => {
+                    const names = generateNames(firstInitial, lastInitial);
+                    setGeneratedNames(names);
+                    setIsGenerating(false);
+                }, 500);
+            };
+
+            const handleRandomGenerate = () => {
+                const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                const randomFirst = letters[Math.floor(Math.random() * letters.length)];
+                const randomLast = letters[Math.floor(Math.random() * letters.length)];
+                
+                setFirstName(randomFirst);
+                setLastName(randomLast);
+                
+                setIsGenerating(true);
+                setTimeout(() => {
+                    const names = generateNames(randomFirst, randomLast);
+                    setGeneratedNames(names);
+                    setIsGenerating(false);
+                }, 500);
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 p-6">
+                    <div className="max-w-2xl mx-auto">
+                        <div className="bg-white rounded-3xl shadow-2xl p-8 mb-8">
+                            <div className="text-center mb-8">
+                                <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-2">
+                                    <Smile className="text-yellow-500" />
+                                    Funny Name Generator
+                                    <Smile className="text-yellow-500" />
+                                </h1>
+                                <p className="text-gray-600">Enter your first and last name to get hilariously silly alternatives!</p>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            First Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={firstName}
+                                            onChange={(e) => setFirstName(e.target.value)}
+                                            placeholder="Enter first name"
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Last Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={lastName}
+                                            onChange={(e) => setLastName(e.target.value)}
+                                            placeholder="Enter last name"
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={handleGenerate}
+                                        disabled={!firstName || !lastName || isGenerating}
+                                        className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 px-6 rounded-xl font-semibold text-lg hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2"
+                                    >
+                                        {isGenerating ? (
+                                            <RefreshCw className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            <>
+                                                <Smile className="w-5 h-5" />
+                                                Generate Funny Names
+                                            </>
+                                        )}
+                                    </button>
+                                    
+                                    <button
+                                        onClick={handleRandomGenerate}
+                                        disabled={isGenerating}
+                                        className="bg-gradient-to-r from-orange-400 to-red-500 text-white py-3 px-6 rounded-xl font-semibold hover:from-orange-500 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2"
+                                    >
+                                        <Shuffle className="w-5 h-5" />
+                                        Random
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {generatedNames.length > 0 && (
+                            <div className="bg-white rounded-3xl shadow-2xl p-8 animate-fade-in">
+                                <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+                                    Your Hilarious Alter Egos! 🎭
+                                </h2>
+                                <div className="space-y-4">
+                                    {generatedNames.map((name, index) => (
+                                        <div
+                                            key={index}
+                                            className="bg-gradient-to-r from-yellow-100 to-orange-100 p-4 rounded-2xl border-2 border-yellow-200 transform hover:scale-105 transition-all duration-200 hover:shadow-lg"
+                                        >
+                                            <div className="text-xl font-bold text-gray-800 text-center">
+                                                {name}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                <div className="text-center mt-6">
+                                    <button
+                                        onClick={handleGenerate}
+                                        className="bg-gradient-to-r from-green-400 to-blue-500 text-white py-2 px-6 rounded-xl font-semibold hover:from-green-500 hover:to-blue-600 transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2 mx-auto"
+                                    >
+                                        <RefreshCw className="w-4 h-4" />
+                                        Generate More!
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<FunnyNameGenerator />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Retro-style airport status board display. Shows arrivals and departures with flip-board animation effect.">
+    <meta name="tags" content="aviation, demo, animation">
+    <meta name="created" content="2025-01-04">
+    <title>In The Pattern - Airport Status Board</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #222;
+            color: white;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .logo {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        
+        .logo img {
+            height: 60px;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .status-boards-container {
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+        }
+        
+        .runway-pattern {
+            position: relative;
+            height: 450px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .runway {
+            position: absolute;
+            width: 400px;
+            height: 80px;
+            top: 62%;
+            left: 50%;
+            transform: translate(-50%, 0);
+            background-color: #555;
+            border: 1px solid #666;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 3;  /* Move above the pattern line */
+        }
+        
+        .runway::before {
+            content: "";
+            position: absolute;
+            width: 90%;
+            height: 0;
+            top: 50%;
+            left: 5%;
+            border-top: 3px dashed white;
+        }
+        
+        .runway-markings {
+            position: absolute;
+            width: 120px;
+            height: 40px;
+            left: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+        
+        .runway-marking {
+            width: 40px;
+            height: 5px;
+            background-color: white;
+        }
+        
+        .runway-number {
+            background-color: black;
+            color: #0cf;
+            font-family: '16x8PxlMono', monospace;
+            padding: 5px;
+            font-size: 24px;
+            font-weight: bold;
+            width: 60px;
+            height: 60px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #444;
+            box-shadow: 0 0 10px rgba(0, 200, 255, 0.5);
+            text-shadow: 0 0 8px rgba(0, 200, 255, 0.8);
+        }
+        
+        .left-number {
+            transform: rotate(90deg);
+            margin-left: 20px;
+        }
+        
+        .right-number {
+            transform: rotate(-90deg);
+            margin-right: 20px;
+        }
+        
+        .pattern-leg {
+            position: absolute;
+            background-color: black;
+            color: #0cf;
+            font-family: '16x8PxlMono', monospace;
+            padding: 5px;
+            font-size: 14px;
+            width: 80px;
+            height: 30px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #444;
+            z-index: 2;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 200, 255, 0.5);
+            text-shadow: 0 0 8px rgba(0, 200, 255, 0.8);
+        }
+        
+        .pattern-label {
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .aircraft-icon {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M12,2L4,10H7V22H17V10H20L12,2Z'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            transform: rotate(0deg);
+            filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, 0.7));
+        }
+        
+        /* Pattern positions based on updated diagram */
+        #upwind-label {
+            top: 62%;
+            left: 75%;
+        }
+        
+        #upwind {
+            top: 62%;
+            left: 70%;
+        }
+        
+        #crosswind-label {
+            top: 25%;
+            left: 84%;
+        }
+        
+        #crosswind {
+            top: 25%;
+            left: 78%;
+        }
+        
+        #downwind-label {
+            top: 15%;
+            left: 42%;
+        }
+        
+        #downwind {
+            top: 15%;
+            left: 36%;
+        }
+        
+        #base-label {
+            top: 35%;
+            left: 8%;
+        }
+        
+        #base {
+            top: 35%;
+            left: 2%;
+        }
+        
+        #final-label {
+            top: 62%;
+            left: 25%;
+        }
+        
+        #final {
+            top: 62%;
+            left: 20%;
+        }
+        
+        .pattern-path {
+            position: absolute;
+            border: 2px solid #666;
+            border-radius: 20px;
+            width: 85%;
+            height: 70%;
+            top: 15%;
+            left: 7.5%;
+            z-index: 1;
+        }
+        
+        .status-board {
+            background-color: black;
+            border: 5px solid #444;
+            border-radius: 10px;
+            padding: 15px;
+            width: 320px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+            margin: 0 10px;
+        }
+        
+        .board-title {
+            color: yellow;
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .board-title i {
+            margin-right: 10px;
+        }
+        
+        .flight-board {
+            margin-bottom: 20px;
+        }
+        
+        .flight-row {
+            display: flex;
+            margin-bottom: 5px;
+        }
+        
+        .flip-tile {
+            background-color: #2a4ba0;
+            color: white;
+            width: 30px;
+            height: 30px;
+            margin: 2px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            border-radius: 3px;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.3);
+            text-shadow: 0 0 2px white;
+        }
+        
+        .divider {
+            height: 2px;
+            background-color: #555;
+            margin: 10px 0;
+        }
+        
+        @font-face {
+            font-family: '16x8PxlMono';
+            src: url('https://cdnjs.cloudflare.com/ajax/libs/webfont/1.6.28/webfontloader.js');
+            font-weight: normal;
+            font-style: normal;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="/api/placeholder/180/60" alt="In The Pattern Logo">
+        </div>
+        
+        <div class="main-content">
+            <!-- Status Boards - Now placed at the top -->
+            <div class="status-boards-container">
+                <!-- Arrivals Board -->
+                <div class="status-board">
+                    <div class="board-title">
+                        <i class="fas fa-plane-arrival"></i> ARRIVALS
+                    </div>
+                    <div class="flight-board arrivals-board">
+                        <div class="flight-row">
+                            <div class="flip-tile">1</div>
+                            <div class="flip-tile">2</div>
+                            <div class="flip-tile">3</div>
+                            <div class="flip-tile">4</div>
+                            <div class="flip-tile">5</div>
+                            <div class="flip-tile">6</div>
+                            <div class="flip-tile">7</div>
+                            <div class="flip-tile">8</div>
+                        </div>
+                        <div class="flight-row">
+                            <div class="flip-tile">N</div>
+                            <div class="flip-tile">7</div>
+                            <div class="flip-tile">1</div>
+                            <div class="flip-tile">4</div>
+                            <div class="flip-tile">3</div>
+                            <div class="flip-tile">B</div>
+                            <div class="flip-tile"></div>
+                            <div class="flip-tile"></div>
+                        </div>
+                        <div class="flight-row">
+                            <div class="flip-tile">N</div>
+                            <div class="flip-tile">1</div>
+                            <div class="flip-tile">8</div>
+                            <div class="flip-tile">2</div>
+                            <div class="flip-tile">D</div>
+                            <div class="flip-tile">V</div>
+                            <div class="flip-tile"></div>
+                            <div class="flip-tile"></div>
+                        </div>
+                        <div class="flight-row">
+                            <div class="flip-tile">N</div>
+                            <div class="flip-tile">9</div>
+                            <div class="flip-tile">5</div>
+                            <div class="flip-tile">4</div>
+                            <div class="flip-tile">W</div>
+                            <div class="flip-tile">X</div>
+                            <div class="flip-tile"></div>
+                            <div class="flip-tile"></div>
+                        </div>
+                        <div class="flight-row">
+                            <div class="flip-tile">N</div>
+                            <div class="flip-tile">5</div>
+                            <div class="flip-tile">4</div>
+                            <div class="flip-tile">3</div>
+                            <div class="flip-tile">2</div>
+                            <div class="flip-tile">A</div>
+                            <div class="flip-tile"></div>
+                            <div class="flip-tile"></div>
+                        </div>
+                        <div class="flight-row">
+                            <div class="flip-tile">N</div>
+                            <div class="flip-tile">8</div>
+                            <div class="flip-tile">8</div>
+                            <div class="flip-tile">8</div>
+                            <div class="flip-tile">J</div>
+                            <div class="flip-tile">T</div>
+                            <div class="flip-tile"></div>
+                            <div class="flip-tile"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Departures Board -->
+                <div class="status-board">
+                    <div class="board-title">
+                        <i class="fas fa-plane-departure"></i> DEPARTURES
+                    </div>
+                    <div class="flight-board departures-board">
+                        <div class="flight-row">
+                            <div class="flip-tile">1</div>
+                            <div class="flip-tile">2</div>
+                            <div class="flip-tile">3</div>
+                            <div class="flip-tile">4</div>
+                            <div class="flip-tile">5</div>
+                            <div class="flip-tile">6</div>
+                            <div class="flip-tile">7</div>
+                            <div class="flip-tile">8</div>
+                        </div>
+                        <div class="flight-row">
+                            <div class="flip-tile">N</div>
+                            <div class="flip-tile">1</div>
+                            <div class="flip-tile">8</div>
+                            <div class="flip-tile">2</div>
+                            <div class="flip-tile">D</div>
+                            <div class="flip-tile">V</div>
+                            <div class="flip-tile"></div>
+                            <div class="flip-tile"></div>
+                        </div>
+                        <div class="flight-row">
+                            <div class="flip-tile">N</div>
+                            <div class="flip-tile">7</div>
+                            <div class="flip-tile">6</div>
+                            <div class="flip-tile">5</div>
+                            <div class="flip-tile">K</div>
+                            <div class="flip-tile">G</div>
+                            <div class="flip-tile"></div>
+                            <div class="flip-tile"></div>
+                        </div>
+                        <div class="flight-row">
+                            <div class="flip-tile">N</div>
+                            <div class="flip-tile">8</div>
+                            <div class="flip-tile">1</div>
+                            <div class="flip-tile">1</div>
+                            <div class="flip-tile">S</div>
+                            <div class="flip-tile">P</div>
+                            <div class="flip-tile"></div>
+                            <div class="flip-tile"></div>
+                        </div>
+                        <div class="flight-row">
+                            <div class="flip-tile">N</div>
+                            <div class="flip-tile">3</div>
+                            <div class="flip-tile">6</div>
+                            <div class="flip-tile">2</div>
+                            <div class="flip-tile">W</div>
+                            <div class="flip-tile">R</div>
+                            <div class="flip-tile"></div>
+                            <div class="flip-tile"></div>
+                        </div>
+                        <div class="flight-row">
+                            <div class="flip-tile">N</div>
+                            <div class="flip-tile">5</div>
+                            <div class="flip-tile">5</div>
+                            <div class="flip-tile">4</div>
+                            <div class="flip-tile">F</div>
+                            <div class="flip-tile">G</div>
+                            <div class="flip-tile"></div>
+                            <div class="flip-tile"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Runway Pattern with correct labels -->
+            <div class="runway-pattern">
+                <!-- Traffic pattern path -->
+                <div class="pattern-path"></div>
+                
+                <!-- Aircraft position labels -->
+                <div id="upwind-label" class="pattern-label">UPWIND</div>
+                <div id="crosswind-label" class="pattern-label">CROSSWIND</div>
+                <div id="downwind-label" class="pattern-label">DOWNWIND</div>
+                <div id="base-label" class="pattern-label">BASE</div>
+                <div id="final-label" class="pattern-label">FINAL</div>
+                
+                <!-- Pattern Legs (OLED Displays) -->
+                <div id="upwind" class="pattern-leg">UPWIND</div>
+                <div id="crosswind" class="pattern-leg">XWIND</div>
+                <div id="downwind" class="pattern-leg">DNWIND</div>
+                <div id="base" class="pattern-leg">BASE</div>
+                <div id="final" class="pattern-leg">FINAL</div>
+                
+                <!-- Runway with numbers -->
+                <div class="runway">
+                    <div class="runway-number left-number">5</div>
+                    <div class="runway-markings">
+                        <div class="runway-marking"></div>
+                        <div class="runway-marking"></div>
+                        <div class="runway-marking"></div>
+                        <div class="runway-marking"></div>
+                    </div>
+                    <div class="runway-number right-number">23</div>
+                </div>
+                
+                <!-- Aircraft Icons (will be positioned by JavaScript) -->
+                <div class="aircraft-icon" id="aircraft1" style="display: none;"></div>
+                <div class="aircraft-icon" id="aircraft2" style="display: none;"></div>
+                
+                <!-- Fallback message if jQuery fails to load -->
+                <div id="fallback-message" style="display: none; background-color: #f8d7da; color: #721c24; padding: 20px; margin: 20px; border-radius: 5px; text-align: center;">
+                    <h3>Error: JavaScript Library Not Loaded</h3>
+                    <p>The status board requires jQuery to function properly. Please check your internet connection and reload the page.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load jQuery first, then the other scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+    <script>
+        // Wait for jQuery to be fully loaded before executing any code
+        window.onload = function() {
+            if (typeof jQuery !== 'undefined') {
+                // Function to update aircraft in pattern
+                function updatePattern(leg, aircraftId) {
+                    if (aircraftId) {
+                        jQuery(`#${leg}`).text(aircraftId);
+                        jQuery(`#${leg}`).addClass('active');
+                    } else {
+                        jQuery(`#${leg}`).text(leg.toUpperCase().substring(0, 6));
+                        jQuery(`#${leg}`).removeClass('active');
+                    }
+                }
+                
+                // Function to simulate flip animation
+                function flipTile(tile, newValue) {
+                    jQuery(tile).fadeOut(100, function() {
+                        jQuery(this).text(newValue).fadeIn(100);
+                    });
+                }
+                
+                // Example pattern update (simulated aircraft movement)
+                setTimeout(function() { updatePattern('upwind', 'N182DV'); }, 2000);
+                setTimeout(function() { updatePattern('upwind', ''); updatePattern('crosswind', 'N182DV'); }, 4000);
+                setTimeout(function() { updatePattern('crosswind', ''); updatePattern('downwind', 'N182DV'); }, 6000);
+                setTimeout(function() { updatePattern('downwind', ''); updatePattern('base', 'N182DV'); }, 8000);
+                setTimeout(function() { updatePattern('base', ''); updatePattern('final', 'N182DV'); }, 10000);
+                setTimeout(function() { updatePattern('final', ''); }, 12000);
+                
+                // Example arrival board update
+                setTimeout(function() {
+                    // Update an arrival with animated effect
+                    let arrivalTiles = jQuery('.arrivals-board .flight-row:nth-child(2) .flip-tile');
+                    
+                    flipTile(arrivalTiles[0], 'N');
+                    setTimeout(() => flipTile(arrivalTiles[1], '1'), 100);
+                    setTimeout(() => flipTile(arrivalTiles[2], '8'), 200);
+                    setTimeout(() => flipTile(arrivalTiles[3], '2'), 300);
+                    setTimeout(() => flipTile(arrivalTiles[4], 'D'), 400);
+                    setTimeout(() => flipTile(arrivalTiles[5], 'V'), 500);
+                }, 13000);
+                
+                // Handle real-time updates - this would be WebSocket in production
+                function connectToWebSocket() {
+                    console.log("WebSocket connection would be established here");
+                    
+                    // Mock WebSocket for demo
+                    const mockSocket = {
+                        onmessage: function(event) {
+                            // This would process real WebSocket messages
+                            console.log("WebSocket message received");
+                        }
+                    };
+                    
+                    return mockSocket;
+                }
+                
+                // Initialize WebSocket connection (mocked)
+                const socket = connectToWebSocket();
+                
+                // Optional: Add animated aircraft to the pattern for visual effect
+                function animateAircraft() {
+                    const aircraft = jQuery('#aircraft1');
+                    aircraft.show();
+                    
+                    // Define keyframe positions along the updated pattern
+                    const keyframes = [
+                        {top: '62%', left: '84%', transform: 'rotate(0deg)'},    // Upwind
+                        {top: '35%', left: '92%', transform: 'rotate(-90deg)'},  // Climbing to crosswind
+                        {top: '15%', left: '92%', transform: 'rotate(0deg)'},    // Crosswind
+                        {top: '8%', left: '70%', transform: 'rotate(90deg)'},    // Turning to downwind
+                        {top: '8%', left: '50%', transform: 'rotate(180deg)'},   // Downwind
+                        {top: '8%', left: '30%', transform: 'rotate(180deg)'},   // Continuing downwind
+                        {top: '15%', left: '8%', transform: 'rotate(270deg)'},   // Base
+                        {top: '35%', left: '8%', transform: 'rotate(180deg)'},   // Continuing base
+                        {top: '62%', left: '15%', transform: 'rotate(90deg)'},   // Final
+                        {top: '62%', left: '50%', transform: 'rotate(0deg)'},    // Landing
+                        {top: '62%', left: '84%', transform: 'rotate(0deg)'},    // Upwind
+                    ];
+                    
+                    // Animate through each keyframe
+                    let currentFrame = 0;
+                    function nextKeyframe() {
+                        if (currentFrame < keyframes.length) {
+                            aircraft.animate(keyframes[currentFrame], 2000, function() {
+                                currentFrame++;
+                                if (currentFrame < keyframes.length) {
+                                    nextKeyframe();
+                                } else {
+                                    // Reset animation
+                                    setTimeout(function() {
+                                        aircraft.hide();
+                                        currentFrame = 0;
+                                        setTimeout(animateAircraft, 5000);
+                                    }, 1000);
+                                }
+                            });
+                        }
+                    }
+                    
+                    nextKeyframe();
+                }
+                
+                // Start aircraft animation after a delay
+                setTimeout(animateAircraft, 3000);
+            } else {
+                console.error("jQuery is not loaded properly");
+                // Add a fallback if jQuery fails to load
+                document.getElementById('fallback-message').style.display = 'block';
+            }
+        };
+    </script>
+</body>
+</html>
