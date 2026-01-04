@@ -1468,6 +1468,66 @@
         </div>
     </div>
 
+    <!-- First Run Modal -->
+    <div class="modal fade" id="first-run-modal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--primary-gradient); color: white; border: none;">
+                    <h5 class="modal-title"><i class="bi bi-stars me-2"></i>Welcome to RAG Chatbot</h5>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">
+                        This demo lets you upload documents and ask questions using AI. Choose how you'd like to power the AI:
+                    </p>
+
+                    <div class="settings-section mb-3">
+                        <div class="model-option selected" id="first-run-option-local" onclick="selectFirstRunOption('local')">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="first-run-provider" id="first-run-local" checked>
+                                <label class="form-check-label fw-medium" for="first-run-local">
+                                    <i class="bi bi-download me-1"></i>Download Local Model
+                                    <span class="webgpu-badge ms-2"><i class="bi bi-gpu-card"></i> WebGPU</span>
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-1">
+                                Download Llama 3.2 3B (~1.8GB) to run entirely in your browser. Private & offline-capable after download.
+                            </small>
+                            <div id="first-run-webgpu-warning" class="mt-2 text-danger small" style="display: none;">
+                                <i class="bi bi-exclamation-triangle"></i> WebGPU not available in this browser
+                            </div>
+                        </div>
+
+                        <div class="model-option" id="first-run-option-anthropic" onclick="selectFirstRunOption('anthropic')">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="first-run-provider" id="first-run-anthropic">
+                                <label class="form-check-label fw-medium" for="first-run-anthropic">
+                                    <i class="bi bi-cloud me-1"></i>Use Anthropic API (Claude)
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-1">
+                                Use Claude instantly with your API key. No download required.
+                            </small>
+                            <div class="mt-2" id="first-run-api-key-section" style="display: none;">
+                                <div class="input-group input-group-sm">
+                                    <input type="password" class="form-control" id="first-run-api-key" placeholder="sk-ant-...">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="toggleFirstRunKeyVisibility()">
+                                        <i class="bi bi-eye" id="first-run-eye-icon"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Stored locally, never sent to our servers.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="first-run-continue-btn">
+                        <i class="bi bi-arrow-right me-1"></i>Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- History Modal -->
     <div class="modal fade" id="history-modal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
@@ -1650,7 +1710,8 @@
         const MAX_SESSIONS = 5;
         const STORAGE_KEYS = {
             provider: 'rag-chatbot-provider',
-            apiKey: 'rag-chatbot-anthropic-key'
+            apiKey: 'rag-chatbot-anthropic-key',
+            setupComplete: 'rag-chatbot-setup-complete'
         };
 
         // Sample document
@@ -2387,6 +2448,118 @@ Looking ahead, AI will likely become more integrated into educational settings. 
                 updateLLMStatus('ready', 'Claude API');
                 checkAllReady();
             }
+        }
+
+        // ==================== FIRST RUN SETUP ====================
+        const firstRunModal = new bootstrap.Modal(document.getElementById('first-run-modal'));
+        let firstRunProvider = 'local';
+
+        window.selectFirstRunOption = function(option) {
+            firstRunProvider = option;
+            const localOption = document.getElementById('first-run-option-local');
+            const anthropicOption = document.getElementById('first-run-option-anthropic');
+            const localRadio = document.getElementById('first-run-local');
+            const anthropicRadio = document.getElementById('first-run-anthropic');
+            const apiKeySection = document.getElementById('first-run-api-key-section');
+
+            if (option === 'local') {
+                localOption.classList.add('selected');
+                anthropicOption.classList.remove('selected');
+                localRadio.checked = true;
+                apiKeySection.style.display = 'none';
+            } else {
+                localOption.classList.remove('selected');
+                anthropicOption.classList.add('selected');
+                anthropicRadio.checked = true;
+                apiKeySection.style.display = 'block';
+                document.getElementById('first-run-api-key').focus();
+            }
+        };
+
+        window.toggleFirstRunKeyVisibility = function() {
+            const input = document.getElementById('first-run-api-key');
+            const icon = document.getElementById('first-run-eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        };
+
+        async function checkNeedsFirstRun() {
+            // Skip first run if setup was already completed
+            if (localStorage.getItem(STORAGE_KEYS.setupComplete)) {
+                return false;
+            }
+
+            // Skip if user already has an API key configured
+            if (localStorage.getItem(STORAGE_KEYS.apiKey)) {
+                localStorage.setItem(STORAGE_KEYS.setupComplete, 'true');
+                return false;
+            }
+
+            // Check if model is already cached
+            if (window.webllm) {
+                try {
+                    const hasCache = await window.webllm.hasModelInCache(MODEL_ID);
+                    if (hasCache) {
+                        localStorage.setItem(STORAGE_KEYS.setupComplete, 'true');
+                        return false;
+                    }
+                } catch (e) {
+                    console.log('Could not check model cache:', e);
+                }
+            }
+
+            return true;
+        }
+
+        async function showFirstRunModal() {
+            // Check WebGPU availability and show warning if needed
+            const hasGPU = await checkWebGPU();
+            const warningEl = document.getElementById('first-run-webgpu-warning');
+            if (!hasGPU) {
+                warningEl.style.display = 'block';
+                // Auto-select API option if no WebGPU
+                selectFirstRunOption('anthropic');
+            }
+
+            return new Promise((resolve) => {
+                const continueBtn = document.getElementById('first-run-continue-btn');
+
+                const handleContinue = () => {
+                    const apiKey = document.getElementById('first-run-api-key').value;
+
+                    // Validate if using API
+                    if (firstRunProvider === 'anthropic' && !apiKey) {
+                        document.getElementById('first-run-api-key').classList.add('is-invalid');
+                        document.getElementById('first-run-api-key').focus();
+                        return;
+                    }
+
+                    // Save settings
+                    localStorage.setItem(STORAGE_KEYS.provider, firstRunProvider);
+                    if (firstRunProvider === 'anthropic') {
+                        localStorage.setItem(STORAGE_KEYS.apiKey, apiKey);
+                    }
+                    localStorage.setItem(STORAGE_KEYS.setupComplete, 'true');
+
+                    continueBtn.removeEventListener('click', handleContinue);
+                    firstRunModal.hide();
+                    resolve(firstRunProvider);
+                };
+
+                continueBtn.addEventListener('click', handleContinue);
+
+                // Clear invalid state on input
+                document.getElementById('first-run-api-key').addEventListener('input', function() {
+                    this.classList.remove('is-invalid');
+                });
+
+                firstRunModal.show();
+            });
         }
 
         async function checkWebGPU() {
@@ -3259,9 +3432,19 @@ Looking ahead, AI will likely become more integrated into educational settings. 
         }
 
         async function init() {
-            addMessage('system', 'Initializing... This may take a moment on first load.');
+            // Check if this is a first run (no cached model, no API key)
+            const needsFirstRun = await checkNeedsFirstRun();
 
-            // Load saved settings
+            if (needsFirstRun) {
+                // Show first run modal and wait for user choice
+                const chosenProvider = await showFirstRunModal();
+                currentProvider = chosenProvider;
+                addMessage('system', 'Setup complete! Initializing...');
+            } else {
+                addMessage('system', 'Initializing... This may take a moment on first load.');
+            }
+
+            // Load saved settings (may have been set by first run modal)
             loadSettings();
 
             // Initialize IndexedDB
