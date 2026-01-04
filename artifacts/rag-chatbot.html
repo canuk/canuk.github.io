@@ -1351,7 +1351,7 @@
             <div class="tab-pane fade show active" id="chat-pane" role="tabpanel">
                 <!-- Document Bar -->
                 <div class="document-bar" id="document-bar">
-                    <input type="file" id="file-input" accept=".txt,.md,.pdf" class="d-none">
+                    <input type="file" id="file-input" accept=".txt,.md,.pdf,.docx" class="d-none">
                     <div class="document-bar-empty" id="doc-empty-state">
                         <i class="bi bi-file-earmark-text"></i>
                         <span>No documents loaded</span>
@@ -1545,6 +1545,9 @@
         // Set PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
+
+    <!-- Mammoth.js for DOCX text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
     <!-- WebLLM -->
     <script type="module">
@@ -1853,6 +1856,13 @@ Looking ahead, AI will likely become more integrated into educational settings. 
             return fullText.trim();
         }
 
+        // ==================== DOCX EXTRACTION ====================
+        async function extractTextFromDOCX(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            return result.value.trim();
+        }
+
         // ==================== DOCUMENT PREVIEW ====================
         const previewModal = new bootstrap.Modal(document.getElementById('preview-modal'));
         const previewFilename = document.getElementById('preview-filename');
@@ -1874,6 +1884,8 @@ Looking ahead, AI will likely become more integrated into educational settings. 
             // Set appropriate note based on file type
             if (fileType === 'pdf') {
                 previewNoteText.textContent = 'PDF extracted as text. Images, tables, and formatting are not captured.';
+            } else if (fileType === 'docx') {
+                previewNoteText.textContent = 'Word document extracted as text. Images and complex formatting are not captured.';
             } else if (fileType === 'md') {
                 previewNoteText.textContent = 'Markdown will be processed as plain text (formatting preserved).';
             } else {
@@ -3112,11 +3124,12 @@ Looking ahead, AI will likely become more integrated into educational settings. 
 
             const fileName = file.name.toLowerCase();
             const isPDF = fileName.endsWith('.pdf');
+            const isDOCX = fileName.endsWith('.docx');
             const isMD = fileName.endsWith('.md');
             const isTXT = fileName.endsWith('.txt');
 
-            if (!isPDF && !isMD && !isTXT) {
-                addMessage('system', 'Please upload a .txt, .md, or .pdf file.');
+            if (!isPDF && !isDOCX && !isMD && !isTXT) {
+                addMessage('system', 'Please upload a .txt, .md, .pdf, or .docx file.');
                 fileInput.value = '';
                 return;
             }
@@ -3131,6 +3144,15 @@ Looking ahead, AI will likely become more integrated into educational settings. 
                     text = await extractTextFromPDF(file);
                     if (!text || text.trim().length === 0) {
                         addMessage('system', 'Could not extract text from PDF. The file might be image-based or protected.');
+                        fileInput.value = '';
+                        return;
+                    }
+                } else if (isDOCX) {
+                    fileType = 'docx';
+                    addMessage('system', 'Extracting text from Word document...');
+                    text = await extractTextFromDOCX(file);
+                    if (!text || text.trim().length === 0) {
+                        addMessage('system', 'Could not extract text from DOCX. The file might be corrupted or empty.');
                         fileInput.value = '';
                         return;
                     }
