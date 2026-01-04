@@ -208,6 +208,27 @@
             border-radius: 0 0 6px 6px;
         }
 
+        .suggestion {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .suggestion button {
+            background: none;
+            border: none;
+            color: var(--primary);
+            padding: 0;
+            font-size: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .suggestion button:hover {
+            color: var(--primary-hover);
+        }
+
         input[type="file"] {
             border: 1px dashed #9ca3af;
             padding: 1rem;
@@ -413,6 +434,7 @@
                 <div class="input-group">
                     <label>Pages Wide</label>
                     <input type="number" id="textPagesWide" value="3" min="1" max="20">
+                    <div class="suggestion" id="pageSuggestion"></div>
                 </div>
             </div>
         </div>
@@ -534,6 +556,9 @@
 
         // ============ TEXT BANNER ============
 
+        // Printer margin in inches (10mm ≈ 0.4 inches)
+        const PRINTER_MARGIN_INCHES = 0.4;
+
         function generateTextBanner() {
             const text = document.getElementById('bannerText').value.trim();
             const fontName = document.getElementById('fontSelect').value;
@@ -552,8 +577,73 @@
 
             // Paper dimensions in pixels (use higher DPI for better quality)
             const DPI = 150;
-            let paperW, paperH;
+            const MARGIN = PRINTER_MARGIN_INCHES * DPI;
 
+            let paperW, paperH, paperW_in, paperH_in;
+
+            if (orientation === 'landscape') {
+                paperW = 11 * DPI;
+                paperH = 8.5 * DPI;
+                paperW_in = 11;
+                paperH_in = 8.5;
+            } else {
+                paperW = 8.5 * DPI;
+                paperH = 11 * DPI;
+                paperW_in = 8.5;
+                paperH_in = 11;
+            }
+
+            // Set CSS variables
+            document.documentElement.style.setProperty('--paper-width', paperW_in + 'in');
+            document.documentElement.style.setProperty('--paper-height', paperH_in + 'in');
+
+            // Calculate printable area per page
+            const printableWidth = paperW - 2 * MARGIN;
+            const printableHeight = paperH - 2 * MARGIN;
+
+            // When pages are assembled, adjacent margins overlap
+            // So each page contributes printableWidth of "new" content
+            // Total assembled width = pagesWide * printableWidth
+            const totalAssembledWidth = pagesWide * printableWidth;
+
+            // Create a temp canvas to measure text
+            const measureCanvas = document.createElement('canvas');
+            const measureCtx = measureCanvas.getContext('2d');
+
+            // Measure text width at a reference size
+            const refSize = 100;
+            measureCtx.font = `bold ${refSize}px "${fontName}", sans-serif`;
+            const refWidth = measureCtx.measureText(text).width;
+
+            // Calculate font size to fit the assembled width (with small padding)
+            const paddingPercent = 0.05;
+            const availableWidth = totalAssembledWidth * (1 - paddingPercent * 2);
+            const fontSizeForWidth = (availableWidth / refWidth) * refSize;
+
+            // Limit font height to 80% of printable height
+            const maxFontHeight = printableHeight * 0.8;
+            const fontSize = Math.min(fontSizeForWidth, maxFontHeight);
+
+            // Calculate actual text width at final font size
+            measureCtx.font = `bold ${fontSize}px "${fontName}", sans-serif`;
+            const actualTextWidth = measureCtx.measureText(text).width;
+
+            // Calculate suggested pages for optimal size
+            updatePageSuggestion(text, fontName, orientation);
+
+            // Render each page
+            renderTextBanner(text, pagesWide, paperW, paperH, fontSize, fontName, MARGIN, printableWidth, actualTextWidth, totalAssembledWidth, orientation);
+        }
+
+        function updatePageSuggestion(text, fontName, orientation) {
+            const suggestionEl = document.getElementById('pageSuggestion');
+
+            // Calculate optimal pages based on making text as large as possible
+            // while keeping font height at 80% of printable height
+            const DPI = 150;
+            const MARGIN = PRINTER_MARGIN_INCHES * DPI;
+
+            let paperW, paperH;
             if (orientation === 'landscape') {
                 paperW = 11 * DPI;
                 paperH = 8.5 * DPI;
@@ -562,54 +652,43 @@
                 paperH = 11 * DPI;
             }
 
-            // Set CSS variables
-            document.documentElement.style.setProperty('--paper-width', (orientation === 'landscape' ? 11 : 8.5) + 'in');
-            document.documentElement.style.setProperty('--paper-height', (orientation === 'landscape' ? 8.5 : 11) + 'in');
+            const printableWidth = paperW - 2 * MARGIN;
+            const printableHeight = paperH - 2 * MARGIN;
+            const maxFontHeight = printableHeight * 0.8;
 
-            // Create a temp canvas to measure text
+            // Measure text at max font height
             const measureCanvas = document.createElement('canvas');
             const measureCtx = measureCanvas.getContext('2d');
+            measureCtx.font = `bold ${maxFontHeight}px "${fontName}", sans-serif`;
+            const textWidthAtMaxSize = measureCtx.measureText(text).width;
 
-            // Total banner width
-            const totalBannerWidth = paperW * pagesWide;
+            // How many pages needed to fit this text at max size?
+            const suggestedPages = Math.ceil(textWidthAtMaxSize / (printableWidth * 0.9)); // 90% to leave some padding
 
-            // Add generous margins - 15% on each end
-            const marginPercent = 0.15;
-            const totalMargin = paperW * marginPercent * 2;
-            const availableWidth = totalBannerWidth - totalMargin;
+            const currentPages = parseInt(document.getElementById('textPagesWide').value);
 
-            // Start with font height at 60% of page height (smaller to prevent clipping)
-            const targetFontHeight = paperH * 0.6;
-
-            // Measure text width at a reference size
-            const refSize = 100;
-            measureCtx.font = `bold ${refSize}px "${fontName}", sans-serif`;
-            const refWidth = measureCtx.measureText(text).width;
-
-            // Calculate font size to fit available width
-            const fontSizeForWidth = (availableWidth / refWidth) * refSize;
-
-            // Use the smaller of height-based or width-based size
-            const fontSize = Math.min(fontSizeForWidth, targetFontHeight);
-
-            // Calculate actual text width at final font size
-            measureCtx.font = `bold ${fontSize}px "${fontName}", sans-serif`;
-            const actualTextWidth = measureCtx.measureText(text).width;
-
-            // Center the text in the total banner
-            const textStartX = (totalBannerWidth - actualTextWidth) / 2;
-
-            // Render each page
-            renderTextBanner(text, pagesWide, paperW, paperH, fontSize, fontName, textStartX, orientation);
+            if (suggestedPages !== currentPages && suggestedPages >= 1 && suggestedPages <= 20) {
+                suggestionEl.innerHTML = `Suggested: <button onclick="setSuggestedPages(${suggestedPages})">${suggestedPages} pages</button> for maximum size`;
+            } else {
+                suggestionEl.innerHTML = '';
+            }
         }
 
-        function renderTextBanner(text, pageCount, paperW, paperH, fontSize, fontName, textStartX, orientation) {
+        function setSuggestedPages(pages) {
+            document.getElementById('textPagesWide').value = pages;
+            generateTextBanner();
+        }
+
+        function renderTextBanner(text, pageCount, paperW, paperH, fontSize, fontName, margin, printableWidth, textWidth, totalAssembledWidth, orientation) {
             const output = document.getElementById('output');
             output.innerHTML = '';
 
             const orientationLabel = orientation === 'landscape' ? '11×8.5"' : '8.5×11"';
             document.getElementById('output-info').innerText =
-                `${pageCount} pages (${orientationLabel} each)`;
+                `${pageCount} pages (${orientationLabel} each). Overlap pages by ${(PRINTER_MARGIN_INCHES * 2).toFixed(1)}" when assembling.`;
+
+            // Center text in the assembled banner
+            const textStartInAssembled = (totalAssembledWidth - textWidth) / 2;
 
             for (let i = 0; i < pageCount; i++) {
                 const canvas = document.createElement('canvas');
@@ -621,17 +700,32 @@
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, paperW, paperH);
 
-                // Draw the FULL text, offset for this page
-                // Page 0 shows x: 0 to paperW
-                // Page 1 shows x: paperW to paperW*2
-                // So we draw text at (textStartX - i*paperW)
+                // Draw margin guides (light gray, won't print but shows unprintable area)
+                ctx.fillStyle = '#f5f5f5';
+                ctx.fillRect(0, 0, margin, paperH); // Left margin
+                ctx.fillRect(paperW - margin, 0, margin, paperH); // Right margin
+                ctx.fillRect(0, 0, paperW, margin); // Top margin
+                ctx.fillRect(0, paperH - margin, paperW, margin); // Bottom margin
+
+                // Calculate where this page's content starts in the assembled banner
+                // Page 0: shows assembled x: 0 to printableWidth (rendered at margin to margin+printableWidth)
+                // Page 1: shows assembled x: printableWidth to 2*printableWidth
+                // etc.
+
+                // The assembled banner coordinate that maps to our left margin
+                const assembledStart = i * printableWidth;
+
+                // Text position: textStartInAssembled is where text starts in assembled coordinates
+                // In page coordinates, we need to place it at:
+                // margin + (textStartInAssembled - assembledStart)
+                const textDrawX = margin + (textStartInAssembled - assembledStart);
+
+                // Draw text
                 ctx.fillStyle = 'black';
                 ctx.font = `bold ${fontSize}px "${fontName}", sans-serif`;
                 ctx.textBaseline = 'middle';
                 ctx.textAlign = 'left';
-
-                const drawX = textStartX - (i * paperW);
-                ctx.fillText(text, drawX, paperH / 2);
+                ctx.fillText(text, textDrawX, paperH / 2);
 
                 // Create preview container
                 const pageDiv = document.createElement('div');

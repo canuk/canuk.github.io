@@ -111,9 +111,9 @@ title: Tools & Artifacts
 ---
 
 <div class="container my-5">
-  <h1 class="display-4 mb-3">Tools & Artifacts</h1>
+  <h1 class="display-4 mb-3">Artifacts</h1>
   <p class="lead text-secondary mb-5">
-    A collection of useful HTML tools and utilities. Each tool is a standalone file that runs directly in your browser.
+    A collection of artifacts created with AI Coding Assistants. Each tool is a standalone file that runs directly in your browser.
   </p>
 
   <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
