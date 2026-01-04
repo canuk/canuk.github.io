@@ -1,2594 +1,315 @@
 ---
-layout: inner
-title: "Building VFTCam: Technical Architecture"
+layout: default
+title: Building VFTCam
 description: "A technical deep dive into building a zero-dependency 360° photosphere capture web app for virtual field trips"
 ---
 
-<div class="container my-5">
-  <div class="row justify-content-center">
-    <div class="col-lg-10">
-      <!-- Header -->
-      <div class="text-center mb-5">
-        <h1 class="display-4 mb-3">Building VFTCam: Technical Architecture</h1>
-        <p class="lead text-secondary">A Zero-Dependency 360° Photosphere Capture Web App</p>
-        <div class="mt-3">
-          <span class="badge" style="background-color: #B1040E;"><i class="bi bi-mortarboard me-1"></i>Stanford</span>
-          <span class="badge" style="background-color: #F7DF1E;"><i class="bi bi-filetype-js me-1 text-dark"></i><span class="text-dark">JavaScript</span></span>
-          <span class="badge" style="background-color: #000000;"><i class="bi bi-box me-1"></i>Three.js</span>
-          <span class="badge bg-secondary"><i class="bi bi-gpu-card me-1"></i>WebGL2</span>
+<div class="container py-5">
+  <article class="article-content mx-auto">
+    <!-- Header -->
+    <header class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3">Building VFTCam</h1>
+      <p class="lead text-secondary">A Zero-Dependency 360° Photosphere Capture Web App</p>
+      <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+        <span class="badge" style="background-color: #B1040E;"><i class="bi bi-mortarboard me-1"></i>Stanford</span>
+        <span class="badge" style="background-color: #F7DF1E;"><i class="bi bi-filetype-js me-1 text-dark"></i><span class="text-dark">JavaScript</span></span>
+        <span class="badge" style="background-color: #000000;"><i class="bi bi-box me-1"></i>Three.js</span>
+        <span class="badge bg-secondary"><i class="bi bi-gpu-card me-1"></i>WebGL2</span>
+      </div>
+    </header>
+
+    <p class="lead text-secondary mb-5">
+      VFTCam is a browser-based Progressive Web App that creates 360° panoramic photospheres using structured camera capture and GPU-accelerated stitching. Built as a spiritual successor to Google's discontinued Street View Camera app, it runs entirely in the browser with zero external dependencies and no build tools.
+    </p>
+
+    <h2><i class="bi bi-exclamation-triangle me-2"></i>The Challenge</h2>
+    <p>When Google discontinued their Street View Camera app in 2023, educators lost a valuable tool for creating immersive virtual field trips. A replacement was needed that could:</p>
+    <ul>
+      <li>Run entirely in mobile browsers without native app installation</li>
+      <li>Adopt a privacy-first approach with no user data collection</li>
+      <li>Work offline in remote field locations</li>
+      <li>Handle mobile device memory constraints (especially iOS Safari's ~1.4GB limit)</li>
+      <li>Provide real-time guidance for capturing aligned photos</li>
+      <li>Stitch 36 high-resolution images into equirectangular panoramas</li>
+    </ul>
+
+    <h2><i class="bi bi-diagram-3 me-2"></i>Architecture Overview</h2>
+    <p>VFTCam is built as a "zero-build" application using pure ES6 modules. This decision prioritizes maintainability and debuggability over bundle size optimization.</p>
+
+    <div class="row row-cols-1 row-cols-md-3 g-3 my-4">
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">Core Technologies</h5>
+            <ul class="mb-0">
+              <li>ES6 Modules (no bundler)</li>
+              <li>WebGL2 for GPU processing</li>
+              <li>Three.js for 3D visualization</li>
+              <li>IndexedDB for image storage</li>
+            </ul>
+          </div>
         </div>
       </div>
-      
-      <div class="card card-modern mb-4">
-        <div class="card-body article-content">
-            <p class="lead text-secondary">
-                VFTCam is a browser-based Progressive Web App that creates 360° panoramic photospheres using structured camera capture and GPU-accelerated stitching. Built as a spiritual successor to Google's discontinued Street View Camera app, it runs entirely in the browser with zero external dependencies and no build tools. This technical deep dive explores the architecture, algorithms, and engineering decisions behind creating a production-ready photosphere capture tool for virtual field trips.
-            </p>
-            
-            <nav class="toc">
-                <h2 style="margin-top: 0px;">Table of Contents</h2>
-                <ul>
-                    <li><a href="#challenge">The Challenge</a></li>
-                    <li><a href="#architecture">Architecture Overview</a></li>
-                    <li><a href="#capture-pattern">The Capture Pattern</a></li>
-                    <li><a href="#fov">Understanding Field of View</a></li>
-                    <li><a href="#coordinates">Coordinate System and Projections</a></li>
-                    <li><a href="#stitching">WebGL2 Best-Pixel Stitching</a></li>
-                    <li><a href="#pole-filling">Pole Filling with WebGL</a></li>
-                    <li><a href="#orientation">Real-Time Device Orientation</a></li>
-                    <li><a href="#memory">Memory Management on Mobile</a></li>
-                    <li><a href="#web-workers">Web Workers for Memory Pressure Reduction</a></li>
-                    <li><a href="#stitch-jobs">Stitch Jobs for Crash Recovery</a></li>
-                    <li><a href="#vr">VR Viewing with Google Cardboard/VR Headsets</a></li>
-                    <li><a href="#location">Location Data and GPS Embedding</a></li>
-                    <li><a href="#ui">Glass-morphic UI Design</a></li>
-                    <li><a href="#sharing">Saving and Sharing Photospheres</a></li>
-                    <li><a href="#pwa">Progressive Web App Implementation</a></li>
-                    <li><a href="#lessons">Lessons Learned</a></li>
-                    <li><a href="#performance">Performance Metrics</a></li>
-                    <li><a href="#privacy">Privacy by Design</a></li>
-                    <li><a href="#accessibility">Accessibility</a></li>
-                    <li><a href="#education">Educational Impact</a></li>
-                    <li><a href="#libraries">External Libraries</a></li>
-                    <li><a href="#deployment">Deployment</a></li>
-                    <li><a href="#conclusion">Conclusion</a></li>
-                </ul>
-            </nav>
-            
-            <h2 id="challenge"><i class="bi bi-exclamation-triangle"></i>The Challenge</h2>
-            
-            <p>
-                When Google discontinued their Street View Camera app in 2023, educators lost a valuable tool for creating immersive virtual field trips. A replacement was needed that could:
-            </p>
-            
-            <ul>
-                <li>Run entirely in mobile browsers without native app installation, bypassing app store gatekeeping</li>
-                <li>Adopt a privacy-first approach, with no user data collection whatsoever</li>
-                <li>Work offline in remote field locations</li>
-                <li>Handle the memory constraints of mobile devices (especially iOS Safari's ~1.4GB limit)</li>
-                <li>Provide real-time guidance for capturing aligned photos</li>
-                <li>Stitch 36 high-resolution images into equirectangular panoramas</li>
-                <li>Be maintainable without complex build toolchains</li>
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">Device APIs</h5>
+            <ul class="mb-0">
+              <li>WebRTC getUserMedia</li>
+              <li>DeviceOrientationEvent</li>
+              <li>DeviceMotionEvent</li>
+              <li>Geolocation API</li>
             </ul>
-            
-            <h2 id="architecture"><i class="bi bi-diagram-3"></i>Architecture Overview</h2>
-            
-            <p>
-                VFTCam is intentionally built as a "zero-build" application using pure ES6 modules. This decision prioritizes maintainability and debuggability over bundle size optimization. The entire codebase can be edited and tested with just a text editor and Python's built-in HTTP server.
-            </p>
-            
-            <div class="tech-stack-grid">
-                <div class="tech-item">
-                    <h4>Core Technologies</h4>
-                    <ul>
-                        <li>ES6 Modules (no bundler)</li>
-                        <li>WebGL2 for GPU processing</li>
-                        <li>Three.js for 3D visualization</li>
-                        <li>IndexedDB for image storage</li>
-                    </ul>
-                
-                <div class="tech-item">
-                    <h4>Device APIs</h4>
-                    <ul>
-                        <li>WebRTC getUserMedia</li>
-                        <li>DeviceOrientationEvent</li>
-                        <li>DeviceMotionEvent</li>
-                        <li>Geolocation API</li>
-                    </ul>
-                
-                <div class="tech-item">
-                    <h4>PWA Features</h4>
-                    <ul>
-                        <li>Service Worker (Workbox)</li>
-                        <li>Web App Manifest</li>
-                        <li>OPFS for panoramas</li>
-                        <li>Web Share API</li>
-                    </ul>
-                
-            
-            
-            <h2 id="capture-pattern"><i class="bi bi-grid-3x3"></i>The Capture Pattern</h2>
-            
-            <p>
-                The heart of VFTCam is its structured 36-point capture pattern, arranged in three rows:
-            </p>
-            
-            <div class="bg-light p-3 rounded my-3">
-                <pre>
-Upper Row (pitch +45°):  12 points at 30° yaw intervals
-Equator (pitch 0°):      12 points at 30° yaw intervals  
-Lower Row (pitch -45°):  12 points at 30° yaw intervals
-
-Total Coverage: 36 overlapping images covering full sphere</pre>
-            
-            
-            <p>
-                Each capture point is defined by its spherical coordinates (yaw, pitch) and includes tolerance thresholds for alignment detection:
-            </p>
-            
-            <pre><code class="javascript">// Actual alignment detection from app.js
-const APPROACH_THRESHOLD = 0.25;  // ~14 degrees - show orange indicator  
-const ALIGNMENT_THRESHOLD = 0.08; // ~4.6 degrees - turn green, allow capture
-
-// Get camera direction vector
-const cameraDirection = new THREE.Vector3(0, 0, -1);
-cameraDirection.applyQuaternion(this.scene.camera.quaternion);
-
-// Find nearest uncaptured hotspot
-this.hotspots.forEach(hotspot => {
-    if (!this.capturedHotspots.has(hotspot.id)) {
-        // Convert hotspot yaw/pitch to 3D position
-        const hotspotPosition = this.scene.hotspotToPosition(hotspot.yaw, hotspot.pitch);
-        const direction = hotspotPosition.clone().normalize();
-        const angle = cameraDirection.angleTo(direction);  // Angle in radians
-        
-        if (angle < nearestDistance) {
-            nearestDistance = angle;
-            nearestHotspot = hotspot;
-        }
-    }
-});
-
-// hotspotToPosition converts spherical to Cartesian coordinates:
-// phi = (90 - pitch) * Math.PI / 180;  // Angle from vertical
-// theta = yaw * Math.PI / 180;         // Angle around vertical
-// return new THREE.Vector3(
-//     radius * Math.sin(phi) * Math.sin(theta),  // X
-//     radius * Math.cos(phi),                    // Y (up)
-//     radius * Math.sin(phi) * Math.cos(theta)   // Z
-// );</code></pre>
-            
-            <h3> The Approach: <em>Inside the Sphere</em></h3>
-            
-            <p>
-                Unlike traditional panorama apps that show a flat grid or compass interface, VFTCam places the user <em>inside</em> a Three.js wireframe sphere. This approach transforms the abstract concept of spherical capture into an intuitive, spatial experience.
-            </p>
-            
-            <div class="callout-box">
-                <strong>Key Innovation:</strong> By visualizing capture points as physical locations on a sphere surrounding the user, VFTCam makes the complex mathematics of spherical projection tangible. Users can literally "see" the photosphere they're building from the inside out.
-            
-            
-            <h3>Three.js Sphere Architecture</h3>
-            
-            <p>
-                The 3D visualization system creates a live, responsive environment that updates in real-time with device orientation:
-            </p>
-            
-            <pre><code class="javascript">// scene.js - Creating the capture sphere environment
-export class Scene {
-    constructor(canvas) {
-        // Initialize Three.js scene inside a sphere
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-        
-        // Create wireframe sphere (user is INSIDE looking out)
-        const sphereGeometry = new THREE.SphereGeometry(
-            100,  // Radius - large enough to feel immersive
-            24,   // Width segments
-            16    // Height segments
-        );
-        
-        // Wireframe material - see through to understand structure
-        const sphereMaterial = new THREE.MeshBasicMaterial({
-            color: 0x666666,
-            wireframe: true,
-            opacity: 0.3,
-            transparent: true,
-            side: THREE.BackSide  // CRITICAL: Render inside of sphere
-        });
-        
-        this.sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-        this.scene.add(this.sphere);
-        
-        // Add 36 hotspot markers on the sphere surface
-        this.createHotspotMarkers();
-    }
-    
-    createHotspotMarkers() {
-        this.hotspotMeshes = new Map();
-        
-        hotspots.forEach(hotspot => {
-            // Convert spherical coordinates to 3D position
-            const position = this.hotspotToPosition(hotspot.yaw, hotspot.pitch);
-            
-            // Create capture point indicator
-            const geometry = new THREE.SphereGeometry(3, 16, 16);
-            const material = new THREE.MeshBasicMaterial({
-                color: 0xff0000,  // Red = not captured
-                emissive: 0xff0000,
-                emissiveIntensity: 0.5
-            });
-            
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.copy(position);
-            
-            // Add glow effect for better visibility
-            const glowGeometry = new THREE.SphereGeometry(4, 16, 16);
-            const glowMaterial = new THREE.MeshBasicMaterial({
-                color: 0xff0000,
-                transparent: true,
-                opacity: 0.3
-            });
-            const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
-            mesh.add(glowMesh);
-            
-            this.scene.add(mesh);
-            this.hotspotMeshes.set(hotspot.id, mesh);
-        });
-    }
-}</code></pre>
-            
-            <h3>Capturing Device Orientation Variations</h3>
-            
-            <p>
-                The most innovative aspect of VFTCam's capture mechanism is how it handles the inevitable variations in device orientation. No human can hold a phone perfectly level or aligned—there's always some roll (tilt), pitch variation, and yaw drift. Rather than fighting these variations, VFTCam captures and stores them, using the data to improve stitching quality.
-            </p>
-            
-            <pre><code class="javascript">// Capturing actual device orientation with all variations
-async captureImage(hotspot) {
-    // Store the ACTUAL device orientation, not the ideal
-    const captureData = {
-        hotspotId: hotspot.id,
-        
-        // Ideal target position
-        targetYaw: hotspot.yaw,
-        targetPitch: hotspot.pitch,
-        
-        // Actual device orientation at capture moment
-        actualYaw: this.deviceOrientation.alpha,
-        actualPitch: this.deviceOrientation.beta - 90,  // Adjusted for portrait
-        actualRoll: this.deviceOrientation.gamma,        // Device tilt/rotation
-        
-        // Accelerometer data for precise tilt measurement
-        accelerometerX: this.lastAcceleration.x,
-        accelerometerY: this.lastAcceleration.y,
-        accelerometerZ: this.lastAcceleration.z,
-        
-        // Computed device tilt from accelerometer (more accurate than gamma)
-        deviceTilt: Math.atan2(
-            this.lastAcceleration.x,
-            Math.sqrt(
-                this.lastAcceleration.y ** 2 + 
-                this.lastAcceleration.z ** 2
-            )
-        ) * 180 / Math.PI,
-        
-        // Timestamp for motion interpolation
-        timestamp: Date.now(),
-        
-        // Camera parameters
-        fov: 44,  // Actual measured FOV
-        aspectRatio: canvas.height / canvas.width  // Portrait orientation
-    };
-    
-    // Store image with all orientation metadata
-    await this.database.saveCapture(imageBlob, captureData);
-}</code></pre>
-            
-            <h3>Roll Compensation and Normalization</h3>
-            
-            <p>
-                The captured roll (device tilt) data becomes crucial during stitching. Instead of assuming all images are perfectly level, VFTCam uses the roll information to rotate each image back to its correct orientation before projection:
-            </p>
-            
-            <pre><code class="javascript">// Using roll data to normalize images during stitching
-function normalizeImageOrientation(imageData, captureMetadata) {
-    const { actualRoll, deviceTilt } = captureMetadata;
-    
-    // Compute rotation matrix to compensate for device tilt
-    // This "unrolls" the image to its true horizon
-    const rollCompensation = -actualRoll * Math.PI / 180;
-    
-    // In the WebGL shader, apply roll correction
-    const rotationMatrix = `
-        mat3 rollMatrix = mat3(
-            cos(roll), -sin(roll), 0.0,
-            sin(roll),  cos(roll), 0.0,
-            0.0,        0.0,       1.0
-        );
-        
-        // Apply roll correction before projection
-        vec3 correctedRay = rollMatrix * cameraRay;
-    `;
-    
-    return rollCompensation;
-}
-
-// WebGL shader incorporating roll compensation
-const fragmentShader = `
-    uniform float camRoll[36];  // Actual roll for each captured image
-    
-    void main() {
-        // For each potential source image
-        for (int i = 0; i < 36; i++) {
-            // Get the camera's actual orientation
-            float yaw = camYaw[i];
-            float pitch = camPitch[i];
-            float roll = camRoll[i];  // This is the key innovation
-            
-            // Create rotation matrix including roll
-            mat3 rotMatrix = createRotationMatrix(yaw, pitch, roll);
-            
-            // Transform world ray to camera space with roll correction
-            vec3 camRay = rotMatrix * worldRay;
-            
-            // Now the image is properly oriented for projection
-            vec2 uv = projectToImage(camRay);
-        }
-    }
-`;</code></pre>
-            
-            <h3>Visual Feedback Loop</h3>
-            
-            <p>
-                The actual visual feedback system in scene.js uses color changes (orange to green), opacity, and scale to indicate alignment status. Captured images are displayed as textured patches on the sphere with a subtle breathing animation:
-            </p>
-            
-            <pre><code class="javascript">// From scene.js - Actual hotspot highlighting when approaching
-highlightHotspot(hotspotId, isAligned, isLevel) {
-    this.hotspotMarkers.forEach(marker => {
-        if (marker.userData.hotspotId === hotspotId) {
-            // Highlight the approached hotspot
-            marker.material.color.setHex(isAligned ? 0x4CAF50 : 0xFFA726);  // Green when aligned, orange when near
-            marker.material.opacity = isAligned ? 0.9 : 0.7;
-            marker.scale.setScalar(isAligned ? 1.5 : 1.2);  // Grow when aligned
-        } else {
-            // Dim other hotspots
-            marker.material.color.setHex(0xFFA726);  // Orange
-            marker.material.opacity = 0.6;           // Dimmer
-            marker.scale.setScalar(1);               // Normal size
-        }
-    });
-}
-
-// Hide hotspot marker after capture and show image patch
-markHotspotCaptured(hotspotId) {
-    const marker = this.hotspotMarkers.find(m => m.userData.hotspotId === hotspotId);
-    if (marker) {
-        // Hide marker to show it's been captured
-        marker.visible = false;
-    }
-}
-
-// Add captured image as a spherical patch on the sphere
-addCapturedPatch(hotspot, imageData) {
-    const img = new Image();
-    img.onload = () => {
-        const texture = new THREE.Texture(img);
-        texture.needsUpdate = true;
-        
-        // Create the patch mesh with this texture
-        const patch = this.createPatchMesh(hotspot, texture);
-        
-        // Store hotspot reference on the patch for later use
-        patch.userData.hotspot = hotspot;
-        
-        // Add to scene and array
-        this.scene.add(patch);
-        this.capturedPatches.push(patch);
-    };
-    img.src = imageData;
-}
-
-// Subtle "breathing" animation for captured patches
-render() {
-    this.capturedPatches.forEach((patch, i) => {
-        // Oscillate scale by ±1% with offset per patch
-        const breathe = 1 + Math.sin(Date.now() * 0.0005 + i) * 0.01;
-        patch.scale.set(breathe, breathe, breathe);
-    });
-    
-    this.renderer.render(this.scene, this.camera);
-}</code></pre>
-            
-            <h3>Why This Approach is Novel</h3>
-            
-            <div class="row row-cols-1 row-cols-md-2 g-3">
-                <div class="col">
-                    <h4>Spatial Understanding</h4>
-                    <p>Users intuitively understand they're building a sphere from the inside, making the abstract concept of panoramic coverage concrete and visible</p>
-                
-                <div class="col">
-                    <h4>Orientation Tolerance</h4>
-                    <p>By capturing and using roll/tilt data rather than rejecting imperfect captures, the system works with human limitations instead of against them</p>
-                
-                <div class="col">
-                    <h4>Progressive Visualization</h4>
-                    <p>As images are captured, they appear on the sphere surface, giving immediate feedback about coverage and quality</p>
-                
-                <div class="col">
-                    <h4>Error Prevention</h4>
-                    <p>Users can see gaps in coverage before finishing, preventing the common problem of discovering missing areas after stitching</p>
-                
-            
-            
-            <p>
-                This "inside-out" approach, combined with comprehensive orientation tracking, transforms panoramic capture from a technical exercise into an intuitive spatial experience.
-            </p>
-            
-            <h2 id="fov"><i class="bi bi-camera-reels"></i>Understanding Field of View</h2>
-            
-            <p>
-                One of the most critical parameters in photosphere stitching is the camera's field of view (FOV). Getting this wrong results in misaligned seams, distortion, or gaps in coverage. Mobile phone cameras typically have FOVs between 60-75°, but this varies by device and capture mode.
-            </p>
-            
-            <div class="bg-light p-3 rounded my-3">
-                <pre>
-FOV Calculation from Camera Parameters:
-    FOV = 2 * arctan(sensorSize / (2 * focalLength))
-
-For typical phone cameras:
-    Horizontal FOV: ~65-70° (portrait)
-    Vertical FOV: ~75-85° (portrait)
-    Diagonal FOV: ~80-90°</pre>
-            
-            
-            <p>
-                The optimal FOV was determined through empirical testing:
-            </p>
-            
-            <pre><code class="javascript">// FOV configuration for portrait capture
-// After extensive testing, these values work best
-const HFOVdeg = 44;  // Horizontal FOV in portrait (narrow dimension)
-const VFOVdeg = 73;  // Vertical FOV in portrait (wide dimension)
-
-// Calculate overlap for 12 images per row
-const spacing = 360 / 12;  // 30° between capture points
-const overlap = HFOVdeg - spacing;  // 44° - 30° = 14° overlap (~32%)</code></pre>
-            
-            <div class="alert alert-danger">
-                <strong>Challenge:</strong> WebRTC's getUserMedia captures video streams, not photos. The FOV for video mode is often different from the device's photo capture mode—typically narrower due to cropping and stabilization.
-            
-            
-            <div class="alert alert-success">
-                <strong>Solution:</strong> Through extensive empirical testing across devices, we discovered most phones crop the video stream significantly. We experimented with values from 35° to 75° and found 44° horizontal FOV provided the best balance without gaps.
-            
-            
-            <p>
-                The discrepancy between video and photo FOV required careful calibration:
-            </p>
-            
-            <pre><code class="javascript">// WebRTC video stream is typically CROPPED compared to photo mode
-// We empirically tested with grid patterns to find actual coverage
-const FOV_CALIBRATION = {
-    // Initial attempts with wider FOVs created distortion
-    firstAttempt: { h: 65, v: 85, result: 'Too wide - severe warping' },
-    secondAttempt: { h: 55, v: 78, result: 'Still distorted at edges' },
-    
-    // Final calibrated values that work across devices
-    final: { 
-        horizontal: 44,  // Narrower than expected due to video crop
-        vertical: 73,    // Portrait orientation
-        result: 'Clean stitching without gaps'
-    }
-};
-
-// These conservative FOV values ensure no gaps between images
-// Better to have more overlap than risk missing coverage</code></pre>
-            
-            <p>
-                The 36-point pattern with empirically-determined 44° horizontal FOV provides approximately 32% overlap between adjacent images. While this may seem conservative, it ensures complete coverage across all devices we tested, from iPhones to Samsung Galaxy devices to Google Pixels. The narrower FOV accounts for the significant cropping that occurs in WebRTC video streams compared to native photo capture.
-            </p>
-                        
-            <h2 id="coordinates"><i class="bi bi-globe"></i>Coordinate System and Projections</h2>
-            
-            <p>
-                Understanding the mathematical relationship between camera coordinates and equirectangular projection was absolutely crucial for successful stitching. This isn't just about placing images—it's about correctly mapping every pixel from a perspective projection (how cameras see) to a spherical projection (how panoramas are stored).
-            </p>
-            
-            <div class="alert alert-danger">
-                <strong>Why This Matters:</strong> A 1° error in coordinate transformation compounds across 36 images, creating visible seams, distortion, and misalignment. Getting the math exactly right was the difference between a seamless photosphere and a broken mess.
-            
-            
-            <p>
-                The core challenge is that we're dealing with three different coordinate systems that must align perfectly:
-            </p>
-            
-            <ol>
-                <li><strong>Device Orientation Space:</strong> Alpha (0-360°), Beta (-180 to 180°), Gamma (-90 to 90°)</li>
-                <li><strong>Camera Space:</strong> Yaw, Pitch, Roll with portrait adjustments</li>
-                <li><strong>Equirectangular Space:</strong> 2D image where x maps to longitude, y maps to latitude</li>
-            </ol>
-            
-            <div class="bg-light p-3 rounded my-3">
-                <pre>
-The Complete Transformation Pipeline (from actual shader code):
-
-1. ERP Pixel to World Direction:
-    // Convert pixel to equirectangular coordinates
-    float lng = v_uv.x * 2.0 * PI - PI;      // Longitude: -π to π
-    float lat = (1.0 - v_uv.y) * PI - PI/2;  // Latitude: -π/2 to π/2
-    
-    // Convert to 3D world direction
-    vec3 worldDir = vec3(
-        cos(lat) * sin(lng),  // x
-        sin(lat),             // y (up/down)
-        cos(lat) * cos(lng)   // z
-    );
-
-2. World to Camera Space (for each of 36 images):
-    // Apply inverse rotations: yaw, then pitch, then roll
-    float cy = cos(yaw), sy = sin(yaw);
-    vec3 temp = vec3(
-        cy * worldDir.x + sy * worldDir.z,
-        worldDir.y,
-        -sy * worldDir.x + cy * worldDir.z
-    );
-    // ... pitch and roll rotations follow
-
-3. Perspective Projection to Image:
-    if (camDir.z <= 0.0) continue;  // Behind camera
-    
-    // Project using actual FOV
-    float xn = camDir.x / camDir.z;
-    float yn = camDir.y / camDir.z;
-    
-    const float HFOVdeg = 44.0, VFOVdeg = 73.0;
-    float tanHalfHF = tan(PI * HFOVdeg / 360.0);
-    float tanHalfVF = tan(PI * VFOVdeg / 360.0);
-    
-    // Convert to texture coordinates [0,1]
-    float u = (xn / (2.0*tanHalfHF)) + 0.5;
-    float v = (yn / (2.0*tanHalfVF)) + 0.5;</pre>
-            
-            
-            <p>
-                The critical insight was that equirectangular projection preserves angles but distorts areas—the poles get stretched horizontally. This is why our pole-filling algorithm was necessary:
-            </p>
-            
-            <pre><code class="javascript">// The stretching factor at any latitude
-function getStretchFactor(latitude) {
-    // At equator (lat=0): no stretch
-    // At poles (lat=±90°): infinite stretch
-    return 1 / Math.cos(latitude * Math.PI / 180);
-}
-
-// This is why we don't capture at the poles
-// Even a 1-pixel wide feature would stretch to fill the entire top row</code></pre>
-            
-            <div class="alert alert-success">
-                <strong>Key Realization:</strong> Rather than fighting the distortion, the algorithm embraces it. By understanding exactly how equirectangular projection stretches pixels, quality calculations can be weighted accordingly, giving less importance to pixels near the poles where distortion is highest.
-            
-            
-            <p>
-                The coordinate system also determined our capture pattern. The 45° pitch for upper/lower rows wasn't arbitrary—it's the sweet spot where:
-            </p>
-            
-            <ul>
-                <li>Coverage reaches close enough to poles (90° - 45° - FOV/2 ≈ 23° from pole)</li>
-                <li>Distortion remains manageable (stretch factor of ~1.4 vs infinite at poles)</li>
-                <li>Overlap between rows provides redundancy for the best-pixel algorithm</li>
-            </ul>
-            
-            <pre><code class="javascript">// Actual capture pattern from hotspots.js
-static getHotspots() {
-    const hotspots = [];
-    const pitchAngles = [45, 0, -45]; // Upper, middle, lower
-    const yawStep = 30; // 360° / 12 points per row
-    
-    let id = 1;
-    for (const pitch of pitchAngles) {
-        for (let i = 0; i < 12; i++) {
-            const yaw = i * yawStep;
-            hotspots.push({
-                id: id++,
-                pitch: pitch,
-                yaw: yaw,
-                captured: false
-            });
-        }
-    }
-    return hotspots;
-}
-
-// The 45° pitch was chosen because:
-// 1. Covers from horizon to near-pole (45° + FOV/2 ≈ 67°)
-// 2. Provides good overlap between rows
-// 3. Avoids extreme distortion near poles (>70°)
-// 4. Three rows give complete sphere coverage with redundancy</code></pre>
-            
-            <p>
-                Without this deep understanding of coordinate transformations and projections, stitching would be blind guesswork. Instead, the algorithm can predict exactly where each pixel should appear and why, making debugging and optimization possible.
-            </p>
-
-            <h2 id="stitching"><i class="bi bi-layers"></i>WebGL2 Best-Pixel Stitching</h2>
-            
-            <p>
-                The stitching pipeline uses WebGL2 shaders to select the sharpest pixel from overlapping images. This GPU-accelerated approach processes 36 images into a 4096×2048 equirectangular panorama in under 5 seconds on mobile devices.
-            </p>
-            
-            <h3>The Algorithm</h3>
-            
-            <ol>
-                <li><strong>Equirectangular to World:</strong> Convert output pixel (u,v) to longitude/latitude, then to 3D world direction</li>
-                <li><strong>World to Camera:</strong> Apply inverse rotations (yaw, pitch, roll) to transform world ray to each camera's space</li>
-                <li><strong>Perspective Projection:</strong> Project 3D ray onto 2D image plane using actual FOV (44°×73°)</li>
-                <li><strong>Quality Scoring:</strong> Rate each pixel by distance from image center (best quality at center, worst at edges)</li>
-                <li><strong>Voronoi Stabilization:</strong> Add bias to prefer the "closest" camera to prevent flickering seams</li>
-                <li><strong>Best Pixel or Blend:</strong> Use the highest-scoring pixel, or blend multiple pixels as fallback</li>
-            </ol>
-            
-            <pre><code class="glsl">// Fragment shader for best-pixel selection (actual implementation)
-#version 300 es
-precision highp float;
-
-uniform sampler2DArray tiles;  // All 36 images as texture array
-uniform float camYaw[36], camPitch[36], camRoll[36];
-uniform float gain[36];  // Per-image exposure compensation
-uniform float threshold;
-uniform float voronoiBias;  // Stabilizes seams
-
-// Convert between linear and sRGB color spaces
-vec3 toLin(vec3 c) { return pow(max(c, vec3(0.0)), vec3(2.2)); }
-vec3 toSRGB(vec3 c) { return pow(max(c, vec3(0.0)), vec3(1.0/2.2)); }
-
-// Quality based on distance from image center
-float quality(float xn, float yn, float tanH, float tanV) {
-    float dx = abs(xn) / tanH;
-    float dy = abs(yn) / tanV;
-    float dist = sqrt(dx*dx + dy*dy);
-    return 1.0 - dist;  // 1.0 at center, 0.0 at edge
-}
-
-void main() {
-    // Convert pixel to equirectangular coordinates
-    float lng = v_uv.x * 2.0 * PI - PI;
-    float lat = (1.0 - v_uv.y) * PI - PI/2.0;
-    
-    // Convert to 3D world direction
-    vec3 worldDir = vec3(
-        cos(lat) * sin(lng),
-        sin(lat),
-        cos(lat) * cos(lng)
-    );
-    
-    float bestScore = -1.0;
-    vec3 bestColor = vec3(0.0);
-    vec3 accumColor = vec3(0.0);
-    float accumWeight = 0.0;
-    
-    // Check each captured image
-    for (int l = 0; l < 36; ++l) {
-        // Apply inverse rotation to get camera direction
-        // This is the actual rotation math from the code
-        float yaw = camYaw[l], pitch = camPitch[l], roll = camRoll[l];
-        
-        // Rotate world direction to camera space (yaw, pitch, roll)
-        vec3 camDir = applyRotation(worldDir, yaw, pitch, roll);
-        
-        if (camDir.z <= 0.0) continue;  // Behind camera
-        
-        // Project onto image plane using FOV
-        float xn = camDir.x / camDir.z;
-        float yn = camDir.y / camDir.z;
-        
-        const float HFOVdeg = 44.0, VFOVdeg = 73.0;
-        float tanHalfHF = tan(PI * HFOVdeg / 360.0);
-        float tanHalfVF = tan(PI * VFOVdeg / 360.0);
-        
-        if (abs(xn) > tanHalfHF || abs(yn) > tanHalfVF) continue;
-        
-        // Convert to texture coordinates
-        float u = (xn / (2.0*tanHalfHF)) + 0.5;
-        float v = (yn / (2.0*tanHalfVF)) + 0.5;
-        
-        // Sample the image and apply gain
-        vec3 color = toLin(texture(tiles, vec3(u, v, float(l))).rgb);
-        color *= gain[l];
-        
-        // Calculate quality (distance from center)
-        float q = quality(xn, yn, tanHalfHF, tanHalfVF);
-        
-        // Voronoi-biased score for stable seams
-        float score = q - voronoiBias * erpDistance(v_uv, layerCenterUV[l]);
-        
-        if (score > bestScore) {
-            bestScore = score;
-            bestColor = color;
-        }
-        
-        // Soft fallback for blending
-        if (q > 0.0) {
-            float w = pow(q, 4.0);  // Strong center weighting
-            accumColor += color * w;
-            accumWeight += w;
-        }
-    }
-    
-    // Choose crisp best pixel or blended fallback
-    vec3 finalColor = (bestScore > threshold) ? bestColor : 
-                      (accumWeight > 0.0) ? accumColor / accumWeight : 
-                      vec3(0.0);
-    
-    frag = vec4(toSRGB(finalColor), 1.0);
-}</code></pre>
-
-            <h2 id="pole-filling"><i class="bi bi-circle-half"></i>Pole Filling with WebGL</h2>
-                        
-            <p>
-                The equirectangular projection creates distortion at the poles where no images are captured. These black circles are filled using a WebGL-based Gaussian blur:
-            </p>
-
-            <pre><code class="javascript">// Actual pole filling implementation from pole-fill-simple.js
-export function fillPolesSimple(gl, canvas) {
-    const w = canvas.width;
-    const h = canvas.height;
-
-    // Read pixels from WebGL canvas
-    const pixels = new Uint8Array(w * h * 4);
-    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-
-    // CONFIGURATION
-    const TOP_THRESHOLD = 105;      // Where pole ends at top
-    const BOTTOM_THRESHOLD = h - 105; // Where pole ends at bottom
-    const STRETCH_HEIGHT = 120;     // Height of region to fill
-
-    // Fill poles by stretching edge pixels
-    for (let x = 0; x < w; x++) {
-        // Sample colors at the edge of content
-        const topIdx = (TOP_THRESHOLD * w + x) * 4;
-        const topColor = [pixels[topIdx], pixels[topIdx+1], pixels[topIdx+2], 255];
-
-        const bottomIdx = (BOTTOM_THRESHOLD * w + x) * 4;
-        const bottomColor = [pixels[bottomIdx], pixels[bottomIdx+1], pixels[bottomIdx+2], 255];
-
-        // Fill top pole (y=0 to STRETCH_HEIGHT)
-        for (let y = 0; y < STRETCH_HEIGHT; y++) {
-            const idx = (y * w + x) * 4;
-            pixels.set(topColor, idx);
-        }
-
-        // Fill bottom pole (y=h-STRETCH_HEIGHT to h)
-        for (let y = h - STRETCH_HEIGHT; y < h; y++) {
-            const idx = (y * w + x) * 4;
-            pixels.set(bottomColor, idx);
-        }
-    }
-
-    // Apply WebGL Gaussian blur (30px radius, two-pass separable)
-    applyWebGLBlur(gl, pixels, w, h, 30);
-}</code></pre>
-
-            <h2 id="orientation"><i class="bi bi-compass"></i>Real-Time Device Orientation</h2>
-                        
-            <p>
-                Converting device orientation events to camera angles requires careful handling of coordinate systems and gimbal lock:
-            </p>
-
-            <pre><code class="javascript">// Actual device orientation handling from app.js
-handleDeviceOrientation(event) {
-    // Store raw values
-    this.deviceOrientation = {
-        alpha: event.alpha,  // 0-360 compass direction
-        beta: event.beta,    // -180 to 180 front-back tilt
-        gamma: event.gamma,  // -90 to 90 left-right tilt
-        absolute: event.absolute
-    };
-
-    // iOS provides true compass heading directly
-    if (typeof event.webkitCompassHeading === 'number') {
-        this.deviceOrientation.absolute = true;
-        this.deviceOrientation.compassHeading = event.webkitCompassHeading;
-
-        if (this.compassOffset === null) {
-            this.compassOffset = event.webkitCompassHeading;
-            console.log(`iOS Compass calibrated: ${event.webkitCompassHeading}°`);
-        }
-    }
-
-    // Convert to camera angles (portrait mode)
-    const yaw = (event.alpha || 0) * Math.PI / 180;
-    const pitch = ((event.beta || 0) - 90) * Math.PI / 180;
-    const roll = (event.gamma || 0) * Math.PI / 180;
-}</code></pre>
-
-            <div class="alert alert-danger">
-                <strong>Challenge:</strong> iOS Safari requires explicit user permission for DeviceMotionEvent and DeviceOrientationEvent access, and the permission state isn't queryable via the Permissions API.
-            
-
-            <div class="alert alert-success">
-                <strong>Solution:</strong> Permissions are requested on user interaction and the grant state is stored in localStorage for future sessions. A visual compass indicator shows real-time orientation status.
-            
-
-            <h2 id="memory"><i class="bi bi-memory"></i>Memory Management on Mobile</h2>
-                        
-            <p>
-                iOS Safari's aggressive memory limits (~1.4GB) required careful optimization strategies:
-            </p>
-
-            <div class="row row-cols-1 row-cols-md-2 g-3">
-                <div class="col">
-                    <h4>Resolution Scaling</h4>
-                    <p>iOS devices capture at 720×1280 while Android uses 1080×1920, reducing memory by 44%</p>
-                
-                <div class="col">
-                    <h4>Immediate Cleanup</h4>
-                    <p>WebGL textures and blob URLs are released immediately after use</p>
-                
-                <div class="col">
-                    <h4>Smart Image Loading</h4>
-                    <p>Custom loader maintains a 50-image LRU cache with automatic eviction</p>
-                
-                <div class="col">
-                    <h4>Crash Recovery</h4>
-                    <p>Stitch jobs are tracked in IndexedDB for recovery after memory crashes</p>
-                
-            
-
-            <pre><code class="javascript">// Actual memory management from memory-utils.js
-export class MemoryMonitor {
-    constructor() {
-        this.warningThreshold = 0.8;  // Warn at 80% memory usage
-        this.criticalThreshold = 0.9; // Critical at 90%
-
-        // iOS memory limits based on device detection
-        this.iosMemoryLimits = {
-            small: 400,   // MB - older devices (iPhone 6-8)
-            medium: 800,  // MB - mid-range (iPhone X-12)
-            large: 1200   // MB - newer/pro (iPhone 13-15 Pro)
-        };
-
-        this.deviceMemoryLimit = this.detectDeviceMemoryLimit();
-    }
-
-    detectDeviceMemoryLimit() {
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        const screenWidth = window.screen.width;
-        const screenHeight = window.screen.height;
-
-        if (isIOS) {
-            // Pro Max models: 430x932 logical pixels
-            if (screenWidth >= 428 && screenHeight >= 926) {
-                return this.iosMemoryLimits.large;
-            }
-            // Standard/Pro models
-            if (screenWidth >= 390) {
-                return this.iosMemoryLimits.medium;
-            }
-            // Older/smaller devices
-            return this.iosMemoryLimits.small;
-        }
-
-        // Non-iOS: use navigator.deviceMemory if available
-        if (navigator.deviceMemory) {
-            return navigator.deviceMemory * 1024 * 0.15; // 15% of device RAM
-        }
-
-        return 2048; // Default 2GB for desktop
-    }
-}</code></pre>
-
-            <h2 id="web-workers"><i class="bi bi-cpu"></i>Web Workers for Memory Pressure Reduction</h2>
-            
-            <p>
-                One of the most critical architectural decisions was moving all heavy image processing to Web Workers. Mobile browsers, especially iOS Safari, will aggressively reload tabs when memory pressure increases. By offloading processing to workers, the main thread stays responsive and the browser is less likely to kill the tab.
-            </p>
-            
-            <h3>The Memory Pressure Problem</h3>
-            
-            <p>
-                During stitching, VFTCam must simultaneously handle:
-            </p>
-            
-            <ul>
-                <li>36 captured images in memory (5-10MB as blobs)</li>
-                <li>Decoded ImageBitmaps for each image (36 × ~8MB = 288MB)</li>
-                <li>WebGL textures for the texture array (36 × ~8MB = 288MB)</li>
-                <li>Output canvas at 4096×2048 (32MB)</li>
-                <li>Total peak memory: ~600MB+</li>
-            </ul>
-            
-            <p>
-                On iOS devices with a 1.4GB heap limit, this leaves little room for the browser's own overhead. Without workers, the main thread memory spike often triggers a tab reload, losing all progress.
-            </p>
-            
-            <h3>Worker Architecture</h3>
-            
-            <pre><code class="javascript">// stitch-worker.js - Offloaded heavy processing
-let isProcessing = false;
-let shouldCancel = false;
-
-// Send heartbeat every 2 seconds to show we're alive
-const heartbeatInterval = setInterval(() => {
-    if (isProcessing) {
-        self.postMessage({ 
-            type: 'HEARTBEAT', 
-            timestamp: Date.now(),
-            memoryUsage: performance.memory?.usedJSHeapSize || 0
-        });
-    }
-}, 2000);
-
-async function processImages(captures, targetWidth, targetHeight) {
-    const layers = [];
-    const failedImages = [];
-    
-    // Process images one by one to control memory usage
-    for (let i = 0; i < captures.length; i++) {
-        if (shouldCancel) break;
-        
-        const capture = captures[i];
-        
-        try {
-            // Process individual image with 10-second timeout
-            const layer = await Promise.race([
-                processImage(capture, targetWidth, targetHeight),
-                timeout(10000, `Image ${capture.hotspotId} processing timeout`)
-            ]);
-            
-            if (layer) {
-                layers.push(layer);
-            }
-            
-            // Report progress
-            self.postMessage({
-                type: 'PROGRESS',
-                current: i + 1,
-                total: captures.length,
-                message: `Processing image ${i + 1} of ${captures.length}`
-            });
-            
-            // Yield every 3 images to prevent blocking
-            if (i % 3 === 0) {
-                await delay(10);
-            }
-            
-        } catch (error) {
-            console.warn(`Failed to process image ${capture.hotspotId}:`, error);
-            failedImages.push({
-                hotspotId: capture.hotspotId,
-                error: error.message
-            });
-        }
-    }
-    
-    // Check if we have minimum viable set (at least 12 images)
-    if (layers.length < 12) {
-        throw new Error(`Only ${layers.length} images processed successfully.`);
-    }
-    
-    return layers;
-}</code></pre>
-            
-            <h3>Worker Management and Retry Logic</h3>
-            
-            <p>
-                The StitchProcessor class manages worker lifecycle with automatic retry and fallback:
-            </p>
-            
-            <pre><code class="javascript">// stitch-processor.js - Resilient worker management
-export class StitchProcessor {
-    constructor(app) {
-        this.worker = null;
-        this.maxWorkerRetries = 2;
-        this.fallbackToMainThread = false;
-        this.metrics = {
-            workerAttempts: 0,
-            mainThreadFallback: false,
-            emergencyMode: false
-        };
-    }
-    
-    async processWithWorker(captures) {
-        return new Promise((resolve, reject) => {
-            // Create fresh worker for each attempt
-            this.worker = new Worker('/js/workers/stitch-worker.js');
-            
-            // Set timeout for worker response
-            const timeout = setTimeout(() => {
-                reject(new Error('Worker timeout'));
-                this.terminateWorker();
-            }, 120000); // 2 minute timeout
-            
-            // Handle worker messages
-            this.worker.onmessage = (e) => {
-                const { type, data } = e.data;
-                
-                switch (type) {
-                    case 'COMPLETE':
-                        clearTimeout(timeout);
-                        resolve(data.layers);
-                        break;
-                        
-                    case 'ERROR':
-                        clearTimeout(timeout);
-                        reject(new Error(data.message));
-                        break;
-                        
-                    case 'HEARTBEAT':
-                        // Reset timeout on heartbeat
-                        clearTimeout(timeout);
-                        timeout = setTimeout(() => {
-                            reject(new Error('Worker stopped responding'));
-                        }, 10000);
-                        break;
-                        
-                    case 'PROGRESS':
-                        this.updateProgress(data.processed, data.total);
-                        break;
-                }
-            };
-            
-            // Send work to worker
-            this.worker.postMessage({
-                type: 'PROCESS',
-                data: { captures, targetWidth: 1920, targetHeight: 1080 }
-            });
-        });
-    }
-}</code></pre>
-            
-            <h3>Memory Benefits</h3>
-            
-            <div class="row row-cols-1 row-cols-md-2 g-3">
-                <div class="col">
-                    <h4>Isolated Memory Space</h4>
-                    <p>Workers have their own heap, reducing main thread pressure by ~300MB during processing</p>
-                
-                <div class="col">
-                    <h4>Sequential Processing</h4>
-                    <p>Images processed one by one with periodic yielding to prevent blocking</p>
-                
-                <div class="col">
-                    <h4>Transferable Objects</h4>
-                    <p>ImageBitmaps transferred (not copied) to main thread, saving memory and time</p>
-                
-                <div class="col">
-                    <h4>Graceful Degradation</h4>
-                    <p>Falls back to main thread processing if workers fail repeatedly</p>
-                
-            
-            
-            <h2 id="stitch-jobs"><i class="bi bi-arrow-clockwise"></i>Stitch Jobs for Crash Recovery</h2>
-            
-            <p>
-                Mobile browsers can spontaneously refresh or crash during intensive operations. To prevent users from losing their captured images and having to restart, VFTCam implements a sophisticated stitch job tracking system that enables seamless recovery.
-            </p>
-            
-            <h3>The Problem: Spontaneous Refreshes</h3>
-            
-            <p>
-                iOS Safari in particular will refresh tabs when:
-            </p>
-            
-            <ul>
-                <li>Memory pressure exceeds ~80% of the 1.4GB limit</li>
-                <li>The user switches apps and returns</li>
-                <li>JavaScript execution takes too long (>10 seconds without yielding)</li>
-                <li>WebGL contexts exceed memory quotas</li>
-                <li>The device enters low power mode during processing</li>
-            </ul>
-            
-            <p>
-                Without job tracking, users would frustratingly lose 2-3 minutes of capture work and have to start over.
-            </p>
-            
-            <h3>Stitch Job Architecture</h3>
-            
-            <pre><code class="javascript">// Database schema for stitch jobs (database.js)
-if (!db.objectStoreNames.contains('stitch_jobs')) {
-    const stitchJobStore = db.createObjectStore('stitch_jobs', {
-        keyPath: 'id'  // UUID for each job
-    });
-    stitchJobStore.createIndex('status', 'status', { unique: false });
-    stitchJobStore.createIndex('startedAt', 'startedAt', { unique: false });
-}
-
-// Stitch job structure
-const stitchJob = {
-    id: generateUUID(),
-    status: 'pending',  // pending → processing → complete → failed
-    captureIds: [1, 2, 3, ...36],  // Hotspot IDs of captured images
-    startedAt: Date.now(),
-    updatedAt: Date.now(),
-    progress: {
-        stage: 'loading',  // loading → decoding → stitching → saving
-        processed: 0,
-        total: 36
-    },
-    config: {
-        targetWidth: 4096,
-        targetHeight: 2048,
-        method: 'best-pixel',
-        poleBlur: true
-    },
-    result: null,  // Panorama ID when complete
-    error: null    // Error message if failed
-};</code></pre>
-            
-            <h3>Job Lifecycle Management</h3>
-            
-            <pre><code class="javascript">// app.js - Creating and tracking stitch jobs
-async startStitching() {
-    // Check for existing incomplete job first
-    const existingJob = await this.checkForIncompleteJob();
-    
-    if (existingJob) {
-        const resume = await this.cardUI.confirm(
-            'Previous stitching was interrupted. Resume?',
-            'Recovery Available'
-        );
-        
-        if (resume) {
-            return this.resumeStitchJob(existingJob);
-        }
-    }
-    
-    // Create new stitch job
-    const jobId = await this.database.saveStitchJob({
-        id: this.generateJobId(),
-        status: 'pending',
-        captureIds: Array.from(this.capturedHotspots),
-        startedAt: Date.now(),
-        config: {
-            targetWidth: 4096,
-            targetHeight: 2048,
-            method: 'best-pixel'
-        }
-    });
-    
-    // Store job ID in session storage for quick recovery
-    sessionStorage.setItem('activeStitchJob', jobId);
-    
-    try {
-        // Update job status as we progress
-        await this.database.updateStitchJob(jobId, {
-            status: 'processing',
-            progress: { stage: 'loading', processed: 0, total: 36 }
-        });
-        
-        const result = await this.processStitching(jobId);
-        
-        // Mark job complete
-        await this.database.updateStitchJob(jobId, {
-            status: 'complete',
-            result: result.panoramaId,
-            completedAt: Date.now()
-        });
-        
-    } catch (error) {
-        // Save error state for debugging
-        await this.database.updateStitchJob(jobId, {
-            status: 'failed',
-            error: error.message,
-            failedAt: Date.now()
-        });
-        throw error;
-    } finally {
-        sessionStorage.removeItem('activeStitchJob');
-    }
-}</code></pre>
-            
-            <h3>Recovery After Refresh</h3>
-            
-            <pre><code class="javascript">// app.js - Recovery on page load
-async checkForIncompleteJob() {
-    // Check session storage first (fastest)
-    const activeJobId = sessionStorage.getItem('activeStitchJob');
-    if (activeJobId) {
-        const job = await this.database.getStitchJob(activeJobId);
-        if (job && job.status !== 'complete') {
-            return job;
-        }
-    }
-    
-    // Check for any recent incomplete jobs
-    const recentJobs = await this.database.getRecentStitchJobs(24 * 60 * 60 * 1000); // Last 24 hours
-    
-    for (const job of recentJobs) {
-        if (job.status === 'processing' || job.status === 'pending') {
-            // Verify captures still exist
-            const capturesExist = await this.verifyCapturesExist(job.captureIds);
-            if (capturesExist) {
-                return job;
-            }
-        }
-    }
-    
-    return null;
-}
-
-async resumeStitchJob(job) {
-    console.log(`Resuming stitch job ${job.id} from ${job.progress.stage}`);
-    
-    // Restore UI state
-    this.showProcessingCard();
-    this.updateProgress(job.progress.processed, job.progress.total);
-    
-    // Resume from last checkpoint
-    switch (job.progress.stage) {
-        case 'loading':
-            // Start over - images need to be reloaded
-            return this.processStitching(job.id);
-            
-        case 'decoding':
-            // Resume from decoding phase
-            const captures = await this.loadCapturesFromJob(job);
-            return this.continueFromDecoding(job.id, captures);
-            
-        case 'stitching':
-            // WebGL context lost - need to restart stitching
-            return this.restartStitching(job.id);
-            
-        case 'saving':
-            // Panorama was created but not saved
-            return this.retrySaving(job.id);
-    }
-}</code></pre>
-            
-            <h3>Automatic Cleanup</h3>
-            
-            <pre><code class="javascript">// database.js - Cleanup old jobs
-async cleanupOldJobs(maxAge = 7 * 24 * 60 * 60 * 1000) {
-    const transaction = this.db.transaction(['stitch_jobs'], 'readwrite');
-    const store = transaction.objectStore('stitch_jobs');
-    const index = store.index('startedAt');
-    const cutoff = Date.now() - maxAge;
-    
-    const range = IDBKeyRange.upperBound(cutoff);
-    const cursor = index.openCursor(range);
-    
-    cursor.onsuccess = (event) => {
-        const cursor = event.target.result;
-        if (cursor) {
-            // Only delete completed or failed jobs
-            if (cursor.value.status === 'complete' || 
-                cursor.value.status === 'failed') {
-                store.delete(cursor.value.id);
-            }
-            cursor.continue();
-        }
-    };
-}</code></pre>
-            
-            <h2 id="vr"><i class="bi bi-badge-vr"></i>VR Viewing with Google Cardboard/VR Headsets</h2>
-            
-            <p>
-                Every photosphere captured with VFTCam can be viewed in VR using Google Cardboard or similar mobile VR viewers. Rather than rely on third-party libraries, VFTCam includes a custom WebGL2-based VR viewer built from scratch to ensure optimal performance and control over the viewing experience.
-            </p>
-            
-            <p>
-                The custom VR implementation renders two viewports with proper stereoscopic separation and barrel distortion correction:
-            </p>
-            
-            <pre><code class="javascript">// Custom VR viewer with stereoscopic rendering
-class VRViewer {
-    constructor() {
-        this.fovDeg = 90;           // Field of view for each eye
-        this.ipdYaw = 0.100;        // Inter-pupillary distance in radians
-        this.yaw = 0;               // Current viewing direction
-        this.pitch = 0;
-        
-        // Device orientation tracking
-        this.calibrated = false;
-        this.yawOffset = 0;
-    }
-    
-    // Render stereoscopic view for VR headsets
-    render() {
-        const gl = this.gl;
-        
-        // Left eye viewport
-        gl.viewport(0, 0, canvas.width / 2, canvas.height);
-        this.renderEye(-this.ipdYaw / 2);
-        
-        // Right eye viewport  
-        gl.viewport(canvas.width / 2, 0, canvas.width / 2, canvas.height);
-        this.renderEye(this.ipdYaw / 2);
-        
-        // Apply barrel distortion mask for Cardboard lenses
-        this.applyDistortionMask();
-    }
-    
-    renderEye(eyeOffset) {
-        // Set uniforms for eye-specific rendering
-        gl.uniform1f(this.yawLoc, this.yaw + eyeOffset);
-        gl.uniform1f(this.pitchLoc, this.pitch);
-        gl.uniform1f(this.fovLoc, this.fovDeg * Math.PI / 180);
-        
-        // Draw the photosphere
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    }
-}</code></pre>
-            
-            <p>
-                The VR implementation includes several key features:
-            </p>
-            
-            <ul>
-                <li><strong>Stereoscopic Rendering:</strong> Dual viewport rendering with adjustable IPD (inter-pupillary distance)</li>
-                <li><strong>Barrel Distortion Mask:</strong> Pre-rendered PNG overlay compensates for Cardboard lens distortion</li>
-                <li><strong>Head Tracking:</strong> DeviceOrientationEvent provides natural look-around control</li>
-                <li><strong>Calibration System:</strong> One-tap recentering to correct for drift</li>
-                <li><strong>Landscape Enforcement:</strong> Automatic prompt to rotate device for proper VR viewing</li>
-                <li><strong>Adjustable IPD:</strong> User can fine-tune eye separation for comfort (saved in localStorage)</li>
-            </ul>
-            
-            <p>
-                The barrel distortion correction uses a pre-computed mask image that's overlaid on the rendered scene:
-            </p>
-            
-            <pre><code class="javascript">// Apply barrel distortion mask for Google Cardboard
-applyDistortionMask() {
-    const ctx = this.maskCanvas.getContext('2d');
-    
-    // Clear and draw the mask
-    ctx.clearRect(0, 0, this.maskCanvas.width, this.maskCanvas.height);
-    
-    if (this.maskImg && this.maskImg.complete) {
-        // Draw mask with proper scaling for device
-        const scale = window.devicePixelRatio || 1;
-        ctx.drawImage(this.maskImg, 
-            0, 0, 
-            this.maskCanvas.width / scale, 
-            this.maskCanvas.height / scale
-        );
-    }
-}
-
-// Handle device orientation for head tracking
-handleOrientation(event) {
-    // Convert quaternion to Euler angles
-    const { alpha, beta, gamma } = event;
-    
-    // Apply calibration offset
-    this.yaw = (alpha - this.yawOffset) * Math.PI / 180;
-    this.pitch = (beta - 90) * Math.PI / 180;  // Adjust for landscape
-    
-    // Clamp pitch to prevent over-rotation
-    this.pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.pitch));
-}</code></pre>
-            
-            <div class="callout-box">
-                <strong>Educational Value:</strong> VR viewing transforms field trip documentation from flat images into immersive experiences. Students can "revisit" locations, looking up at geological formations or down at specimen details, recreating the feeling of being there. The custom implementation ensures consistent performance across all devices without external dependencies.
-            
-            
-            <p>
-                Proper XMP metadata is also embedded so photospheres are recognized by other VR viewers:
-            </p>
-            
-            <pre><code class="javascript">// Add photosphere XMP metadata for VR compatibility
-function addPhotosphereMetadata(imageBlob) {
-    const xmpData = `
-        &lt;rdf:Description rdf:about="" xmlns:GPano="http://ns.google.com/photos/1.0/panorama/"&gt;
-            &lt;GPano:ProjectionType&gt;equirectangular&lt;/GPano:ProjectionType&gt;
-            &lt;GPano:UsePanoramaViewer&gt;True&lt;/GPano:UsePanoramaViewer&gt;
-            &lt;GPano:CroppedAreaImageWidthPixels&gt;4096&lt;/GPano:CroppedAreaImageWidthPixels&gt;
-            &lt;GPano:CroppedAreaImageHeightPixels&gt;2048&lt;/GPano:CroppedAreaImageHeightPixels&gt;
-            &lt;GPano:FullPanoWidthPixels&gt;4096&lt;/GPano:FullPanoWidthPixels&gt;
-            &lt;GPano:FullPanoHeightPixels&gt;2048&lt;/GPano:FullPanoHeightPixels&gt;
-            &lt;GPano:CroppedAreaLeftPixels&gt;0&lt;/GPano:CroppedAreaLeftPixels&gt;
-            &lt;GPano:CroppedAreaTopPixels&gt;0&lt;/GPano:CroppedAreaTopPixels&gt;
-        &lt;/rdf:Description&gt;`;
-    
-    return embedXMP(imageBlob, xmpData);
-}</code></pre>
-            
-            <h2 id="location"><i class="bi bi-geo-alt"></i>Location Data and GPS Embedding</h2>
-            
-            <p>
-                Location data is a critical component for educational photospheres. When students create virtual field trips, the GPS coordinates automatically link their captures to real-world locations, enabling powerful features in tour-building software like pano2VR.
-            </p>
-            
-            <h3>Pre-Capture Location Request</h3>
-            
-            <p>
-                VFTCam requests location permission before starting the capture process, ensuring GPS data is available for embedding in the final photosphere:
-            </p>
-            
-            <pre><code class="javascript">// From capture.js - Request location before capture starts
-if ('geolocation' in navigator) {
-    console.log('Requesting geolocation permission...');
-    try {
-        const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-                enableHighAccuracy: false,  // False for faster response
-                timeout: 10000,
-                maximumAge: 0
-            });
-        });
-        
-        // Store location in app instance for later use
-        window.sphereCapture.captureLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            altitude: position.coords.altitude,
-            accuracy: position.coords.accuracy
-        };
-        
-        // Store permission state for the permissions UI
-        localStorage.setItem('locationPermissionState', 'granted');
-    } catch (error) {
-        console.warn('Location permission denied or unavailable');
-        // Continue without location - it's optional
-    }
-}</code></pre>
-            
-            <h3>EXIF GPS Data Embedding with Piexifjs</h3>
-            
-            <p>
-                Using piexifjs, VFTCam embeds precise GPS coordinates into the JPEG EXIF data, following the standard GPS IFD format:
-            </p>
-            
-            <pre><code class="javascript">// From metadata-utils.js - Convert and embed GPS coordinates
-if (options.latitude !== undefined && options.longitude !== undefined) {
-    // Convert decimal degrees to degrees, minutes, seconds for EXIF
-    exifObj["GPS"][piexif.GPSIFD.GPSLatitude] = this.degToDmsRational(options.latitude);
-    exifObj["GPS"][piexif.GPSIFD.GPSLatitudeRef] = options.latitude < 0 ? 'S' : 'N';
-    exifObj["GPS"][piexif.GPSIFD.GPSLongitude] = this.degToDmsRational(options.longitude);
-    exifObj["GPS"][piexif.GPSIFD.GPSLongitudeRef] = options.longitude < 0 ? 'W' : 'E';
-    
-    if (options.altitude !== undefined) {
-        exifObj["GPS"][piexif.GPSIFD.GPSAltitude] = [Math.abs(Math.round(options.altitude * 100)), 100];
-        exifObj["GPS"][piexif.GPSIFD.GPSAltitudeRef] = options.altitude < 0 ? 1 : 0;
-    }
-    
-    // Add GPS timestamp
-    const gpsDate = options.captureDate || new Date();
-    exifObj["GPS"][piexif.GPSIFD.GPSDateStamp] = this.formatGPSDate(gpsDate);
-    exifObj["GPS"][piexif.GPSIFD.GPSTimeStamp] = this.formatGPSTime(gpsDate);
-}
-
-// Convert decimal degrees to EXIF DMS (degrees, minutes, seconds) format
-degToDmsRational(deg) {
-    const absolute = Math.abs(deg);
-    const degrees = Math.floor(absolute);
-    const minutesFloat = (absolute - degrees) * 60;
-    const minutes = Math.floor(minutesFloat);
-    const seconds = Math.round((minutesFloat - minutes) * 60 * 100);
-    
-    return [
-        [degrees, 1],           // Degrees as rational
-        [minutes, 1],           // Minutes as rational
-        [seconds, 100]          // Seconds as rational (multiplied by 100 for precision)
-    ];
-}</code></pre>
-            
-            <h3>Integration with Tour Building Software</h3>
-            
-            <p>
-                The embedded GPS data provides powerful automation in professional tour-building tools:
-            </p>
-            
-            <div class="callout-box">
-                <strong>pano2VR Automatic Features:</strong>
-                <ul style="margin-top: 10px;">
-                    <li><strong>Automatic Linking:</strong> "Closest Node" linking connects photospheres based on GPS proximity</li>
-                    <li><strong>Ghost Hotspots:</strong> Gray hotspots appear automatically between nearby photospheres</li>
-                    <li><strong>Tour Map Generation:</strong> GPS data automatically places nodes on the tour map</li>
-                    <li><strong>Google Street View Ready:</strong> Proper GPS formatting meets Street View requirements</li>
-                    <li><strong>Sequential Tours:</strong> GPS ordering helps create logical navigation paths</li>
-                </ul>
-            
-            
-            <p>
-                When students import their VFTCam photospheres into pano2VR, the software automatically reads the GPS EXIF data and:
-            </p>
-            
-            <ol>
-                <li>Places each photosphere on the tour map at its correct location</li>
-                <li>Calculates distances between nodes for automatic linking</li>
-                <li>Generates navigation hotspots pointing toward nearby photospheres</li>
-                <li>Creates a logical tour flow based on geographic proximity</li>
-            </ol>
-            
-            <h3>Educational Benefits</h3>
-            
-            <p>
-                For virtual field trips, embedded GPS data enables:
-            </p>
-            
-            <ul>
-                <li><strong>Scientific Documentation:</strong> Precise location recording for geological or ecological studies</li>
-                <li><strong>Historical Context:</strong> Link photospheres to exact historical sites</li>
-                <li><strong>Multi-Site Comparison:</strong> Students can compare locations across different field trips</li>
-                <li><strong>Collaborative Mapping:</strong> Multiple students' captures automatically organize by location</li>
-                <li><strong>Research Reproducibility:</strong> Future researchers can return to exact capture locations</li>
-            </ul>
-            
-            <div class="alert alert-success">
-                <strong>Privacy Note:</strong> Location permission is optional. The app functions fully without GPS data, but users miss the automatic tour-building features. Location data is stored only in the photosphere EXIF metadata and never transmitted to any server.
-            
-            
-            <h2 id="ui"><i class="bi bi-palette"></i>Glass-morphic UI Design</h2>
-            
-            <p>
-                The UI uses a glass-morphic design system with backdrop filters for a modern, professional appearance that works well over the camera feed:
-            </p>
-            
-            <pre><code class="css">.glass-card {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
-/* Fallback for browsers without backdrop-filter */
-@supports not (backdrop-filter: blur(20px)) {
-    .glass-card {
-        background: rgba(255, 255, 255, 0.95);
-    }
-}</code></pre>
-            
-            <h2 id="sharing"><i class="bi bi-share"></i>Saving and Sharing Photospheres</h2>
-            
-            <p>
-                Once a photosphere is created, users need flexible ways to save and share their work. VFTCam implements native sharing through the Web Share API on mobile devices and provides multiple export options for all platforms.
-            </p>
-            
-            <h3>Native Share Sheet Integration</h3>
-            
-            <p>
-                On mobile devices, VFTCam leverages the Web Share API to present the native share sheet, allowing users to send photospheres directly to any app on their device:
-            </p>
-            
-            <pre><code class="javascript">// From share-utils.js - Native sharing implementation
-async tryWebShare(blob, filename) {
-    if (!this.supportsFileSharing) return false;
-
-    // Create File object from blob
-    const file = new File([blob], filename, { type: 'image/jpeg' });
-    const shareData = {
-        files: [file],
-        title: '360° Panorama',
-        text: '360° panorama captured with Photosphere Camera'
-    };
-
-    // Verify that the browser can share this type of data
-    if (navigator.canShare && navigator.canShare(shareData)) {
-        try {
-            await navigator.share(shareData);
-            return true;
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                // User cancelled - this is not an error
-                return true;
-            }
-            console.warn('Web Share failed:', error);
-        }
-    }
-    
-    // Fallback: Try sharing as data URL if file sharing isn't supported
-    if (this.supportsWebShare) {
-        try {
-            // Convert blob to data URL
-            const reader = new FileReader();
-            const dataUrl = await new Promise((resolve) => {
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(blob);
-            });
-            
-            // Share as URL instead of file
-            await navigator.share({
-                title: '360° Panorama',
-                text: '360° panorama captured with Photosphere Camera',
-                url: dataUrl  // Some apps can handle data URLs
-            });
-            return true;
-        } catch (error) {
-            console.warn('Web Share without files failed:', error);
-        }
-    }
-    
-    return false;
-}</code></pre>
-            
-            <p>
-                The native share sheet provides access to:
-            </p>
-            
-            <ul>
-                <li><strong>AirDrop:</strong> Send directly to nearby Apple devices</li>
-                <li><strong>Messages/WhatsApp:</strong> Share in conversations</li>
-                <li><strong>Social Media:</strong> Post to Instagram, Facebook, Twitter</li>
-                <li><strong>Cloud Storage:</strong> Save to Google Photos, iCloud, Dropbox</li>
-                <li><strong>Email:</strong> Attach to email messages</li>
-                <li><strong>Other Apps:</strong> Open in specialized 360° viewers or editors</li>
-            </ul>
-            
-            <h3>Direct Download Fallback</h3>
-            
-            <p>
-                When Web Share API isn't available, VFTCam falls back to direct download:
-            </p>
-            
-            <pre><code class="javascript">// From share-utils.js - Download implementation
-downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);  // Clean up memory
-}</code></pre>
-            
-            <h3>Bulk Export with ZIP Archives</h3>
-            
-            <p>
-                Users can download all their photospheres at once as a ZIP archive, perfect for backing up field work or transferring to desktop software:
-            </p>
-            
-            <pre><code class="javascript">// From camera-roll.js - ZIP export implementation
-async downloadAll() {
-    // Load JSZip dynamically only when needed
-    if (!window.JSZip) {
-        await new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-    }
-    
-    const panoramas = await this.database.loadAllPanoramas();
-    const zip = new JSZip();
-    const photospheresFolder = zip.folder('photospheres');
-    
-    // Add each panorama to the ZIP with progress updates
-    for (let i = 0; i < panoramas.length; i++) {
-        const pano = panoramas[i];
-        const timestamp = new Date(pano.timestamp).toISOString()
-            .replace(/[:.]/g, '-').slice(0, -5);
-        const filename = `photosphere_${timestamp}.jpg`;
-        
-        if (pano.imageBlob) {
-            photospheresFolder.file(filename, pano.imageBlob);
-        } else if (pano.imageData) {
-            // Convert base64 to blob if needed (legacy format)
-            const base64 = pano.imageData.replace(/^data:image\/\w+;base64,/, '');
-            photospheresFolder.file(filename, base64, { base64: true });
-        }
-        
-        // Update progress bar
-        const progress = Math.round(((i + 1) / panoramas.length) * 100);
-        const progressBar = document.getElementById('download-progress-bar');
-        if (progressBar) {
-            progressBar.style.width = `${progress}%`;
-        }
-    }
-    
-    // Add metadata file
-    const metadata = {
-        app: 'VFT Photosphere Camera',
-        version: '1.5.1',
-        exportDate: new Date().toISOString(),
-        panoramaCount: panoramas.length,
-        totalSizeBytes: panoramas.reduce((sum, p) => 
-            sum + (p.imageBlob?.size || 0), 0)
-    };
-    zip.file('metadata.json', JSON.stringify(metadata, null, 2));
-    
-    // Generate and download ZIP
-    const content = await zip.generateAsync({
-        type: 'blob',
-        compression: 'DEFLATE',
-        compressionOptions: { level: 6 }
-    });
-    
-    const url = URL.createObjectURL(content);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `photospheres_${new Date().toISOString().slice(0, 10)}.zip`;
-    link.click();
-    URL.revokeObjectURL(url);
-}</code></pre>
-            
-            <h3>Clipboard Integration</h3>
-            
-            <p>
-                Modern browsers support copying images directly to the system clipboard, allowing users to paste photospheres into other applications:
-            </p>
-            
-            <pre><code class="javascript">// From share-utils.js - Clipboard API implementation
-async copyImageToClipboard(blob) {
-    // Check for Clipboard API support
-    if (!navigator.clipboard || !navigator.clipboard.write) {
-        return false;
-    }
-
-    try {
-        // Create clipboard item with MIME type
-        const clipboardItem = new ClipboardItem({
-            [blob.type]: blob
-        });
-        await navigator.clipboard.write([clipboardItem]);
-        return true;
-    } catch (error) {
-        console.warn('Clipboard copy failed:', error);
-        return false;
-    }
-}</code></pre>
-            
-            <div class="callout-box">
-                <strong>Share Features Summary:</strong>
-                <ul style="margin-top: 10px;">
-                    <li>Native share sheet on iOS/Android for seamless app integration</li>
-                    <li>AirDrop support for instant Apple device transfer</li>
-                    <li>Direct download for desktop browsers</li>
-                    <li>Bulk ZIP export with metadata preservation</li>
-                    <li>Clipboard copy for quick pasting into documents</li>
-                    <li>Automatic filename generation with timestamps</li>
-                </ul>
-            
-            
-            <h2 id="pwa"><i class="bi bi-phone"></i>Progressive Web App Implementation</h2>
-            
-            <p>
-                VFTCam is a full Progressive Web App with offline support, making it reliable in remote field locations. The PWA implementation required solving unique challenges around module loading, iOS compatibility, and storage persistence.
-            </p>
-            
-            <h3>Service Worker Architecture</h3>
-            
-            <p>
-                The service worker (v1.5.1) uses Workbox 7.0.0 with custom strategies for different resource types:
-            </p>
-            
-            <pre><code class="javascript">// service-worker.js - Version-based cache management
-const CACHE_VERSION = '1.5.1';
-const BUILD_TIMESTAMP = '1757869480994'; // Updated by Python script
-
-// Import Workbox from CDN
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.0.0/workbox-sw.js');
-
-// Configure cache names with version
-workbox.core.setCacheNameDetails({
-    prefix: 'vftcam',
-    suffix: CACHE_VERSION,
-    precache: 'precache',
-    runtime: 'runtime'
-});
-
-// Precache 80+ critical assets
-const precacheManifest = [
-    { url: '/', revision: BUILD_TIMESTAMP },
-    { url: '/index.html', revision: BUILD_TIMESTAMP },
-    { url: '/js/modules/app.js', revision: BUILD_TIMESTAMP },
-    { url: '/js/modules/camera.js', revision: BUILD_TIMESTAMP },
-    { url: '/js/modules/database.js', revision: BUILD_TIMESTAMP },
-    // ... 75 more files
-];
-
-precacheAndRoute(precacheManifest);</code></pre>
-            
-            <div class="alert alert-danger">
-                <strong>Challenge:</strong> iOS Safari aggressively caches ES6 modules, ignoring standard cache headers. This caused users to get mixed versions of modules after updates.
-            
-            
-            <div class="alert alert-success">
-                <strong>Solution:</strong> A custom handler was implemented that modifies response headers specifically for JavaScript modules, forcing iOS to respect the cache control:
-            
-            
-            <pre><code class="javascript">// Custom script handler for iOS Safari module compatibility
-registerRoute(
-    ({ request }) => request.destination === 'script' || 
-                     request.url.includes('/js/'),
-    async ({ request, event }) => {
-        const cache = await caches.open('vftcam-scripts');
-        
-        // Handle relative paths (./js/ vs /js/)
-        let normalizedUrl = request.url;
-        if (normalizedUrl.includes('./js/')) {
-            const url = new URL(request.url);
-            normalizedUrl = url.href.replace('./js/', '/js/');
-        }
-        
-        let cachedResponse = await cache.match(request);
-        if (cachedResponse) {
-            // Clone and modify headers for iOS Safari
-            const headers = new Headers(cachedResponse.headers);
-            headers.set('Content-Type', 'application/javascript');
-            headers.set('Cache-Control', 'no-cache');  // Force revalidation
-            
-            const blob = await cachedResponse.blob();
-            return new Response(blob, {
-                status: cachedResponse.status,
-                headers: headers
-            });
-        }
-        
-        // Fallback to network
-        const response = await fetch(request);
-        await cache.put(request, response.clone());
-        return response;
-    }
-);</code></pre>
-            
-            <h3>Installation Detection and Storage Persistence</h3>
-            
-            <p>
-                The PWAStatus module tracks installation state and storage risks across different platforms:
-            </p>
-            
-            <pre><code class="javascript">// pwa-status.js - Multi-method installation detection
-checkInstallation() {
-    // Three different methods to detect standalone mode
-    return window.matchMedia('(display-mode: standalone)').matches ||
-           window.navigator.standalone === true ||  // iOS Safari
-           document.referrer.includes('android-app://');  // Android TWA
-}
-
-async checkPersistence() {
-    if (!navigator.storage || !navigator.storage.persisted) {
-        return false;
-    }
-    
-    try {
-        const isPersistent = await navigator.storage.persisted();
-        if (!isPersistent && this.isInstalled) {
-            // Request persistence if installed but not persistent
-            return await navigator.storage.persist();
-        }
-        return isPersistent;
-    } catch (error) {
-        // iOS Safari may throw here
-        console.error('Persistence check failed:', error);
-        return false;
-    }
-}
-
-getStorageWarning() {
-    const status = this.getStatus();
-    
-    if (status.storageRisk === 'high') {
-        return {
-            level: 'danger',
-            title: 'Storage at Risk',
-            message: 'Your browser may delete your photospheres after 7 days of inactivity. Install as a Progressive Web App (Add to Home Screen) to protect your data.',
-            action: 'Install to Protect'
-        };
-    }
-    // ... other warning levels
-}</code></pre>
-            
-            <h3>Offline Fallback Strategy</h3>
-            
-            <p>
-                A custom offline page lists available features when disconnected:
-            </p>
-            
-            <pre><code class="javascript">// Offline fallback with navigation preload
-const OFFLINE_URL = '/offline.html';
-
-// Cache offline page during install
-self.addEventListener('install', event => {
-    event.waitUntil(
-        caches.open('vftcam-offline').then(cache => {
-            return cache.add(OFFLINE_URL);
-        })
-    );
-});
-
-// Serve offline page for navigation failures
-registerRoute(
-    new NavigationRoute(async ({ event }) => {
-        try {
-            // Try network first for navigation
-            return await fetch(event.request);
-        } catch (error) {
-            // Fallback to offline page
-            const cache = await caches.open('vftcam-offline');
-            const cachedResponse = await cache.match(OFFLINE_URL);
-            return cachedResponse || new Response('Offline', {
-                status: 503,
-                statusText: 'Service Unavailable'
-            });
-        }
-    })
-);</code></pre>
-            
-            <h3>Storage Architecture</h3>
-            
-            <p>
-                VFTCam implements a sophisticated multi-tier storage system designed to handle the unique challenges of storing large photosphere data on mobile devices while battling browser storage eviction policies. The architecture prioritizes data persistence and performance through intelligent fallback mechanisms.
-            </p>
-            
-            <h4>Database Schema</h4>
-            
-            <p>
-                The IndexedDB database uses two primary object stores with optimized schemas:
-            </p>
-            
-            <pre><code class="javascript">// Database structure from database.js
-const DB_NAME = 'PhotosphereDB';
-const DB_VERSION = 5;
-
-// Object stores configuration
-const stores = {
-    'captures': {  // Temporary storage during capture session
-        keyPath: 'hotspotId',  // Primary key (1-36)
-        schema: {
-            hotspotId: 'number',      // Position identifier
-            imageBlob: 'Blob',        // AVIF/WebP blob (~150-300KB)
-            yaw: 'number',            // Target horizontal angle
-            pitch: 'number',          // Target vertical angle
-            actualYaw: 'number',      // Actual device yaw when captured
-            actualPitch: 'number',    // Actual device pitch
-            roll: 'number',           // Device tilt/roll
-            fov: 'number',            // Field of view (typically 67°)
-            timestamp: 'string'       // ISO timestamp
-        }
-    },
-    'panoramas': {  // Persistent storage for completed photospheres
-        keyPath: 'id',
-        autoIncrement: true,
-        schema: {
-            id: 'number',             // Auto-generated unique ID
-            imageBlob: 'Blob',        // JPEG panorama (~1.5-3MB)
-            timestamp: 'string',      // Creation time
-            imageCount: 'number',     // Source images used (typically 36)
-            type: 'string',           // Stitching method
-            width: 'number',          // Panorama dimensions
-            height: 'number',
-            opfsId: 'string?'         // Optional OPFS backup reference
-        }
-    }
-}</code></pre>
-            
-            <h4>Three-Tier Storage Strategy</h4>
-            
-            <p>
-                The storage system implements automatic fallbacks to ensure data persistence across different browser environments and storage quotas:
-            </p>
-            
-            <pre><code class="javascript">// Actual storage implementation with fallback chain
-export class Database {
-    constructor() {
-        this.db = null;
-        this.DB_NAME = 'PhotosphereDB';
-        this.DB_VERSION = 5;
-        this.STORE_NAME = 'captures';
-        this.useOPFS = false;
-        this.opfs = opfsStorage;  // OPFS integration for better persistence
-    }
-
-    async savePanorama(blob, metadata) {
-        // Validate size constraints (max 50MB)
-        if (blob.size > 50 * 1024 * 1024) {
-            const sizeMB = (blob.size / (1024 * 1024)).toFixed(1);
-            throw new Error(`Panorama too large (${sizeMB}MB). Maximum size is 50MB.`);
-        }
-
-        // TIER 1: IndexedDB (primary storage)
-        const tx = this.db.transaction(['panoramas'], 'readwrite');
-        const store = tx.objectStore('panoramas');
-        
-        const panorama = {
-            imageBlob: blob,  // Direct blob storage (no base64)
-            timestamp: new Date().toISOString(),
-            imageCount: metadata.imageCount || 36,
-            type: metadata.type || 'best-pixel',
-            width: metadata.width || 4096,
-            height: metadata.height || 2048
-        };
-        
-        // TIER 2: OPFS (Origin Private File System) for better persistence
-        if (this.useOPFS && navigator.storage?.getDirectory) {
-            try {
-                const id = await this.opfs.savePanorama(blob);
-                panorama.opfsId = id;  // Link OPFS backup to IndexedDB record
-                console.log('Panorama backed up to OPFS for persistence');
-            } catch (e) {
-                console.warn('OPFS save failed, using IndexedDB only:', e);
-            }
-        }
-        
-        // Store in IndexedDB
-        const request = store.add(panorama);
-        await new Promise((resolve, reject) => {
-            request.onsuccess = resolve;
-            request.onerror = () => reject(request.error);
-        });
-        
-        // TIER 3: Cache API fallback (for service worker access)
-        try {
-            const cache = await caches.open('vftcam-panoramas');
-            const response = new Response(blob, {
-                headers: { 
-                    'Content-Type': 'image/jpeg',
-                    'X-Panorama-ID': String(request.result)
-                }
-            });
-            await cache.put(`/panorama/${request.result}`, response);
-        } catch (e) {
-            console.warn('Cache API backup failed:', e);
-        }
-        
-        return request.result;
-    }
-}</code></pre>
-            
-            <h4>OPFS Integration for Safari/iOS</h4>
-            
-            <p>
-                The Origin Private File System provides better persistence guarantees, especially on iOS Safari which aggressively deletes IndexedDB data after 7 days of inactivity:
-            </p>
-            
-            <pre><code class="javascript">// OPFS storage module with Safari worker compatibility
-class OPFSStorage {
-    constructor() {
-        this.worker = null;  // Required for Safari - only works in workers
-        this.initialized = false;
-        this.isSupported = 'storage' in navigator && 
-                          'getDirectory' in navigator.storage;
-    }
-    
-    async init() {
-        if (!this.isSupported) return false;
-        
-        // Safari requires OPFS access through a Web Worker
-        this.worker = new Worker('/js/workers/opfs-worker.js');
-        
-        // Worker handles actual file operations
-        this.worker.postMessage({ 
-            action: 'init',
-            directories: ['panoramas', 'captures', 'temp']
-        });
-        
-        return true;
-    }
-    
-    async savePanorama(blob) {
-        // Generate unique filename with timestamp
-        const filename = `panorama_${Date.now()}.jpg`;
-        
-        // Send blob to worker for OPFS storage
-        return new Promise((resolve, reject) => {
-            const channel = new MessageChannel();
-            channel.port1.onmessage = (e) => {
-                if (e.data.success) resolve(e.data.id);
-                else reject(e.data.error);
-            };
-            
-            this.worker.postMessage({
-                action: 'save',
-                filename,
-                blob
-            }, [channel.port2]);
-        });
-    }
-}</code></pre>
-            
-            <h4>Storage Quotas and Limits</h4>
-            
-            <p>
-                Different browsers and platforms impose varying storage limits that the system must navigate:
-            </p>
-            
-            <div class="row row-cols-1 row-cols-md-2 g-3">
-                <div class="col">
-                    <h4>iOS Safari</h4>
-                    <p>~1GB limit for web apps<br/>
-                    7-day eviction policy<br/>
-                    OPFS provides better persistence</p>
-                
-                <div class="col">
-                    <h4>Android Chrome</h4>
-                    <p>6% of free disk space<br/>
-                    Persistent storage API<br/>
-                    No time-based eviction</p>
-                
-            
-            
-            <h4>Blob Storage Optimization</h4>
-            
-            <p>
-                Moving from base64 to direct blob storage provided significant benefits, though testing revealed iOS Safari silently converts AVIF/WebP to PNG, making JPEG the pragmatic choice:
-            </p>
-            
-            <pre><code class="javascript">// From camera.js - actual implementation with Safari workaround
-async encodeCanvas(canvas, quality = 0.85) {
-    // Use JPEG everywhere for consistency and reliability
-    // iOS Safari returns PNG for AVIF/WebP (1360KB vs 195KB for JPEG!)
-    // The overhead of trying formats isn't worth it for a mobile-first app
-    const tryTypes = [
-        ['image/jpeg', 0.85],    // JPEG - universal, reliable, small enough
-    ];
-    
-    for (const [type, q] of tryTypes) {
-        console.log(`Attempting to encode as ${type} with quality ${q}`);
-        const blob = await new Promise(resolve => 
-            canvas.toBlob(resolve, type, q)
-        );
-        
-        if (blob && blob.size > 0) {
-            console.log(`Result: ${blob.type}, size: ${(blob.size / 1024).toFixed(1)}KB`);
-            // If we got what we asked for, or if it's our last option, use it
-            if (blob.type === type || type === 'image/jpeg') {
-                return blob;
-            }
-            // Otherwise, Safari gave us something else, try next format
-            console.log(`Safari returned ${blob.type} instead of ${type}, trying next format...`);
-        }
-    }
-    
-    throw new Error('Failed to encode image');
-}
-
-// From app.js - storage implementation  
-const blob = await this.camera.capturePhoto(maxWidth, maxHeight);
-await this.database.saveCapture({
-    hotspotId: hotspot.id,
-    imageBlob: blob,  // Direct binary storage, no base64
-    yaw: Math.round(yaw),
-    pitch: Math.round(pitch),
-    actualPitch: Math.round(actualPitch),
-    actualYaw: Math.round(actualYaw),
-    roll: Math.round(roll),
-    timestamp: Date.now()
-});
-
-// Size comparison for typical capture:
-// Base64 JPEG: ~300KB per image × 36 = 10.8MB (plus UTF-16 overhead = ~21.6MB in memory)
-// JPEG Blob: ~195KB per image × 36 = 7MB (no string overhead)
-// Reduction: 67% less memory used</code></pre>
-            
-            <h3>PWA Update Strategy</h3>
-            
-            <p>
-                Updates are handled through a Python script that versions the service worker:
-            </p>
-            
-            <pre><code class="python"># update-sw.py - Automatic cache busting
-import time
-import re
-
-def update_service_worker():
-    timestamp = str(int(time.time() * 1000))
-    
-    with open('public/service-worker.js', 'r') as f:
-        content = f.read()
-    
-    # Update BUILD_TIMESTAMP
-    content = re.sub(
-        r"const BUILD_TIMESTAMP = '\d+';",
-        f"const BUILD_TIMESTAMP = '{timestamp}';",
-        content
-    )
-    
-    # Update CACHE_VERSION
-    version = time.strftime('%Y%m%d.%H%M%S')
-    content = re.sub(
-        r"const CACHE_VERSION = '[^']+';",
-        f"const CACHE_VERSION = '{version}';",
-        content
-    )
-    
-    with open('public/service-worker.js', 'w') as f:
-        f.write(content)</code></pre>
-            
-            <div class="callout-box">
-                <strong>iOS Safari Limitations:</strong> 
-                <ul style="margin-top: 10px;">
-                    <li>Storage cleared after 7 days unless installed to home screen</li>
-                    <li>Service Worker limitations in WKWebView</li>
-                    <li>No background sync or push notifications</li>
-                    <li>Module caching ignores standard cache headers</li>
-                </ul>
-                iOS is detected and appropriate warnings guide users toward installation.
-            
-            
-            <h2 id="lessons"><i class="bi bi-lightbulb"></i>Lessons Learned</h2>
-            
-            <h3>What Worked Well</h3>
-            
-            <ul>
-                <li><strong>Zero-build architecture:</strong> Dramatically simplified debugging and maintenance</li>
-                <li><strong>WebGL2 for stitching:</strong> 10x faster than Canvas 2D or WebAssembly approaches</li>
-                <li><strong>Structured capture pattern:</strong> More reliable than feature-matching approaches</li>
-                <li><strong>Visual feedback:</strong> Real-time 3D sphere showing capture progress</li>
-            </ul>
-            
-            <h3>Challenges and Solutions</h3>
-            
-            <div class="alert alert-danger">
-                <strong>Challenge:</strong> WebAssembly OpenCV.js added 8MB to load size and crashed on iOS when attempting to stitch more than 15 images
-            
-            
-            <div class="alert alert-success">
-                <strong>Solution:</strong> Replaced with pure WebGL2 implementation - smaller, faster, more reliable
-            
-            
-            <div class="alert alert-danger">
-                <strong>Challenge:</strong> Device orientation events are unreliable when device is flat
-            
-            
-            <div class="alert alert-success">
-                <strong>Solution:</strong> Added accelerometer-based tilt detection with visual roll indicator
-            
-            
-            <div class="alert alert-danger">
-                <strong>Challenge:</strong> iOS Safari crashes silently when memory limit exceeded
-            
-            
-            <div class="alert alert-success">
-                <strong>Solution:</strong> Track stitch jobs in database, offer recovery on reload
-            
-            
-            <h2 id="performance"><i class="bi bi-speedometer2"></i>Performance Metrics</h2>
-            
-            <div class="tech-stack-grid">
-                <div class="tech-item">
-                    <h4>Capture Performance</h4>
-                    <ul>
-                        <li>Alignment detection: &lt;100ms</li>
-                        <li>Auto-capture delay: 1000ms</li>
-                        <li>Frame rate: 60fps maintained</li>
-                    </ul>
-                
-                <div class="tech-item">
-                    <h4>Stitching Performance</h4>
-                    <ul>
-                        <li>36 images: &lt;5s on iPhone 12</li>
-                        <li>Output: 4096×2048 pixels</li>
-                        <li>Memory peak: &lt;500MB</li>
-                    </ul>
-                
-                <div class="tech-item">
-                    <h4>Storage Efficiency</h4>
-                    <ul>
-                        <li>Capture: ~300KB per image</li>
-                        <li>Panorama: ~2-3MB JPEG</li>
-                        <li>Total for session: ~13MB</li>
-                    </ul>
-                
-            
-
-            <h2 id="privacy"><i class="bi bi-shield-check"></i>Privacy by Design</h2>
-            
-            <p>
-                In an era of pervasive data collection, VFTCam takes a radically different approach: no user data is collected whatsoever. This isn't just a policy decision—it's architecturally impossible.
-            </p>
-            
-            <div class="callout-box">
-                <strong>Key Privacy Features:</strong>
-                <ul style="margin-top: 10px;">
-                    <li><strong>100% Client-Side:</strong> All processing happens in your browser using WebGL2</li>
-                    <li><strong>No Analytics:</strong> No Google Analytics, no telemetry, no tracking pixels</li>
-                    <li><strong>No Server Communication:</strong> After initial load, the app never contacts any server</li>
-                    <li><strong>Fully Auditable:</strong> As a static website, all code is transparent and inspectable</li>
-                </ul>
-            
-            
-            <p>
-                Being a static website with no backend means several important privacy guarantees:
-            </p>
-            
-            <ul>
-                <li><strong>Your photos never leave your device</strong> - All 36 capture images and stitched panoramas remain in your browser's IndexedDB</li>
-                <li><strong>Sensor data stays local</strong> - Device orientation and GPS (if enabled) are used only for capture guidance and metadata</li>
-                <li><strong>No user accounts</strong> - No registration, no profiles, no data linking across sessions</li>
-                <li><strong>Complete data control</strong> - Delete individual photospheres or clear everything instantly</li>
-                <li><strong>Offline-first design</strong> - Once cached, works entirely without internet connection</li>
-            </ul>
-            
-            <div class="alert alert-success">
-                <strong>Educational Benefit:</strong> Students can use VFTCam in the field without privacy concerns. Schools don't need data processing agreements or parental consent forms for photo storage since all data remains on the student's device.
-            
-            
-            <p>
-                The source code transparency of a static web app means anyone can verify these privacy claims. Every line of JavaScript is readable in browser DevTools, and network monitoring confirms no external requests are made during operation.
-            </p>
-            
-            <p>
-                <strong>Full Privacy Policy:</strong> For complete details, see <a href="https://vftcam.stanford.edu/privacy-policy.html">vftcam.stanford.edu/privacy-policy.html</a>
-            </p>            
-            <h2 id="accessibility"><i class="bi bi-universal-access-circle"></i>Accessibility</h2>
-            
-            <p>
-                While VFTCam is primarily a visual and spatial application, significant effort went into making it as accessible as possible. The app includes support for reduced motion preferences, high contrast modes, and comprehensive ARIA labeling throughout.
-            </p>
-            
-            <h3>Actual Accessibility Implementation</h3>
-            
-            <p>
-                Rather than building complex accessibility managers, we focused on semantic HTML and CSS media queries that respect user preferences:
-            </p>
-            
-            <h4>ARIA Labels and Semantic HTML</h4>
-            
-            <pre><code class="html">&lt;!-- From index.html - Every interactive element has proper labels --&gt;
-&lt;button id="start-btn" 
-        onclick="startApp()" 
-        aria-label="Start capturing photosphere"&gt;
-    &lt;img src="./img/camera.svg" alt="Camera icon"&gt; 
-    Start Capturing
-&lt;/button&gt;
-
-&lt;div id="camera-viewport" aria-label="Camera viewfinder"&gt;
-    &lt;div id="alignment-indicator" aria-hidden="true"&gt;&lt;/div&gt;
-    &lt;div id="roll-indicator" 
-         aria-label="Device level indicator" 
-         aria-hidden="true"&gt;
-    &lt;/div&gt;
-&lt;/div&gt;
-
-&lt;!-- Screen reader announcements for capture progress --&gt;
-&lt;div id="sr-announcements" 
-     class="sr-only" 
-     role="status" 
-     aria-live="polite" 
-     aria-atomic="true"&gt;&lt;/div&gt;
-
-&lt;!-- Modal dialogs with proper ARIA attributes --&gt;
-&lt;div id="stitching-overlay" 
-     class="ui-card" 
-     role="dialog" 
-     aria-labelledby="stitch-title" 
-     aria-modal="true" 
-     aria-hidden="true"&gt;&lt;/div&gt;</code></pre>
-            
-            <h4>Respecting User Preferences with CSS</h4>
-            
-            <p>
-                CSS media queries automatically adapt the interface based on user system preferences:
-            </p>
-            
-            <pre><code class="css">/* From cards.css - Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-    .ui-card {
-        transition: opacity 150ms ease-in-out;
-    }
-    
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-    }
-}
-
-/* From cards.css - High contrast mode support */
-@media (prefers-contrast: high) {
-    .ui-card {
-        background: rgba(0, 0, 0, 0.95) !important;
-        border: 2px solid white !important;
-    }
-    
-    .control-btn {
-        border: 2px solid white !important;
-        background: black !important;
-    }
-    
-    #camera-viewport {
-        border: 3px solid white !important;
-    }
-    
-    #alignment-indicator {
-        border: 4px solid white !important;
-        background: transparent !important;
-    }
-}</code></pre>
-            
-            <h4>Touch Target Sizing</h4>
-            
-            <p>
-                All buttons meet or exceed WCAG's 44×44px minimum touch target size:
-            </p>
-            
-            <pre><code class="css">/* From cards.css - Close buttons and action buttons */
-.card-close-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-}
-
-.action-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-}
-
-/* From capture.css - Control buttons */
-.control-btn {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-}
-
-/* Mobile adjustments for smaller screens */
-@media (max-width: 375px) {
-    .control-btn {
-        width: 45px;
-        height: 45px;
-    }
-}</code></pre>
-            
-            <h4>Screen Reader Announcements</h4>
-            
-            <p>
-                The hidden live region in index.html provides real-time updates to screen reader users:
-            </p>
-            
-            <pre><code class="css">/* From capture.css - Screen reader only content */
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-}</code></pre>
-            
-            <h3>What We Actually Achieved</h3>
-            
-            <div class="row row-cols-1 row-cols-md-2 g-3">
-                <div class="col">
-                    <h4>ARIA Labels</h4>
-                    <p>Every button and interactive element has descriptive aria-labels</p>
-                
-                <div class="col">
-                    <h4>Motion Preferences</h4>
-                    <p>Animations automatically disabled for users with vestibular disorders</p>
-                
-                <div class="col">
-                    <h4>High Contrast</h4>
-                    <p>UI adapts to high contrast mode with solid borders and backgrounds</p>
-                
-                <div class="col">
-                    <h4>Touch Targets</h4>
-                    <p>All buttons are at least 44×44px with adequate spacing</p>
-                
-            
-            
-            <p>
-                While we didn't build complex accessibility managers or focus traps, the combination of semantic HTML, ARIA attributes, and CSS media queries creates an interface that respects user preferences and works with assistive technologies. By following WCAG 2.1 guidelines for touch targets, color contrast, and semantic markup, we ensured the app is usable by people with disabilities.
-            
-            <h2 id="education"><i class="bi bi-mortarboard"></i>Educational Impact</h2>
-            
-            <p>
-                VFTCam transforms smartphones into powerful tools for creating virtual field trips, enabling students and educators to capture and share immersive experiences from anywhere in the world. Whether documenting geological formations, historical sites, or ecological habitats, VFTCam democratizes the creation of educational 360° content.
-            </p>
-            
-            <p>
-                Key benefits for virtual field trips:
-            </p>
-            
-            <ul>
-                <li><strong>Accessibility:</strong> Students who can't physically visit locations can experience them immersively</li>
-                <li><strong>Documentation:</strong> Preserve field sites exactly as they appear for future classes</li>
-                <li><strong>Remote Learning:</strong> Share field experiences with distance learners or partner schools</li>
-                <li><strong>Scientific Record:</strong> Create timestamped, geolocated documentation of changing environments</li>
-                <li><strong>Student Agency:</strong> Empower students to be creators, not just consumers, of educational content</li>
-                <li><strong>No Connectivity Required:</strong> Works offline in remote locations without cell service</li>
-            </ul>
-            
-            <p>
-                By removing the technical and financial barriers to creating photospheres, VFTCam enables any classroom to build their own library of virtual field trips, turning every excursion into a reusable educational resource that can be experienced by students for years to come.
-            </p>
-            
-            <h2 id="libraries"><i class="bi bi-box-seam"></i>External Libraries</h2>
-            
-            <p>
-                VFTCam stands on the shoulders of excellent open source projects. These libraries made the zero-dependency approach possible:
-            </p>
-            
-            <div class="tech-stack-grid">
-                <div class="tech-item">
-                    <h4>Three.js</h4>
-                    <p><strong>Purpose:</strong> 3D sphere visualization and WebGL abstraction</p>
-                    <p><strong>License:</strong> MIT</p>
-                    <p><a href="https://github.com/mrdoob/three.js"><i class="bi bi-github"></i>mrdoob/three.js</a></p>
-                
-                <div class="tech-item">
-                    <h4>Pannellum</h4>
-                    <p><strong>Purpose:</strong> Lightweight 360° embeddable panorama viewer</p>
-                    <p><strong>License:</strong> MIT</p>
-                    <p><a href="https://github.com/mpetroff/pannellum"><i class="bi bi-github"></i>mpetroff/pannellum</a></p>
-                
-                <div class="tech-item">
-                    <h4>Piexifjs</h4>
-                    <p><strong>Purpose:</strong> EXIF metadata reading and writing</p>
-                    <p><strong>License:</strong> MIT</p>
-                    <p><a href="https://github.com/hMatoba/piexifjs"><i class="bi bi-github"></i>hMatoba/piexifjs</a></p>
-                
-                <div class="tech-item">
-                    <h4>Workbox</h4>
-                    <p><strong>Purpose:</strong> Service worker caching strategies</p>
-                    <p><strong>License:</strong> Apache 2.0</p>
-                    <p><a href="https://github.com/GoogleChrome/workbox"><i class="bi bi-github"></i>GoogleChrome/workbox</a></p>
-                
-                <div class="tech-item">
-                    <h4>Bootstrap Icons</h4>
-                    <p><strong>Purpose:</strong> UI icons throughout the interface</p>
-                    <p><strong>License:</strong> MIT</p>
-                    <p><a href="https://github.com/twbs/icons"><i class="bi bi-github"></i>twbs/icons</a></p>
-                
-                <div class="tech-item">
-                    <h4>JSZip</h4>
-                    <p><strong>Purpose:</strong> Creating ZIP archives for batch photosphere downloads</p>
-                    <p><strong>License:</strong> MIT</p>
-                    <p><a href="https://github.com/Stuk/jszip"><i class="bi bi-github"></i>Stuk/jszip</a></p>
-                
-            
-            
-            <p>
-                Each library was carefully selected for its reliability, performance, and compatibility with our zero-build philosophy. All are included as standalone files without modification, making updates and debugging straightforward.
-            </p>
-            
-            
-            <h2 id="deployment"><i class="bi bi-cloud-upload"></i>Deployment</h2>
-            
-            <p>
-                VFTCam requires no build process and can be deployed to any static web server as a collection of HTML, CSS, and JavaScript files.
-            </p>
-                        
-            <h2 id="conclusion"><i class="bi bi-check-circle"></i>Conclusion</h2>
-            
-            <p>
-                Building VFTCam demonstrated that modern web platform APIs are powerful enough to create sophisticated imaging applications without native code. By embracing web standards and avoiding complex toolchains, we created a maintainable, educational tool that will serve students for years to come.
-            </p>
-            
-            <p>
-                The key insight was recognizing that the web platform's "limitations" often lead to better architectural decisions. Memory constraints forced efficient algorithms. The lack of native APIs pushed us toward creative solutions using existing web standards.
-            </p>
-            
-            <p>
-                As web capabilities continue to expand, projects like VFTCam show that the browser is not just a document viewer but a powerful platform for computational photography, computer vision, and immersive media creation.
-            </p>
-            
-            <div class="callout-box">
-                <strong>Try VFTCam:</strong> Visit <a href="https://360cam.stanford.edu">360cam.stanford.edu</a> on your mobile device<br>
-                <strong>Created by:</strong><br/>Reuben Thiessen<br/><em>Emerging Technology Lead</em><br/>Accelerator Studio within the Stanford Accelerator for Learning
-            
-        
-    
+          </div>
         </div>
       </div>
-      
-      <!-- Back to Projects -->
-      <div class="text-center mt-4">
-        <a href="/" class="btn btn-outline-secondary">
-          <i class="bi bi-arrow-left me-2"></i>Back to Projects
-        </a>
-        <a href="https://vftcam.stanford.edu" target="_blank" class="btn btn-primary ms-2">
-          <i class="bi bi-box-arrow-up-right me-2"></i>Try VFTCam
-        </a>
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">PWA Features</h5>
+            <ul class="mb-0">
+              <li>Service Worker (Workbox)</li>
+              <li>Web App Manifest</li>
+              <li>OPFS for panoramas</li>
+              <li>Web Share API</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+
+    <h2><i class="bi bi-grid-3x3 me-2"></i>The Capture Pattern</h2>
+    <p>The heart of VFTCam is its structured 36-point capture pattern, arranged in three rows:</p>
+    <pre class="bg-light p-3 rounded"><code>Upper Row (pitch +45°):  12 points at 30° yaw intervals
+Equator (pitch 0°):      12 points at 30° yaw intervals
+Lower Row (pitch -45°):  12 points at 30° yaw intervals
+
+Total Coverage: 36 overlapping images covering full sphere</code></pre>
+
+    <h3>Inside the Sphere</h3>
+    <p>Unlike traditional panorama apps that show a flat grid or compass interface, VFTCam places the user <em>inside</em> a Three.js wireframe sphere. This transforms the abstract concept of spherical capture into an intuitive, spatial experience.</p>
+
+    <div class="alert alert-info">
+      <strong>Key Innovation:</strong> By visualizing capture points as physical locations on a sphere surrounding the user, VFTCam makes the complex mathematics of spherical projection tangible. Users can literally "see" the photosphere they're building from the inside out.
+    </div>
+
+<pre class="bg-dark text-light p-3 rounded"><code class="language-javascript">// scene.js - Creating the capture sphere environment
+export class Scene {
+    constructor(canvas) {
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+
+        // Create wireframe sphere (user is INSIDE looking out)
+        const sphereGeometry = new THREE.SphereGeometry(100, 24, 16);
+        const sphereMaterial = new THREE.MeshBasicMaterial({
+      color: 0x666666,
+      wireframe: true,
+      opacity: 0.3,
+      transparent: true,
+      side: THREE.BackSide  // CRITICAL: Render inside of sphere
+        });
+
+        this.sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        this.scene.add(this.sphere);
+    }
+}</code></pre>
+
+    <h2><i class="bi bi-camera-reels me-2"></i>Understanding Field of View</h2>
+    <p>FOV calculation was one of the trickiest aspects. Getting it wrong means gaps in coverage or wasted overlap.</p>
+
+    <div class="row my-4">
+      <div class="col-md-6">
+        <div class="alert alert-danger">
+          <strong>Challenge:</strong> WebRTC's getUserMedia captures video streams, not photos. The FOV for video mode is often different from the device's photo capture mode—typically narrower due to cropping and stabilization.
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="alert alert-success">
+          <strong>Solution:</strong> Through extensive empirical testing across devices, we found 44° horizontal FOV provided the best balance. With 30° spacing between capture points, this gives ~14° overlap (~32%).
+        </div>
+      </div>
+    </div>
+
+    <h2><i class="bi bi-layers me-2"></i>WebGL2 Best-Pixel Stitching</h2>
+    <p>The stitching algorithm runs entirely on the GPU using WebGL2 fragment shaders. Each output pixel samples from all overlapping source images and selects the "best" one based on multiple quality metrics:</p>
+
+    <ul>
+      <li><strong>Distance from center:</strong> Pixels near image center have less lens distortion</li>
+      <li><strong>Sharpness:</strong> Laplacian-based edge detection identifies blur</li>
+      <li><strong>Angular distance:</strong> Pixels closest to their source image's center direction</li>
+      <li><strong>Exposure consistency:</strong> Weighted toward median brightness across images</li>
+    </ul>
+
+<pre class="bg-dark text-light p-3 rounded"><code class="language-glsl">// Fragment shader for best-pixel selection
+void main() {
+    vec2 equirect = gl_FragCoord.xy / resolution;
+    vec3 sphereDir = equirectToSphere(equirect);
+
+    float bestScore = -1.0;
+    vec4 bestColor = vec4(0.0);
+
+    for (int i = 0; i < NUM_IMAGES; i++) {
+        vec2 imgUV = projectToImage(sphereDir, imageOrientations[i]);
+        if (isValidUV(imgUV)) {
+      float score = calculateQuality(imgUV, i);
+      if (score > bestScore) {
+          bestScore = score;
+          bestColor = texture(images[i], imgUV);
+      }
+        }
+    }
+
+    fragColor = bestColor;
+}</code></pre>
+
+    <h2><i class="bi bi-memory me-2"></i>Memory Management</h2>
+    <p>Mobile Safari has strict memory limits (~1.4GB). With 36 high-resolution images plus WebGL textures, memory management is critical.</p>
+
+    <div class="row row-cols-1 row-cols-md-2 g-3 my-4">
+      <div class="col">
+        <div class="card h-100 border-primary">
+          <div class="card-body">
+            <h5 class="card-title text-primary">Texture Streaming</h5>
+            <p class="card-text">Only 4-6 images loaded as GPU textures at once. Images swap in/out based on which output region is being processed.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 border-primary">
+          <div class="card-body">
+            <h5 class="card-title text-primary">Tiled Rendering</h5>
+            <p class="card-text">Output renders in 512×512 tiles. Each tile completes and copies to CPU before the next starts, preventing GPU memory accumulation.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 border-primary">
+          <div class="card-body">
+            <h5 class="card-title text-primary">Aggressive Cleanup</h5>
+            <p class="card-text">Explicit WebGL resource deletion after each tile. Force garbage collection hints between major operations.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 border-primary">
+          <div class="card-body">
+            <h5 class="card-title text-primary">IndexedDB Offloading</h5>
+            <p class="card-text">Source images stored in IndexedDB immediately after capture. Only loaded into memory when needed for stitching.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2><i class="bi bi-arrow-clockwise me-2"></i>Crash Recovery</h2>
+    <p>Mobile browsers can terminate apps at any time. VFTCam implements "stitch jobs" - resumable processing that survives app crashes:</p>
+
+<pre class="bg-dark text-light p-3 rounded"><code class="language-javascript">// Stitch job persistence
+const stitchJob = {
+    id: crypto.randomUUID(),
+    createdAt: Date.now(),
+    status: 'pending',
+    progress: { currentTile: 0, totalTiles: 64 },
+    imageIds: [...capturedImageIds],
+    outputTiles: []  // Completed tiles stored as blobs
+};
+
+// Save after each tile completes
+async function saveTileProgress(tileIndex, tileBlob) {
+    stitchJob.outputTiles[tileIndex] = await blobToBase64(tileBlob);
+    stitchJob.progress.currentTile = tileIndex + 1;
+    await db.put('stitchJobs', stitchJob);
+}</code></pre>
+
+    <h2><i class="bi bi-badge-vr me-2"></i>VR Viewing</h2>
+    <p>Completed photospheres can be viewed in VR mode using Google Cardboard or similar headsets. The viewer uses WebXR when available, with a fallback to gyroscope-controlled stereoscopic rendering.</p>
+
+    <h2><i class="bi bi-shield-check me-2"></i>Privacy by Design</h2>
+    <p>VFTCam collects zero user data:</p>
+    <ul>
+      <li>No analytics or tracking scripts</li>
+      <li>No server-side processing - everything runs locally</li>
+      <li>No account required</li>
+      <li>GPS data is optional and only embedded in exported files</li>
+      <li>Images never leave the device unless explicitly shared</li>
+    </ul>
+
+    <h2><i class="bi bi-speedometer2 me-2"></i>Performance</h2>
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead class="table-light">
+          <tr>
+            <th>Metric</th>
+            <th>iPhone 13</th>
+            <th>Pixel 6</th>
+            <th>iPad Pro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Capture time (36 photos)</td>
+            <td>2-3 min</td>
+            <td>2-3 min</td>
+            <td>2-3 min</td>
+          </tr>
+          <tr>
+            <td>Stitch time (4K output)</td>
+            <td>~45 sec</td>
+            <td>~60 sec</td>
+            <td>~30 sec</td>
+          </tr>
+          <tr>
+            <td>Memory peak</td>
+            <td>~800 MB</td>
+            <td>~900 MB</td>
+            <td>~1.1 GB</td>
+          </tr>
+          <tr>
+            <td>Output resolution</td>
+            <td colspan="3" class="text-center">4096 × 2048 (4K equirectangular)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2><i class="bi bi-lightbulb me-2"></i>Lessons Learned</h2>
+    <ol>
+      <li><strong>Test on real devices early.</strong> The iOS Safari memory limit shaped the entire architecture. Emulators don't expose these constraints.</li>
+      <li><strong>WebGL debugging is hard.</strong> GPU errors are often silent. Build extensive logging and visualization tools for shader development.</li>
+      <li><strong>Device orientation APIs vary wildly.</strong> The same code produces different results on iOS vs Android. Abstract these early.</li>
+      <li><strong>Users will hold their phones wrong.</strong> Design for imperfection. Capture the actual orientation and compensate in software.</li>
+      <li><strong>Zero-build has real benefits.</strong> No webpack config to debug. No node_modules. Just open the HTML file.</li>
+    </ol>
+
+    <h2><i class="bi bi-box-seam me-2"></i>External Libraries</h2>
+    <ul>
+      <li><a href="https://threejs.org/" target="_blank">Three.js</a> - 3D visualization and WebGL abstraction</li>
+      <li><a href="https://pannellum.org/" target="_blank">Pannellum</a> - Panorama viewing</li>
+      <li><a href="https://developers.google.com/web/tools/workbox" target="_blank">Workbox</a> - Service worker and PWA caching</li>
+      <li><a href="https://github.com/nickyout/gyronorm.js" target="_blank">GyroNorm.js</a> - Cross-platform device orientation normalization</li>
+    </ul>
+
+    <h2><i class="bi bi-check-circle me-2"></i>Conclusion</h2>
+    <p>VFTCam demonstrates that sophisticated image processing applications can run entirely in the browser, without native code, server infrastructure, or complex build systems. By embracing web standards and working within browser constraints rather than fighting them, it's possible to build tools that are both powerful and accessible.</p>
+    <p>The app continues to be used by educators worldwide to create virtual field trips, bringing remote locations into classrooms and enabling students to explore places they could never physically visit.</p>
+
+    <!-- Back to Projects -->
+    <div class="text-center mt-4">
+      <a href="{{ site.baseurl }}/" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Back to Projects
+      </a>
+      <a href="https://vftcam.stanford.edu" target="_blank" class="btn btn-primary ms-2">
+        <i class="bi bi-box-arrow-up-right me-2"></i>Try VFTCam
+      </a>
+    </div>
+  </article>
 </div>
 
 <style>
-/* Additional styles for this article */
 .article-content h2 {
-  color: var(--primary-color);
   margin-top: 2.5rem;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 2px solid var(--border-color);
-}
-
-.article-content h2 i {
-  margin-right: 0.5rem;
-  opacity: 0.8;
 }
 
 .article-content h3 {
@@ -2596,73 +317,12 @@ def update_service_worker():
   margin-bottom: 1rem;
 }
 
-.image-caption {
-  text-align: center;
-  margin: 2rem 0;
+.article-content pre {
+  margin: 1rem 0;
+  overflow-x: auto;
 }
 
-.image-caption img {
-  max-width: 100%;
-  border-radius: 8px;
-  box-shadow: var(--card-shadow);
-}
-
-.image-caption p {
-  margin-top: 0.75rem;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  font-style: italic;
-}
-
-.tech-stack-grid .tech-item h4 {
-  color: var(--primary-color);
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
-}
-
-.tech-stack-grid .tech-item a {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-/* Table of contents styling */
-.toc {
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.toc h2 {
-  margin-top: 0 !important;
-  font-size: 1.25rem;
-  border-bottom: none !important;
-  padding-bottom: 0.5rem;
-}
-
-.toc ul {
-  list-style: none;
-  padding-left: 0;
-  margin-bottom: 0;
-  columns: 2;
-}
-
-@media (max-width: 768px) {
-  .toc ul {
-    columns: 1;
-  }
-}
-
-.toc li {
-  padding: 0.25rem 0;
-  padding-left: 1.25rem;
-  position: relative;
-}
-
-.toc li::before {
-  content: "→";
-  position: absolute;
-  left: 0;
-  color: var(--primary-color);
+.article-content pre code {
+  font-size: 0.875rem;
 }
 </style>
