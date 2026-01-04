@@ -1,132 +1,188 @@
 ---
 layout: default
-title: Tools & Artifacts
+title: Artifacts
 ---
 
 <div class="container my-5">
   <h1 class="display-4 mb-3">Artifacts</h1>
-  <p class="lead text-secondary mb-5">
+  <p class="lead text-secondary mb-4">
     A collection of artifacts created with AI Coding Assistants. Each tool is a standalone file that runs directly in your browser.
   </p>
 
-  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-      <div class="col">
+  <!-- Search and Sort Controls -->
+  <div class="row mb-3 g-2">
+    <div class="col-md-6">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="search" id="searchInput" class="form-control" placeholder="Search artifacts...">
+      </div>
+    </div>
+    <div class="col-md-3">
+      <select id="sortSelect" class="form-select">
+        <option value="name-asc">Name (A-Z)</option>
+        <option value="name-desc">Name (Z-A)</option>
+        <option value="date-desc">Newest First</option>
+        <option value="date-asc">Oldest First</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tag Filters -->
+  <div class="mb-4" id="tagFilters">
+    <button class="btn btn-sm btn-primary me-1 mb-1" data-tag="all">All</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="ai">ai</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="audio">audio</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="aviation">aviation</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="converter">converter</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="demo">demo</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="editor">editor</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="education">education</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="generator">generator</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="music">music</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="printing">printing</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="productivity">productivity</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="reading">reading</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="statistics">statistics</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="svg">svg</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="text">text</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="training">training</button>
+      <button class="btn btn-sm btn-outline-secondary me-1 mb-1" data-tag="writing">writing</button>
+  </div>
+
+  <!-- No Results Message -->
+  <div id="noResults" class="text-center text-secondary py-5" style="display: none;">
+    <i class="bi bi-search fs-1 mb-3 d-block"></i>
+    <p>No artifacts match your search.</p>
+  </div>
+
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="artifactGrid">
+      <div class="col artifact-card" data-tags="aviation,generator,svg" data-title="Airport Symbol Maker" data-description="Create custom aviation airport symbols with configurable runway layouts, export as SVG or PNG" data-date="2026-01-04">
         <a href="airport_symbol_maker.html" class="card card-modern h-100 text-decoration-none">
           <img src="thumbnails/airport_symbol_maker.webp" class="card-img-top" alt="Airport Symbol Maker preview">
           <div class="card-body">
             <h5 class="card-title">Airport Symbol Maker</h5>
             <p class="card-text text-secondary small">Create custom aviation airport symbols with configurable runway layouts, export as SVG or PNG</p>
+            <div class="mt-2"><span class="badge bg-secondary me-1 tag-badge" data-tag="aviation">aviation</span><span class="badge bg-secondary me-1 tag-badge" data-tag="generator">generator</span><span class="badge bg-secondary me-1 tag-badge" data-tag="svg">svg</span></div>
           </div>
           <div class="card-footer bg-transparent border-0 text-secondary small">
-            Last edited: Dec 12, 2025
+            Last edited: Jan 04, 2026
           </div>
         </a>
       </div>
-      <div class="col">
+      <div class="col artifact-card" data-tags="printing,generator,text" data-title="Banner Maker" data-description="Create printable banners from text or images. Choose Google Fonts, set page count, and print multi-page banners." data-date="2026-01-04">
         <a href="banner-maker.html" class="card card-modern h-100 text-decoration-none">
           <img src="thumbnails/banner-maker.webp" class="card-img-top" alt="Banner Maker preview">
           <div class="card-body">
             <h5 class="card-title">Banner Maker</h5>
             <p class="card-text text-secondary small">Create printable banners from text or images. Choose Google Fonts, set page count, and print multi-page banners.</p>
+            <div class="mt-2"><span class="badge bg-secondary me-1 tag-badge" data-tag="printing">printing</span><span class="badge bg-secondary me-1 tag-badge" data-tag="generator">generator</span><span class="badge bg-secondary me-1 tag-badge" data-tag="text">text</span></div>
           </div>
           <div class="card-footer bg-transparent border-0 text-secondary small">
             Last edited: Jan 04, 2026
           </div>
         </a>
       </div>
-      <div class="col">
+      <div class="col artifact-card" data-tags="ai,demo,education" data-title="Context Window Demo" data-description="Interactive demonstration of how token context windows work in Large Language Models" data-date="2026-01-04">
         <a href="context-window.html" class="card card-modern h-100 text-decoration-none">
           <img src="thumbnails/context-window.webp" class="card-img-top" alt="Context Window Demo preview">
           <div class="card-body">
             <h5 class="card-title">Context Window Demo</h5>
             <p class="card-text text-secondary small">Interactive demonstration of how token context windows work in Large Language Models</p>
+            <div class="mt-2"><span class="badge bg-secondary me-1 tag-badge" data-tag="ai">ai</span><span class="badge bg-secondary me-1 tag-badge" data-tag="demo">demo</span><span class="badge bg-secondary me-1 tag-badge" data-tag="education">education</span></div>
           </div>
           <div class="card-footer bg-transparent border-0 text-secondary small">
             Last edited: Jan 04, 2026
           </div>
         </a>
       </div>
-      <div class="col">
+      <div class="col artifact-card" data-tags="converter,text,productivity" data-title="DOCX to Markdown Converter" data-description="Quick and easy DOCX to Markdown conversion directly in your browser" data-date="2026-01-04">
         <a href="docx-to-markdown.html" class="card card-modern h-100 text-decoration-none">
           <img src="thumbnails/docx-to-markdown.webp" class="card-img-top" alt="DOCX to Markdown Converter preview">
           <div class="card-body">
             <h5 class="card-title">DOCX to Markdown Converter</h5>
             <p class="card-text text-secondary small">Quick and easy DOCX to Markdown conversion directly in your browser</p>
+            <div class="mt-2"><span class="badge bg-secondary me-1 tag-badge" data-tag="converter">converter</span><span class="badge bg-secondary me-1 tag-badge" data-tag="text">text</span><span class="badge bg-secondary me-1 tag-badge" data-tag="productivity">productivity</span></div>
           </div>
           <div class="card-footer bg-transparent border-0 text-secondary small">
             Last edited: Jan 04, 2026
           </div>
         </a>
       </div>
-      <div class="col">
+      <div class="col artifact-card" data-tags="audio,training,music" data-title="EQ Feedback Trainer - Parametric Edition" data-description="Train your ears to identify EQ frequencies with interactive audio exercises and parametric equalization" data-date="2026-01-04">
         <a href="eq_trainer.html" class="card card-modern h-100 text-decoration-none">
           <img src="thumbnails/eq_trainer.webp" class="card-img-top" alt="EQ Feedback Trainer - Parametric Edition preview">
           <div class="card-body">
             <h5 class="card-title">EQ Feedback Trainer - Parametric Edition</h5>
             <p class="card-text text-secondary small">Train your ears to identify EQ frequencies with interactive audio exercises and parametric equalization</p>
+            <div class="mt-2"><span class="badge bg-secondary me-1 tag-badge" data-tag="audio">audio</span><span class="badge bg-secondary me-1 tag-badge" data-tag="training">training</span><span class="badge bg-secondary me-1 tag-badge" data-tag="music">music</span></div>
           </div>
           <div class="card-footer bg-transparent border-0 text-secondary small">
-            Last edited: Dec 12, 2025
+            Last edited: Jan 04, 2026
           </div>
         </a>
       </div>
-      <div class="col">
+      <div class="col artifact-card" data-tags="aviation,generator,svg" data-title="Hobbs Meter Generator" data-description="Generate and download Hobbs meter SVG and PNG images for aviation hour tracking displays" data-date="2026-01-04">
         <a href="hobbs_meter_generator.html" class="card card-modern h-100 text-decoration-none">
           <img src="thumbnails/hobbs_meter_generator.webp" class="card-img-top" alt="Hobbs Meter Generator preview">
           <div class="card-body">
             <h5 class="card-title">Hobbs Meter Generator</h5>
             <p class="card-text text-secondary small">Generate and download Hobbs meter SVG and PNG images for aviation hour tracking displays</p>
+            <div class="mt-2"><span class="badge bg-secondary me-1 tag-badge" data-tag="aviation">aviation</span><span class="badge bg-secondary me-1 tag-badge" data-tag="generator">generator</span><span class="badge bg-secondary me-1 tag-badge" data-tag="svg">svg</span></div>
           </div>
           <div class="card-footer bg-transparent border-0 text-secondary small">
-            Last edited: Dec 17, 2025
+            Last edited: Jan 04, 2026
           </div>
         </a>
       </div>
-      <div class="col">
+      <div class="col artifact-card" data-tags="ai,demo,education" data-title="RAG Chatbot Demo" data-description="Interactive demo of Retrieval-Augmented Generation (RAG) showing how chatbots retrieve relevant context to answer questions" data-date="2026-01-04">
         <a href="rag-chatbot.html" class="card card-modern h-100 text-decoration-none">
           <img src="thumbnails/rag-chatbot.webp" class="card-img-top" alt="RAG Chatbot Demo preview">
           <div class="card-body">
             <h5 class="card-title">RAG Chatbot Demo</h5>
             <p class="card-text text-secondary small">Interactive demo of Retrieval-Augmented Generation (RAG) showing how chatbots retrieve relevant context to answer questions</p>
+            <div class="mt-2"><span class="badge bg-secondary me-1 tag-badge" data-tag="ai">ai</span><span class="badge bg-secondary me-1 tag-badge" data-tag="demo">demo</span><span class="badge bg-secondary me-1 tag-badge" data-tag="education">education</span></div>
           </div>
           <div class="card-footer bg-transparent border-0 text-secondary small">
             Last edited: Jan 04, 2026
           </div>
         </a>
       </div>
-      <div class="col">
+      <div class="col artifact-card" data-tags="text,editor,writing" data-title="Semantic Zoom Editor" data-description="A text editor that summarizes into ideas and concepts as you zoom out." data-date="2026-01-04">
         <a href="semantic-zoom-editor.html" class="card card-modern h-100 text-decoration-none">
           <img src="thumbnails/semantic-zoom-editor.webp" class="card-img-top" alt="Semantic Zoom Editor preview">
           <div class="card-body">
             <h5 class="card-title">Semantic Zoom Editor</h5>
             <p class="card-text text-secondary small">A text editor that summarizes into ideas and concepts as you zoom out.</p>
+            <div class="mt-2"><span class="badge bg-secondary me-1 tag-badge" data-tag="text">text</span><span class="badge bg-secondary me-1 tag-badge" data-tag="editor">editor</span><span class="badge bg-secondary me-1 tag-badge" data-tag="writing">writing</span></div>
           </div>
           <div class="card-footer bg-transparent border-0 text-secondary small">
             Last edited: Jan 04, 2026
           </div>
         </a>
       </div>
-      <div class="col">
+      <div class="col artifact-card" data-tags="reading,productivity,text" data-title="SpeedRead" data-description="Speed reading app that displays text one word at a time with adjustable WPM for faster reading" data-date="2026-01-04">
         <a href="speedread.html" class="card card-modern h-100 text-decoration-none">
           <img src="thumbnails/speedread.webp" class="card-img-top" alt="SpeedRead preview">
           <div class="card-body">
             <h5 class="card-title">SpeedRead</h5>
             <p class="card-text text-secondary small">Speed reading app that displays text one word at a time with adjustable WPM for faster reading</p>
+            <div class="mt-2"><span class="badge bg-secondary me-1 tag-badge" data-tag="reading">reading</span><span class="badge bg-secondary me-1 tag-badge" data-tag="productivity">productivity</span><span class="badge bg-secondary me-1 tag-badge" data-tag="text">text</span></div>
           </div>
           <div class="card-footer bg-transparent border-0 text-secondary small">
-            Last edited: Dec 12, 2025
+            Last edited: Jan 04, 2026
           </div>
         </a>
       </div>
-      <div class="col">
+      <div class="col artifact-card" data-tags="text,productivity,statistics" data-title="Text Counter" data-description="Count words, characters, sentences, and paragraphs in your text with real-time statistics" data-date="2026-01-04">
         <a href="text_counter.html" class="card card-modern h-100 text-decoration-none">
           <img src="thumbnails/text_counter.webp" class="card-img-top" alt="Text Counter preview">
           <div class="card-body">
             <h5 class="card-title">Text Counter</h5>
             <p class="card-text text-secondary small">Count words, characters, sentences, and paragraphs in your text with real-time statistics</p>
+            <div class="mt-2"><span class="badge bg-secondary me-1 tag-badge" data-tag="text">text</span><span class="badge bg-secondary me-1 tag-badge" data-tag="productivity">productivity</span><span class="badge bg-secondary me-1 tag-badge" data-tag="statistics">statistics</span></div>
           </div>
           <div class="card-footer bg-transparent border-0 text-secondary small">
-            Last edited: Dec 12, 2025
+            Last edited: Jan 04, 2026
           </div>
         </a>
       </div>
@@ -150,4 +206,174 @@ title: Tools & Artifacts
   .card-modern .card-title {
     color: var(--text-primary, #1e293b);
   }
+  .tag-badge {
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  .tag-badge:hover {
+    background-color: #0d6efd !important;
+  }
+  .artifact-card {
+    transition: opacity 0.3s ease;
+  }
+  .artifact-card.hidden {
+    display: none !important;
+  }
+  #tagFilters .btn.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+  }
 </style>
+
+<script>
+(function() {
+  const searchInput = document.getElementById('searchInput');
+  const sortSelect = document.getElementById('sortSelect');
+  const tagFilters = document.getElementById('tagFilters');
+  const grid = document.getElementById('artifactGrid');
+  const noResults = document.getElementById('noResults');
+  const cards = Array.from(document.querySelectorAll('.artifact-card'));
+
+  let currentTag = 'all';
+  let currentSearch = '';
+
+  // Read initial state from URL
+  function readURLState() {
+    const params = new URLSearchParams(window.location.search);
+    const tag = params.get('tag');
+    const search = params.get('q');
+    const sort = params.get('sort');
+
+    if (tag) {
+      currentTag = tag;
+      updateTagButtons();
+    }
+    if (search) {
+      currentSearch = search;
+      searchInput.value = search;
+    }
+    if (sort) {
+      sortSelect.value = sort;
+    }
+  }
+
+  // Update URL with current state
+  function updateURL() {
+    const params = new URLSearchParams();
+    if (currentTag !== 'all') params.set('tag', currentTag);
+    if (currentSearch) params.set('q', currentSearch);
+    if (sortSelect.value !== 'name-asc') params.set('sort', sortSelect.value);
+
+    const newURL = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+
+    history.replaceState(null, '', newURL);
+  }
+
+  // Update tag button active states
+  function updateTagButtons() {
+    tagFilters.querySelectorAll('[data-tag]').forEach(btn => {
+      btn.classList.remove('active', 'btn-primary', 'btn-outline-secondary');
+      if (btn.dataset.tag === currentTag) {
+        btn.classList.add('active', 'btn-primary');
+      } else {
+        btn.classList.add('btn-outline-secondary');
+      }
+    });
+  }
+
+  // Filter and sort cards
+  function filterAndSort() {
+    const searchLower = currentSearch.toLowerCase();
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+      const title = (card.dataset.title || '').toLowerCase();
+      const description = (card.dataset.description || '').toLowerCase();
+      const tags = (card.dataset.tags || '').toLowerCase();
+
+      const matchesSearch = !currentSearch ||
+        title.includes(searchLower) ||
+        description.includes(searchLower);
+
+      const matchesTag = currentTag === 'all' ||
+        tags.split(',').map(t => t.trim()).includes(currentTag);
+
+      if (matchesSearch && matchesTag) {
+        card.classList.remove('hidden');
+        visibleCount++;
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+
+    // Sort visible cards
+    const sortValue = sortSelect.value;
+    const visibleCards = cards.filter(c => !c.classList.contains('hidden'));
+
+    visibleCards.sort((a, b) => {
+      switch (sortValue) {
+        case 'name-asc':
+          return (a.dataset.title || '').localeCompare(b.dataset.title || '');
+        case 'name-desc':
+          return (b.dataset.title || '').localeCompare(a.dataset.title || '');
+        case 'date-desc':
+          return (b.dataset.date || '').localeCompare(a.dataset.date || '');
+        case 'date-asc':
+          return (a.dataset.date || '').localeCompare(b.dataset.date || '');
+        default:
+          return 0;
+      }
+    });
+
+    // Reorder in DOM
+    visibleCards.forEach(card => grid.appendChild(card));
+
+    // Also move hidden cards to end
+    cards.filter(c => c.classList.contains('hidden')).forEach(card => grid.appendChild(card));
+
+    // Show/hide no results message
+    noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+
+    updateURL();
+  }
+
+  // Event: Tag filter buttons
+  tagFilters.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-tag]');
+    if (btn) {
+      currentTag = btn.dataset.tag;
+      updateTagButtons();
+      filterAndSort();
+    }
+  });
+
+  // Event: Tag badges on cards
+  document.addEventListener('click', (e) => {
+    const badge = e.target.closest('.tag-badge');
+    if (badge) {
+      e.preventDefault();
+      e.stopPropagation();
+      currentTag = badge.dataset.tag;
+      updateTagButtons();
+      filterAndSort();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+
+  // Event: Search input
+  searchInput.addEventListener('input', (e) => {
+    currentSearch = e.target.value.trim();
+    filterAndSort();
+  });
+
+  // Event: Sort select
+  sortSelect.addEventListener('change', filterAndSort);
+
+  // Initialize
+  readURLState();
+  filterAndSort();
+})();
+</script>
