@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banner Maker</title>
+    <meta name="description" content="Create printable banners from text or images. Choose Google Fonts, set page count, and print multi-page banners.">
+    <!-- Google Fonts - preload popular choices -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link id="google-font-link" href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Black+Ops+One&family=Bungee&family=Oswald:wght@700&family=Permanent+Marker&family=Russo+One&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --paper-width: 8.5in;
+            --paper-height: 11in;
+            --preview-scale: 0.25;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .controls {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-width: 600px;
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.5rem;
+            color: #111827;
+            text-align: center;
+        }
+
+        /* Mode Toggle Tabs */
+        .mode-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1.5rem;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #d1d5db;
+        }
+
+        .mode-tab {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: #f9fafb;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #6b7280;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .mode-tab:not(:last-child) {
+            border-right: 1px solid #d1d5db;
+        }
+
+        .mode-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .mode-tab:hover:not(.active) {
+            background: #e5e7eb;
+        }
+
+        /* Mode Panels */
+        .mode-panel {
+            display: none;
+        }
+
+        .mode-panel.active {
+            display: block;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-group.full-width {
+            grid-column: span 2;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #4b5563;
+        }
+
+        input[type="text"],
+        input[type="file"],
+        input[type="number"],
+        select {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        input[type="text"] {
+            font-size: 1.25rem;
+            padding: 0.75rem;
+        }
+
+        input[type="file"] {
+            border: 1px dashed #9ca3af;
+            padding: 1rem;
+            background: #f9fafb;
+            cursor: pointer;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button:hover { background: var(--primary-hover); }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+
+        button.secondary {
+            background: #4b5563;
+        }
+        button.secondary:hover { background: #374151; }
+
+        #error-msg {
+            color: #dc2626;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            display: none;
+            text-align: center;
+        }
+
+        /* Shared Controls Section */
+        .shared-controls {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .shared-controls h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9ca3af;
+            margin: 0 0 1rem 0;
+        }
+
+        /* Preview Area */
+        #output-info {
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        #output {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            padding-bottom: 2rem;
+        }
+
+        .page-preview {
+            width: calc(var(--paper-width) * var(--preview-scale));
+            height: calc(var(--paper-height) * var(--preview-scale));
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .page-preview img,
+        .page-preview canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+        }
+
+        .page-label {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 10px;
+            color: #6b7280;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+            pointer-events: none;
+        }
+
+        /* Print Styles */
+        @media print {
+            @page {
+                margin: 0;
+                size: auto;
+            }
+
+            body {
+                background: white;
+                margin: 0;
+                padding: 0;
+                display: block;
+            }
+
+            .controls, #output-info, h1 {
+                display: none !important;
+            }
+
+            #output {
+                display: block;
+                gap: 0;
+                padding: 0;
+            }
+
+            .page-preview {
+                width: var(--paper-width) !important;
+                height: var(--paper-height) !important;
+                border: 1px dashed #9ca3af;
+                box-shadow: none;
+                margin: 0;
+                break-after: page;
+                page-break-after: always;
+                display: block;
+                position: relative;
+            }
+
+            .page-label {
+                bottom: 5px;
+                right: 5px;
+                font-size: 8pt;
+                background: transparent;
+                border: none;
+                color: #9ca3af;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h1>✂️ Banner Maker</h1>
+
+        <!-- Mode Toggle -->
+        <div class="mode-tabs">
+            <button class="mode-tab active" data-mode="text" onclick="switchMode('text')">
+                📝 Text
+            </button>
+            <button class="mode-tab" data-mode="image" onclick="switchMode('image')">
+                🖼️ Image
+            </button>
+        </div>
+
+        <!-- Text Mode Panel -->
+        <div class="mode-panel active" id="text-panel">
+            <div class="control-grid">
+                <div class="input-group full-width">
+                    <label>Enter Text</label>
+                    <input type="text" id="bannerText" placeholder="HAPPY BIRTHDAY" value="">
+                </div>
+
+                <div class="input-group">
+                    <label>Font</label>
+                    <select id="fontSelect">
+                        <option value="Impact">Impact</option>
+                        <option value="Arial Black">Arial Black</option>
+                        <option value="Anton">Anton</option>
+                        <option value="Bebas Neue">Bebas Neue</option>
+                        <option value="Oswald">Oswald</option>
+                        <option value="Bangers">Bangers</option>
+                        <option value="Bungee">Bungee</option>
+                        <option value="Russo One">Russo One</option>
+                        <option value="Permanent Marker">Permanent Marker</option>
+                        <option value="Black Ops One">Black Ops One</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Pages Wide</label>
+                    <input type="number" id="textPagesWide" value="3" min="1" max="20">
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Mode Panel -->
+        <div class="mode-panel" id="image-panel">
+            <div class="control-grid">
+                <div class="input-group full-width">
+                    <label>Select Image</label>
+                    <input type="file" id="imageInput" accept="image/*">
+                </div>
+
+                <div class="input-group full-width">
+                    <label>Pages Wide</label>
+                    <input type="number" id="imagePagesWide" value="3" min="1" max="20">
+                </div>
+            </div>
+        </div>
+
+        <!-- Shared Controls -->
+        <div class="shared-controls">
+            <h3>Options</h3>
+            <div class="control-grid">
+                <div class="input-group full-width">
+                    <label>Orientation</label>
+                    <select id="orientation">
+                        <option value="landscape">Landscape (11 × 8.5) - Best for banners</option>
+                        <option value="portrait">Portrait (8.5 × 11)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button onclick="generate()">Generate Banner</button>
+            <button onclick="window.print()" class="secondary" id="printBtn" disabled>Print Banner</button>
+        </div>
+
+        <div id="error-msg"></div>
+    </div>
+
+    <div id="output-info"></div>
+    <div id="output"></div>
+
+    <script>
+        let currentMode = 'text';
+
+        function switchMode(mode) {
+            currentMode = mode;
+
+            // Update tabs
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.mode === mode);
+            });
+
+            // Update panels
+            document.querySelectorAll('.mode-panel').forEach(panel => {
+                panel.classList.toggle('active', panel.id === `${mode}-panel`);
+            });
+
+            // Clear output
+            document.getElementById('output').innerHTML = '';
+            document.getElementById('output-info').innerText = '';
+            document.getElementById('printBtn').disabled = true;
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error-msg');
+            el.innerText = msg;
+            el.style.display = 'block';
+        }
+
+        function clearError() {
+            document.getElementById('error-msg').style.display = 'none';
+        }
+
+        function generate() {
+            clearError();
+            if (currentMode === 'text') {
+                generateTextBanner();
+            } else {
+                generateImageBanner();
+            }
+        }
+
+        // ============ TEXT BANNER ============
+
+        function generateTextBanner() {
+            const text = document.getElementById('bannerText').value.trim();
+            const fontName = document.getElementById('fontSelect').value;
+            const pagesWide = parseInt(document.getElementById('textPagesWide').value);
+            const orientation = document.getElementById('orientation').value;
+
+            if (!text) {
+                showError('Please enter some text for your banner.');
+                return;
+            }
+
+            if (pagesWide < 1) {
+                showError('Please enter at least 1 page.');
+                return;
+            }
+
+            // Paper dimensions in pixels (96 DPI for canvas)
+            const DPI = 96;
+            let paperW, paperH;
+
+            if (orientation === 'landscape') {
+                paperW = 11 * DPI;
+                paperH = 8.5 * DPI;
+            } else {
+                paperW = 8.5 * DPI;
+                paperH = 11 * DPI;
+            }
+
+            // Set CSS variables
+            document.documentElement.style.setProperty('--paper-width', (orientation === 'landscape' ? 11 : 8.5) + 'in');
+            document.documentElement.style.setProperty('--paper-height', (orientation === 'landscape' ? 8.5 : 11) + 'in');
+
+            // Create a temp canvas to measure text
+            const measureCanvas = document.createElement('canvas');
+            const measureCtx = measureCanvas.getContext('2d');
+
+            // Start with a large font size and scale to fit
+            const baseFontSize = paperH * 0.8; // 80% of page height
+            measureCtx.font = `bold ${baseFontSize}px "${fontName}", sans-serif`;
+
+            // Measure total text width at base size
+            const textMetrics = measureCtx.measureText(text);
+            const textWidth = textMetrics.width;
+
+            // Calculate total banner width
+            const totalBannerWidth = paperW * pagesWide;
+
+            // Scale font to fit across all pages (with some padding)
+            const padding = paperW * 0.05; // 5% padding per page
+            const availableWidth = totalBannerWidth - (padding * 2);
+            const scale = availableWidth / textWidth;
+            const fontSize = Math.min(baseFontSize * scale, paperH * 0.85);
+
+            // Re-measure with final font size
+            measureCtx.font = `bold ${fontSize}px "${fontName}", sans-serif`;
+
+            // Distribute characters across pages
+            const pages = distributeCharacters(text, pagesWide, paperW, measureCtx);
+
+            // Render pages
+            renderTextPages(pages, paperW, paperH, fontSize, fontName, orientation);
+        }
+
+        function distributeCharacters(text, pageCount, pageWidth, ctx) {
+            const pages = [];
+            for (let i = 0; i < pageCount; i++) {
+                pages.push({ chars: '', startX: 0 });
+            }
+
+            // Calculate cumulative positions for each character
+            const charPositions = [];
+            let xPos = 0;
+
+            for (const char of text) {
+                const charWidth = ctx.measureText(char).width;
+                charPositions.push({ char, x: xPos, width: charWidth });
+                xPos += charWidth;
+            }
+
+            const totalWidth = xPos;
+            const totalBannerWidth = pageWidth * pageCount;
+
+            // Center the text in the banner
+            const startOffset = (totalBannerWidth - totalWidth) / 2;
+
+            // Assign each character to a page
+            for (const cp of charPositions) {
+                const charCenter = startOffset + cp.x + cp.width / 2;
+                let pageIndex = Math.floor(charCenter / pageWidth);
+                pageIndex = Math.max(0, Math.min(pageCount - 1, pageIndex));
+                pages[pageIndex].chars += cp.char;
+            }
+
+            // Calculate startX for each page's text (for centering within page)
+            for (let i = 0; i < pageCount; i++) {
+                const pageChars = pages[i].chars;
+                if (pageChars) {
+                    const pageTextWidth = ctx.measureText(pageChars).width;
+                    pages[i].width = pageTextWidth;
+                }
+            }
+
+            return pages;
+        }
+
+        function renderTextPages(pages, paperW, paperH, fontSize, fontName, orientation) {
+            const output = document.getElementById('output');
+            output.innerHTML = '';
+
+            const orientationLabel = orientation === 'landscape' ? '11×8.5"' : '8.5×11"';
+            document.getElementById('output-info').innerText =
+                `${pages.length} pages (${orientationLabel} each)`;
+
+            pages.forEach((page, index) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = paperW;
+                canvas.height = paperH;
+                const ctx = canvas.getContext('2d');
+
+                // White background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, paperW, paperH);
+
+                // Draw text
+                ctx.fillStyle = 'black';
+                ctx.font = `bold ${fontSize}px "${fontName}", sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (page.chars) {
+                    ctx.fillText(page.chars, paperW / 2, paperH / 2);
+                }
+
+                // Create preview container
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'page-preview';
+
+                const img = document.createElement('img');
+                img.src = canvas.toDataURL('image/png');
+
+                const label = document.createElement('div');
+                label.className = 'page-label';
+                label.innerText = `Page ${index + 1}`;
+
+                pageDiv.appendChild(img);
+                pageDiv.appendChild(label);
+                output.appendChild(pageDiv);
+            });
+
+            document.getElementById('printBtn').disabled = false;
+        }
+
+        // ============ IMAGE BANNER ============
+
+        function generateImageBanner() {
+            const input = document.getElementById('imageInput');
+            const pagesWide = parseInt(document.getElementById('imagePagesWide').value);
+            const orientation = document.getElementById('orientation').value;
+
+            if (!input.files || !input.files[0]) {
+                showError('Please select an image file first.');
+                return;
+            }
+
+            const file = input.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    sliceImage(img, pagesWide, orientation);
+                    document.getElementById('printBtn').disabled = false;
+                };
+                img.onerror = function() {
+                    showError('Could not load image. Please try a different file.');
+                }
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function sliceImage(img, pagesWide, orientation) {
+            const output = document.getElementById('output');
+            output.innerHTML = '';
+
+            let paperW_in, paperH_in;
+
+            if (orientation === 'portrait') {
+                paperW_in = 8.5;
+                paperH_in = 11;
+            } else {
+                paperW_in = 11;
+                paperH_in = 8.5;
+            }
+
+            document.documentElement.style.setProperty('--paper-width', paperW_in + 'in');
+            document.documentElement.style.setProperty('--paper-height', paperH_in + 'in');
+
+            const paperRatio = paperW_in / paperH_in;
+            const totalWidth = img.width;
+            const totalHeight = img.height;
+            const sliceWidth = totalWidth / pagesWide;
+            const sliceHeight = sliceWidth / paperRatio;
+            const pagesTall = Math.ceil(totalHeight / sliceHeight);
+
+            document.getElementById('output-info').innerText =
+                `Result: ${pagesWide} × ${pagesTall} pages. Total Size: ${pagesWide * paperW_in}" × ${pagesTall * paperH_in}"`;
+
+            let pageCount = 0;
+
+            for (let y = 0; y < pagesTall; y++) {
+                for (let x = 0; x < pagesWide; x++) {
+                    pageCount++;
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = sliceWidth;
+                    canvas.height = sliceHeight;
+                    const ctx = canvas.getContext('2d');
+
+                    ctx.drawImage(
+                        img,
+                        x * sliceWidth,
+                        y * sliceHeight,
+                        sliceWidth,
+                        sliceHeight,
+                        0, 0, sliceWidth, sliceHeight
+                    );
+
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'page-preview';
+
+                    const imgTag = document.createElement('img');
+                    imgTag.src = canvas.toDataURL('image/png');
+
+                    const label = document.createElement('div');
+                    label.className = 'page-label';
+                    label.innerText = `Pg ${pageCount} (R${y+1}, C${x+1})`;
+
+                    pageDiv.appendChild(imgTag);
+                    pageDiv.appendChild(label);
+                    output.appendChild(pageDiv);
+                }
+            }
+        }
+
+        // Auto-generate on text input change (debounced)
+        let debounceTimer;
+        document.getElementById('bannerText').addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (document.getElementById('bannerText').value.trim()) {
+                    generateTextBanner();
+                }
+            }, 300);
+        });
+
+        // Regenerate on font change
+        document.getElementById('fontSelect').addEventListener('change', () => {
+            if (document.getElementById('bannerText').value.trim()) {
+                generateTextBanner();
+            }
+        });
+
+        // Regenerate on page count change
+        document.getElementById('textPagesWide').addEventListener('change', () => {
+            if (document.getElementById('bannerText').value.trim()) {
+                generateTextBanner();
+            }
+        });
+
+        // Regenerate on orientation change
+        document.getElementById('orientation').addEventListener('change', () => {
+            if (currentMode === 'text' && document.getElementById('bannerText').value.trim()) {
+                generateTextBanner();
+            }
+        });
+    </script>
+</body>
+</html>
