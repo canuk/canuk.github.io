@@ -101,6 +101,9 @@ for file in "$ARTIFACTS_DIR"/*.html; do
     tags=$(sed -n 's/.*<meta name="tags" content="\([^"]*\)".*/\1/p' "$file" | head -1)
     tags_normalized=$(echo "$tags" | tr ',' '\n' | sed 's/^ *//;s/ *$//' | tr '\n' ',' | sed 's/,$//')
 
+    # Extract external URL if present
+    external_url=$(sed -n 's/.*<meta name="external-url" content="\([^"]*\)".*/\1/p' "$file" | head -1)
+
     # Get created date from meta tag (fallback to file modification date)
     date_sort=$(sed -n 's/.*<meta name="created" content="\([^"]*\)".*/\1/p' "$file" | head -1)
     if [[ -z "$date_sort" ]]; then
@@ -136,11 +139,22 @@ for file in "$ARTIFACTS_DIR"/*.html; do
         done
     fi
 
+    # Determine link URL and attributes
+    if [[ -n "$external_url" ]]; then
+        link_href="$external_url"
+        link_attrs="target=\"_blank\" rel=\"noopener\""
+        external_icon="<i class=\"bi bi-box-arrow-up-right ms-1 small\"></i>"
+    else
+        link_href="$filename"
+        link_attrs=""
+        external_icon=""
+    fi
+
     cards_html+="      <div class=\"col artifact-card\" data-tags=\"$tags_normalized\" data-title=\"$title\" data-description=\"$description\" data-date=\"$date_sort\">
-        <a href=\"$filename\" class=\"card card-modern h-100 text-decoration-none\">
+        <a href=\"$link_href\" class=\"card card-modern h-100 text-decoration-none\" $link_attrs>
           $img_html
           <div class=\"card-body\">
-            <h5 class=\"card-title\">$title</h5>
+            <h5 class=\"card-title\">$title$external_icon</h5>
             <p class=\"card-text text-secondary small\">$description</p>
             <div class=\"mt-2\">$tag_badges</div>
           </div>
