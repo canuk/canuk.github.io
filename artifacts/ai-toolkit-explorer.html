@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive explorer for AI tools in education. Browse and filter AI-powered educational resources by category and use case.">
+    <meta name="tags" content="ai, education, demo">
+    <meta name="created" content="2025-01-04">
+    <title>AI + Education Toolkit Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #fae8ff 100%);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .header-content {
+            padding: 1.5rem 0;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .icon-box {
+            padding: 0.5rem;
+            background: linear-gradient(135deg, #3b82f6 0%, #9333ea 100%);
+            border-radius: 0.75rem;
+            color: white;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #2563eb 0%, #9333ea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .search-container {
+            position: relative;
+            margin-top: 1rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 3rem;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .main-content {
+            padding: 2rem 0;
+        }
+
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .role-card {
+            padding: 1.5rem;
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .role-card:not(.active) {
+            background: white;
+            border-color: #e5e7eb;
+        }
+
+        .role-card:not(.active):hover {
+            background: #f9fafb;
+            transform: scale(1.05);
+        }
+
+        .role-card.active {
+            color: white;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            transform: scale(1.05);
+        }
+
+        .role-card.all.active { background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); }
+        .role-card.designer.active { background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%); }
+        .role-card.builder.active { background: linear-gradient(135deg, #22c55e 0%, #10b981 100%); }
+        .role-card.advocate.active { background: linear-gradient(135deg, #f97316 0%, #ef4444 100%); }
+
+        .role-icon {
+            width: 2rem;
+            height: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .role-card:not(.active) .role-icon {
+            color: #374151;
+        }
+
+        .role-name {
+            font-size: 1.125rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .role-description {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .role-card:not(.active) .role-description {
+            color: #6b7280;
+        }
+
+        .role-count {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 0.5rem;
+        }
+
+        .role-card:not(.active) .role-count {
+            color: #1f2937;
+        }
+
+        .filters-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: #f9fafb;
+        }
+
+        .active-filter {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .stats {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .stat-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            background: #22c55e;
+            border-radius: 50%;
+        }
+
+        .type-filters {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .type-filters.hidden {
+            display: none;
+        }
+
+        .type-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .type-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .type-btn:not(.active) {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .type-btn:not(.active):hover {
+            background: #e5e7eb;
+        }
+
+        .type-btn.active {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .resource-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .resource-card:hover {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .resource-card.featured {
+            border-color: #fbbf24;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .role-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .role-badge.designer { background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%); }
+        .role-badge.builder { background: linear-gradient(135deg, #22c55e 0%, #10b981 100%); }
+        .role-badge.advocate { background: linear-gradient(135deg, #f97316 0%, #ef4444 100%); }
+
+        .favorite-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .favorite-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .heart-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            color: #9ca3af;
+        }
+
+        .heart-icon.favorited {
+            fill: #ef4444;
+            color: #ef4444;
+        }
+
+        .resource-title {
+            font-size: 1.125rem;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+
+        .resource-org {
+            font-size: 0.875rem;
+            color: #2563eb;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+        }
+
+        .resource-description {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tag {
+            padding: 0.25rem 0.5rem;
+            background: #f3f4f6;
+            color: #374151;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .explore-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, #3b82f6 0%, #9333ea 100%);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .explore-btn:hover {
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 1rem;
+        }
+
+        .no-results-icon {
+            width: 4rem;
+            height: 4rem;
+            color: #d1d5db;
+            margin: 0 auto 1rem;
+        }
+
+        .no-results h3 {
+            font-size: 1.25rem;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .no-results p {
+            color: #6b7280;
+        }
+
+        .favorites-section {
+            background: linear-gradient(135deg, #fce7f3 0%, #f3e8ff 100%);
+            border: 2px solid #fbcfe8;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-top: 3rem;
+        }
+
+        .favorites-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .favorites-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            color: #db2777;
+            fill: #db2777;
+        }
+
+        .favorites-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .favorites-text {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .roles-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .resources-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="header-title">
+                    <div class="icon-box">
+                        <svg class="role-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1>AI + Education Toolkit</h1>
+                        <p class="subtitle">Explore <span id="total-count">38</span> resources for learner-centered AI design</p>
+                    </div>
+                </div>
+                <div class="search-container">
+                    <svg class="search-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        id="search-input"
+                        placeholder="Search resources, organizations, or tags..."
+                    >
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container main-content">
+        <div class="roles-grid" id="roles-grid"></div>
+
+        <div class="filters-bar">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="filter-btn" id="toggle-filters">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                    </svg>
+                    <span>Filter by Type</span>
+                </button>
+                <div id="active-filter-container"></div>
+            </div>
+            <div class="stats">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div class="stat-dot"></div>
+                    <span><span id="free-count">0</span> Free Resources</span>
+                </div>
+                <span style="font-weight: 500;">
+                    Showing <span id="filtered-count">0</span> of <span id="total-count-2">38</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="type-filters hidden" id="type-filters">
+            <div class="type-buttons" id="type-buttons"></div>
+        </div>
+
+        <div id="resources-container"></div>
+
+        <div id="favorites-section" style="display: none;"></div>
+    </div>
+
+    <script>
+const resources = [
+    {id: 1, role: 'designer', title: 'Learner Variability Navigator', organization: 'Digital Promise', description: 'Interactive tool providing research-backed strategies for diverse learners across different subjects and age groups.', type: 'interactive-tool', url: 'https://lvp.digitalpromiseglobal.org/', tags: ['learner-centered', 'research-backed', 'free'], featured: true},
+    {id: 2, role: 'designer', title: 'Design Thinking for Educators', organization: 'IDEO', description: 'Comprehensive toolkit adapting design thinking for K-12 contexts with workbooks and examples.', type: 'framework', url: 'https://page.ideo.com/design-thinking-edu-toolkit', tags: ['design-thinking', 'free', 'multilingual'], featured: true},
+    {id: 3, role: 'designer', title: 'UDL Guidelines 3.0', organization: 'CAST', description: 'Latest Universal Design for Learning guidelines emphasizing flexibility and learner agency.', type: 'framework', url: 'https://udlguidelines.cast.org/', tags: ['accessibility', 'inclusion', 'free']},
+    {id: 4, role: 'designer', title: 'Empathy Map for Learners', organization: 'LXD.org', description: 'Template for understanding learner perspectives in educational design.', type: 'template', url: 'https://lxd.org/news/empathy-map-for-learners-and-learning-experience-design/', tags: ['user-research', 'empathy', 'free']},
+    {id: 5, role: 'designer', title: 'ISTE Standards for Educators', organization: 'ISTE', description: 'Seven educator competencies including Designer role for technology integration.', type: 'framework', url: 'https://iste.org/standards/educators', tags: ['standards', 'professional-development']},
+    {id: 6, role: 'designer', title: 'User Research Methods Course', organization: 'Interaction Design Foundation', description: '40+ ready-to-use templates for conducting user research in educational contexts.', type: 'course', url: 'https://www.interaction-design.org/courses/user-research-methods-and-best-practices', tags: ['user-research', 'templates']},
+    {id: 7, role: 'designer', title: 'Understanding by Design', organization: 'ASCD', description: 'Backward design framework starting with learning outcomes.', type: 'framework', url: 'https://authenticeducation.org/whatisubd/', tags: ['instructional-design', 'curriculum']},
+    {id: 8, role: 'designer', title: 'Practical Tools to Empathize', organization: 'University of Waterloo', description: 'Downloadable templates for empathy maps, personas, and journey maps.', type: 'template', url: 'https://uwaterloo.ca/centre-for-teaching-excellence/catalogs/tip-sheets/practical-tools-empathize-your-learners', tags: ['empathy', 'templates', 'free']},
+    {id: 9, role: 'designer', title: 'Human-Centered Design Toolkit', organization: 'Schools2030', description: 'HCD process tested across 1,000 schools in 10 countries.', type: 'framework', url: 'https://schools2030.org/hcd/', tags: ['global', 'tested', 'free']},
+    {id: 10, role: 'designer', title: 'AI in Instructional Design', organization: 'Dr. Philippa Hardman', description: '2024 analysis on AI adoption in instructional design with predictions.', type: 'article', url: 'https://drphilippahardman.substack.com/p/ai-in-instructional-design-reflections', tags: ['AI', 'current', 'analysis']},
+    {id: 11, role: 'builder', title: 'MagicSchool AI', organization: 'MagicSchool', description: '70+ AI tools for lesson planning, differentiation, and assessment. Free for K-12.', type: 'interactive-tool', url: 'https://www.magicschool.ai/', tags: ['AI', 'free', 'lesson-planning'], featured: true},
+    {id: 12, role: 'builder', title: 'Google Teachable Machine', organization: 'Google', description: 'Train computers to recognize images, sounds, and poses without coding.', type: 'interactive-tool', url: 'https://teachablemachine.withgoogle.com/', tags: ['machine-learning', 'no-code', 'free'], featured: true},
+    {id: 13, role: 'builder', title: 'Canva for Education', organization: 'Canva', description: '100% free for K-12 with 80,000+ templates and AI-powered design tools.', type: 'interactive-tool', url: 'https://www.canva.com/education/', tags: ['design', 'free', 'templates'], featured: true},
+    {id: 14, role: 'builder', title: 'Claude AI', organization: 'Anthropic', description: 'AI assistant with Learning Modes designed for educational contexts.', type: 'interactive-tool', url: 'https://claude.ai', tags: ['AI', 'conversational', 'free-tier']},
+    {id: 15, role: 'builder', title: 'Eduaide.AI', organization: 'Eduaide', description: '110+ educational templates with AI assistant for automatic differentiation.', type: 'interactive-tool', url: 'https://www.eduaide.ai/', tags: ['AI', 'templates', 'differentiation']},
+    {id: 16, role: 'builder', title: 'SchoolAI', organization: 'SchoolAI', description: 'Standards-aligned lesson planning with strong privacy protections.', type: 'interactive-tool', url: 'https://schoolai.com/', tags: ['AI', 'privacy', 'free']},
+    {id: 17, role: 'builder', title: 'Figma for Education', organization: 'Figma', description: 'Professional design and prototyping tools free for educators.', type: 'interactive-tool', url: 'https://www.figma.com/education/', tags: ['design', 'prototyping', 'free']},
+    {id: 18, role: 'builder', title: 'Uizard', organization: 'Uizard', description: 'AI-powered UI design generating prototypes from text prompts.', type: 'interactive-tool', url: 'https://uizard.io/', tags: ['AI', 'no-code', 'prototyping']},
+    {id: 19, role: 'builder', title: 'AI Pedagogy Project', organization: 'Harvard metaLAB', description: 'Interactive guide, tutorials, and curated assignments for AI in education.', type: 'course', url: 'https://aipedagogy.org/', tags: ['AI', 'research-backed', 'free']},
+    {id: 20, role: 'builder', title: 'ISTE AI Explorations', organization: 'ISTE', description: 'Hands-on AI project guides for elementary, secondary, and CS educators.', type: 'course', url: 'http://isteaiexplorations.org/', tags: ['AI', 'K-12', 'free']},
+    {id: 21, role: 'builder', title: 'Common Sense AI Literacy', organization: 'Common Sense Media', description: 'Free AI Basics course and 20-minute literacy lessons.', type: 'course', url: 'https://www.commonsense.org/education/ai-in-schools', tags: ['AI-literacy', 'free', 'lessons']},
+    {id: 22, role: 'builder', title: 'Anthropic Learn', organization: 'Anthropic', description: 'Official Claude tutorials, guides, and best practices with free certificates.', type: 'course', url: 'https://www.anthropic.com/learn', tags: ['AI', 'tutorials', 'certificates']},
+    {id: 23, role: 'builder', title: 'Rapid Prototyping Guide', organization: 'SHIFT eLearning', description: 'Methodology for creating scaled prototypes with early feedback.', type: 'article', url: 'https://www.shiftelearning.com/blog/rapid-prototyping-for-elearning', tags: ['prototyping', 'methodology']},
+    {id: 24, role: 'builder', title: 'No Code MBA: AI Apps', organization: 'No Code MBA', description: 'Video tutorials for building AI apps without coding.', type: 'course', url: 'https://www.nocode.mba/tracks/building-apps-with-ai', tags: ['no-code', 'AI', 'video']},
+    {id: 25, role: 'builder', title: 'AI Lesson Planning Tools', organization: 'Ditch That Textbook', description: '15 AI tools with free templates for lesson creation.', type: 'article', url: 'https://ditchthattextbook.com/ai-lesson-planning/', tags: ['AI', 'lesson-planning', 'templates']},
+    {id: 26, role: 'advocate', title: 'UNESCO AI Ethics Recommendation', organization: 'UNESCO', description: 'First global standard on AI ethics adopted by 193 countries.', type: 'framework', url: 'https://unesdoc.unesco.org/ark:/48223/pf0000385082', tags: ['ethics', 'global', 'policy'], featured: true},
+    {id: 27, role: 'advocate', title: 'TeachAI Policy Toolkit', organization: 'TeachAI Coalition', description: 'Foundational policy ideas with templates and sample guidance.', type: 'framework', url: 'https://www.teachai.org/toolkit', tags: ['policy', 'templates', 'free'], featured: true},
+    {id: 28, role: 'advocate', title: 'UNESCO AI Competency Frameworks', organization: 'UNESCO', description: '2024 frameworks defining AI literacy for students and teachers.', type: 'framework', url: 'https://www.unesco.org/en/articles/what-you-need-know-about-unescos-new-ai-competency-frameworks-students-and-teachers', tags: ['competencies', 'literacy', 'current']},
+    {id: 29, role: 'advocate', title: 'ISTE Standards (AI Updated)', organization: 'ISTE', description: '2023 updated standards addressing AI use across seven educator roles.', type: 'framework', url: 'https://iste.org/standards', tags: ['standards', 'AI', 'professional-development']},
+    {id: 30, role: 'advocate', title: 'Digital Equity Framework', organization: 'Digital Promise', description: 'Systems-level framework across five domains for AI equity.', type: 'framework', url: 'https://digitalpromise.org/2024/02/20/how-ai-for-education-can-address-digital-equity/', tags: ['equity', 'systems-thinking']},
+    {id: 31, role: 'advocate', title: 'State AI Guidance Repository', organization: 'AI for Education', description: 'Compiled guidance from 25+ U.S. states with model language.', type: 'resource-hub', url: 'https://www.aiforeducation.io/ai-resources/state-ai-guidance', tags: ['policy', 'examples', 'U.S.']},
+    {id: 32, role: 'advocate', title: 'AI and Equity Guide', organization: 'Education Week', description: '2024 guide on digital divide, bias, and practical recommendations.', type: 'article', url: 'https://www.edweek.org/technology/ai-and-equity-explained-a-guide-for-k-12-schools/2024/06', tags: ['equity', 'bias', 'practical']},
+    {id: 33, role: 'advocate', title: 'OECD AI Equity Report', organization: 'OECD', description: 'August 2024 report on AI impact on equity and inclusion.', type: 'article', url: 'https://www.oecd.org/en/publications/the-potential-impact-of-artificial-intelligence-on-equity-and-inclusion-in-education_15df715b-en.html', tags: ['research', 'equity', 'global']},
+    {id: 34, role: 'advocate', title: 'CoSN AI & Accessibility Report', organization: 'CoSN & CAST', description: 'September 2024 strategies for ethical AI with accessibility focus.', type: 'article', url: 'https://www.cosn.org/cosn-news/cosn-report-unveils-strategies-for-navigating-ai-and-accessibility-in-education/', tags: ['accessibility', 'ethics', 'current']},
+    {id: 35, role: 'advocate', title: 'EDUCAUSE AI Action Plan', organization: 'EDUCAUSE', description: '2024 comprehensive plan spanning governance, operations, and pedagogy.', type: 'framework', url: 'https://library.educause.edu/resources/2024/5/2024-educause-action-plan-ai-policies-and-guidelines', tags: ['policy', 'comprehensive', 'higher-ed']},
+    {id: 36, role: 'advocate', title: 'EdTech Advocacy Toolkit', organization: 'Proximate Change', description: 'Stakeholder analysis, policy advocacy, and alliance building.', type: 'framework', url: 'https://toolkit.proximatechange.com/edtech-roadmap/viiii-policy-influence/29-advocacy-for-educational-technology-adoption-and-support/', tags: ['advocacy', 'stakeholders', 'comprehensive']},
+    {id: 37, role: 'advocate', title: 'WEF AI in Education 4.0', organization: 'World Economic Forum', description: '2024 report on four key promises of AI with equity focus.', type: 'article', url: 'https://www.weforum.org/stories/2024/04/future-learning-ai-revolutionizing-education-4-0/', tags: ['research', 'global', 'equity']},
+    {id: 38, role: 'advocate', title: 'ISTE AI Deep Dive Course', organization: 'ISTE', description: 'Professional learning covering benefits, risks, and policy development.', type: 'course', url: 'https://iste.org/ai', tags: ['professional-development', 'comprehensive']}
+];
+
+const roles = [
+    {id: 'all', name: 'All Roles', description: 'View all resources'},
+    {id: 'designer', name: 'Designer', description: 'Start with learners, not technology'},
+    {id: 'builder', name: 'Builder', description: 'Create with no-code tools'},
+    {id: 'advocate', name: 'Advocate', description: 'Champion ethical AI adoption'}
+];
+
+const types = [
+    {id: 'all', name: 'All Types'},
+    {id: 'interactive-tool', name: 'Interactive Tool'},
+    {id: 'framework', name: 'Framework'},
+    {id: 'article', name: 'Article'},
+    {id: 'course', name: 'Course'},
+    {id: 'template', name: 'Template'},
+    {id: 'resource-hub', name: 'Resource Hub'}
+];
+
+const state = {
+    selectedRole: 'all',
+    selectedType: 'all',
+    searchQuery: '',
+    favorites: new Set()
+};
+
+function init() {
+    renderRoles();
+    renderTypeButtons();
+    renderResources();
+    updateStats();
+    setupEventListeners();
+}
+
+function setupEventListeners() {
+    document.getElementById('search-input').addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        renderResources();
+        updateStats();
+    });
+
+    document.getElementById('toggle-filters').addEventListener('click', () => {
+        document.getElementById('type-filters').classList.toggle('hidden');
+    });
+
+    document.getElementById('roles-grid').addEventListener('click', (e) => {
+        const card = e.target.closest('.role-card');
+        if (card) {
+            const roleId = card.dataset.role;
+            if (roleId) {
+                state.selectedRole = roleId;
+                renderRoles();
+                renderResources();
+                updateStats();
+            }
+        }
+    });
+
+    document.getElementById('type-buttons').addEventListener('click', (e) => {
+        const btn = e.target.closest('.type-btn');
+        if (btn) {
+            const typeId = btn.dataset.type;
+            if (typeId) {
+                state.selectedType = typeId;
+                renderTypeButtons();
+                renderResources();
+                updateStats();
+            }
+        }
+    });
+
+    document.getElementById('active-filter-container').addEventListener('click', (e) => {
+        if (e.target.closest('.active-filter')) {
+            state.selectedType = 'all';
+            renderTypeButtons();
+            renderResources();
+            updateStats();
+        }
+    });
+
+    document.getElementById('resources-container').addEventListener('click', (e) => {
+        const btn = e.target.closest('.favorite-btn');
+        if (btn) {
+            const resourceId = parseInt(btn.dataset.id);
+            if (state.favorites.has(resourceId)) {
+                state.favorites.delete(resourceId);
+            } else {
+                state.favorites.add(resourceId);
+            }
+            renderResources();
+        }
+    });
+}
+
+function getRoleIcon(roleId) {
+    const icons = {
+        'all': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z"/>',
+        'designer': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>',
+        'builder': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+        'advocate': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>'
+    };
+    return icons[roleId] || '';
+}
+
+function renderRoles() {
+    const container = document.getElementById('roles-grid');
+    const html = roles.map(role => {
+        const count = role.id === 'all' ? resources.length : resources.filter(r => r.role === role.id).length;
+        const isActive = state.selectedRole === role.id;
+        return `<div class="role-card ${role.id} ${isActive ? 'active' : ''}" data-role="${role.id}">
+            <svg class="role-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">${getRoleIcon(role.id)}</svg>
+            <div class="role-name">${role.name}</div>
+            <div class="role-description">${role.description}</div>
+            ${role.id !== 'all' ? `<div class="role-count">${count}</div>` : ''}
+        </div>`;
+    }).join('');
+    container.innerHTML = html;
+}
+
+function renderTypeButtons() {
+    const container = document.getElementById('type-buttons');
+    const html = types.map(type => {
+        const isActive = state.selectedType === type.id;
+        return `<button class="type-btn ${isActive ? 'active' : ''}" data-type="${type.id}"><span>${type.name}</span></button>`;
+    }).join('');
+    container.innerHTML = html;
+
+    const activeFilterContainer = document.getElementById('active-filter-container');
+    if (state.selectedType !== 'all') {
+        const typeName = types.find(t => t.id === state.selectedType).name;
+        activeFilterContainer.innerHTML = `<div class="active-filter">${typeName}<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></div>`;
+    } else {
+        activeFilterContainer.innerHTML = '';
+    }
+}
+
+function renderResources() {
+    const filtered = getFilteredResources();
+    const container = document.getElementById('resources-container');
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="no-results"><svg class="no-results-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><h3>No resources found</h3><p>Try adjusting your filters or search query</p></div>';
+        renderFavoritesSection();
+        return;
+    }
+
+    const html = `<div class="resources-grid">${filtered.map(resource => {
+        const isFavorite = state.favorites.has(resource.id);
+        return `<div class="resource-card ${resource.featured ? 'featured' : ''}">
+            <div class="card-header">
+                <div class="role-badge ${resource.role}">${resource.role.charAt(0).toUpperCase() + resource.role.slice(1)}</div>
+                <button class="favorite-btn" data-id="${resource.id}">
+                    <svg class="heart-icon ${isFavorite ? 'favorited' : ''}" viewBox="0 0 24 24" stroke="currentColor" fill="none">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                    </svg>
+                </button>
+            </div>
+            <h3 class="resource-title">${resource.title}</h3>
+            <div class="resource-org">${resource.organization}</div>
+            <p class="resource-description">${resource.description}</p>
+            <div class="tags">${resource.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
+            <a href="${resource.url}" target="_blank" rel="noopener noreferrer" class="explore-btn">
+                <span>Explore Resource</span>
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+        </div>`;
+    }).join('')}</div>`;
+    container.innerHTML = html;
+    renderFavoritesSection();
+}
+
+function renderFavoritesSection() {
+    const section = document.getElementById('favorites-section');
+    if (state.favorites.size === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+    section.innerHTML = `<div class="favorites-header"><svg class="favorites-icon" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg><h2 class="favorites-title">Your Favorites (${state.favorites.size})</h2></div><p class="favorites-text">You've bookmarked ${state.favorites.size} resource${state.favorites.size !== 1 ? 's' : ''} to explore later</p>`;
+}
+
+function getFilteredResources() {
+    return resources.filter(resource => {
+        const matchesRole = state.selectedRole === 'all' || resource.role === state.selectedRole;
+        const matchesType = state.selectedType === 'all' || resource.type === state.selectedType;
+        const query = state.searchQuery.toLowerCase();
+        const matchesSearch = !query || 
+            resource.title.toLowerCase().includes(query) ||
+            resource.description.toLowerCase().includes(query) ||
+            resource.organization.toLowerCase().includes(query) ||
+            resource.tags.some(tag => tag.toLowerCase().includes(query));
+        return matchesRole && matchesType && matchesSearch;
+    });
+}
+
+function updateStats() {
+    const filtered = getFilteredResources();
+    const freeCount = resources.filter(r => r.tags.includes('free')).length;
+    document.getElementById('filtered-count').textContent = filtered.length;
+    document.getElementById('free-count').textContent = freeCount;
+}
+
+init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="HIIT workout tracker based on the Body for Life program. Track sets, reps, and weights with automatic progression.">
+    <meta name="tags" content="fitness, tracker, health">
+    <meta name="created" content="2025-01-04">
+    <title>Body for Life HIIT Workout Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .input-group-text {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Workout Tracker</h1>
+        <select id="exerciseSelect" class="form-select mb-4">
+            <option value="">Choose an exercise</option>
+            <option value="squat">Squat</option>
+            <option value="benchPress">Bench Press</option>
+            <option value="deadlift">Deadlift</option>
+            <!-- Add more exercises as needed -->
+        </select>
+        <form id="workoutForm">
+            <div class="mb-3">
+                <label for="reps12a" class="form-label">12 Reps (Set 1)</label>
+                <div class="input-group">
+                    <span class="input-group-text" data-action="decrement">-5</span>
+                    <input type="number" class="form-control" id="reps12a" name="reps12a">
+                    <span class="input-group-text" data-action="increment">+5</span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="reps10" class="form-label">10 Reps</label>
+                <div class="input-group">
+                    <span class="input-group-text" data-action="decrement">-5</span>
+                    <input type="number" class="form-control" id="reps10" name="reps10">
+                    <span class="input-group-text" data-action="increment">+5</span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="reps8" class="form-label">8 Reps</label>
+                <div class="input-group">
+                    <span class="input-group-text" data-action="decrement">-5</span>
+                    <input type="number" class="form-control" id="reps8" name="reps8">
+                    <span class="input-group-text" data-action="increment">+5</span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="reps6" class="form-label">6 Reps</label>
+                <div class="input-group">
+                    <span class="input-group-text" data-action="decrement">-5</span>
+                    <input type="number" class="form-control" id="reps6" name="reps6">
+                    <span class="input-group-text" data-action="increment">+5</span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="reps12b" class="form-label">12 Reps (Set 2)</label>
+                <div class="input-group">
+                    <span class="input-group-text" data-action="decrement">-5</span>
+                    <input type="number" class="form-control" id="reps12b" name="reps12b">
+                    <span class="input-group-text" data-action="increment">+5</span>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Workout</button>
+        </form>
+    </div>
+
+    <script>
+        let db;
+        const dbName = 'WorkoutTrackerDB';
+        const storeName = 'workouts';
+
+        const request = indexedDB.open(dbName, 1);
+
+        request.onerror = (event) => {
+            console.error("IndexedDB error:", event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            loadLastWorkout();
+        };
+
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            const store = db.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
+            store.createIndex('exercise', 'exercise', { unique: false });
+            store.createIndex('date', 'date', { unique: false });
+        };
+
+        function loadLastWorkout() {
+            const transaction = db.transaction([storeName], 'readonly');
+            const store = transaction.objectStore(storeName);
+            const index = store.index('date');
+            
+            const request = index.openCursor(null, 'prev');
+            
+            request.onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    const lastWorkout = cursor.value;
+                    document.getElementById('exerciseSelect').value = lastWorkout.exercise;
+                    document.getElementById('reps12a').value = lastWorkout.reps12a;
+                    document.getElementById('reps10').value = lastWorkout.reps10;
+                    document.getElementById('reps8').value = lastWorkout.reps8;
+                    document.getElementById('reps6').value = lastWorkout.reps6;
+                    document.getElementById('reps12b').value = lastWorkout.reps12b;
+                }
+            };
+        }
+
+        document.getElementById('workoutForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const exercise = document.getElementById('exerciseSelect').value;
+            const workout = {
+                exercise: exercise,
+                reps12a: document.getElementById('reps12a').value,
+                reps10: document.getElementById('reps10').value,
+                reps8: document.getElementById('reps8').value,
+                reps6: document.getElementById('reps6').value,
+                reps12b: document.getElementById('reps12b').value,
+                date: new Date()
+            };
+
+            const transaction = db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            store.add(workout);
+
+            transaction.oncomplete = () => {
+                alert('Workout saved successfully!');
+            };
+
+            transaction.onerror = (event) => {
+                console.error('Error saving workout:', event.target.error);
+            };
+        });
+
+        document.querySelectorAll('.input-group-text').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const input = e.target.parentNode.querySelector('input');
+                const action = e.target.dataset.action;
+                const currentValue = parseInt(input.value) || 0;
+                
+                if (action === 'increment') {
+                    input.value = currentValue + 5;
+                } else if (action === 'decrement') {
+                    input.value = Math.max(0, currentValue - 5);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
