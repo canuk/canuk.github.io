@@ -142,6 +142,72 @@
             padding: 0.75rem;
         }
 
+        /* Custom Font Dropdown */
+        .font-dropdown {
+            position: relative;
+            width: 100%;
+        }
+
+        .font-dropdown-selected {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+
+        .font-dropdown-selected:hover {
+            border-color: #9ca3af;
+        }
+
+        .dropdown-arrow {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .font-dropdown-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            margin-top: 4px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            z-index: 100;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .font-dropdown.open .font-dropdown-options {
+            display: block;
+        }
+
+        .font-option {
+            padding: 0.625rem 0.75rem;
+            cursor: pointer;
+            font-size: 1.25rem;
+            transition: background 0.15s;
+        }
+
+        .font-option:hover {
+            background: #f3f4f6;
+        }
+
+        .font-option:first-child {
+            border-radius: 6px 6px 0 0;
+        }
+
+        .font-option:last-child {
+            border-radius: 0 0 6px 6px;
+        }
+
         input[type="file"] {
             border: 1px dashed #9ca3af;
             padding: 1rem;
@@ -323,18 +389,25 @@
 
                 <div class="input-group">
                     <label>Font</label>
-                    <select id="fontSelect">
-                        <option value="Impact">Impact</option>
-                        <option value="Arial Black">Arial Black</option>
-                        <option value="Anton">Anton</option>
-                        <option value="Bebas Neue">Bebas Neue</option>
-                        <option value="Oswald">Oswald</option>
-                        <option value="Bangers">Bangers</option>
-                        <option value="Bungee">Bungee</option>
-                        <option value="Russo One">Russo One</option>
-                        <option value="Permanent Marker">Permanent Marker</option>
-                        <option value="Black Ops One">Black Ops One</option>
-                    </select>
+                    <div class="font-dropdown" id="fontDropdown">
+                        <div class="font-dropdown-selected" id="fontSelected">
+                            <span style="font-family: Impact">Impact</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </div>
+                        <div class="font-dropdown-options" id="fontOptions">
+                            <div class="font-option" data-font="Impact" style="font-family: Impact">Impact</div>
+                            <div class="font-option" data-font="Arial Black" style="font-family: 'Arial Black'">Arial Black</div>
+                            <div class="font-option" data-font="Anton" style="font-family: Anton">Anton</div>
+                            <div class="font-option" data-font="Bebas Neue" style="font-family: 'Bebas Neue'">Bebas Neue</div>
+                            <div class="font-option" data-font="Oswald" style="font-family: Oswald">Oswald</div>
+                            <div class="font-option" data-font="Bangers" style="font-family: Bangers">Bangers</div>
+                            <div class="font-option" data-font="Bungee" style="font-family: Bungee">Bungee</div>
+                            <div class="font-option" data-font="Russo One" style="font-family: 'Russo One'">Russo One</div>
+                            <div class="font-option" data-font="Permanent Marker" style="font-family: 'Permanent Marker'">Permanent Marker</div>
+                            <div class="font-option" data-font="Black Ops One" style="font-family: 'Black Ops One'">Black Ops One</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="fontSelect" value="Impact">
                 </div>
 
                 <div class="input-group">
@@ -425,6 +498,40 @@
             }
         }
 
+        // ============ FONT DROPDOWN ============
+
+        const fontDropdown = document.getElementById('fontDropdown');
+        const fontSelected = document.getElementById('fontSelected');
+        const fontOptions = document.getElementById('fontOptions');
+        const fontInput = document.getElementById('fontSelect');
+
+        fontSelected.addEventListener('click', () => {
+            fontDropdown.classList.toggle('open');
+        });
+
+        fontOptions.addEventListener('click', (e) => {
+            const option = e.target.closest('.font-option');
+            if (option) {
+                const font = option.dataset.font;
+                fontInput.value = font;
+                fontSelected.querySelector('span:first-child').textContent = font;
+                fontSelected.querySelector('span:first-child').style.fontFamily = `"${font}", sans-serif`;
+                fontDropdown.classList.remove('open');
+
+                // Regenerate if text exists
+                if (document.getElementById('bannerText').value.trim()) {
+                    generateTextBanner();
+                }
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!fontDropdown.contains(e.target)) {
+                fontDropdown.classList.remove('open');
+            }
+        });
+
         // ============ TEXT BANNER ============
 
         function generateTextBanner() {
@@ -443,8 +550,8 @@
                 return;
             }
 
-            // Paper dimensions in pixels (96 DPI for canvas)
-            const DPI = 96;
+            // Paper dimensions in pixels (use higher DPI for better quality)
+            const DPI = 150;
             let paperW, paperH;
 
             if (orientation === 'landscape') {
@@ -463,84 +570,48 @@
             const measureCanvas = document.createElement('canvas');
             const measureCtx = measureCanvas.getContext('2d');
 
-            // Start with a large font size and scale to fit
-            const baseFontSize = paperH * 0.8; // 80% of page height
-            measureCtx.font = `bold ${baseFontSize}px "${fontName}", sans-serif`;
-
-            // Measure total text width at base size
-            const textMetrics = measureCtx.measureText(text);
-            const textWidth = textMetrics.width;
-
-            // Calculate total banner width
+            // Total banner width
             const totalBannerWidth = paperW * pagesWide;
 
-            // Scale font to fit across all pages (with some padding)
-            const padding = paperW * 0.05; // 5% padding per page
-            const availableWidth = totalBannerWidth - (padding * 2);
-            const scale = availableWidth / textWidth;
-            const fontSize = Math.min(baseFontSize * scale, paperH * 0.85);
+            // Add generous margins - 15% on each end
+            const marginPercent = 0.15;
+            const totalMargin = paperW * marginPercent * 2;
+            const availableWidth = totalBannerWidth - totalMargin;
 
-            // Re-measure with final font size
+            // Start with font height at 60% of page height (smaller to prevent clipping)
+            const targetFontHeight = paperH * 0.6;
+
+            // Measure text width at a reference size
+            const refSize = 100;
+            measureCtx.font = `bold ${refSize}px "${fontName}", sans-serif`;
+            const refWidth = measureCtx.measureText(text).width;
+
+            // Calculate font size to fit available width
+            const fontSizeForWidth = (availableWidth / refWidth) * refSize;
+
+            // Use the smaller of height-based or width-based size
+            const fontSize = Math.min(fontSizeForWidth, targetFontHeight);
+
+            // Calculate actual text width at final font size
             measureCtx.font = `bold ${fontSize}px "${fontName}", sans-serif`;
+            const actualTextWidth = measureCtx.measureText(text).width;
 
-            // Distribute characters across pages
-            const pages = distributeCharacters(text, pagesWide, paperW, measureCtx);
+            // Center the text in the total banner
+            const textStartX = (totalBannerWidth - actualTextWidth) / 2;
 
-            // Render pages
-            renderTextPages(pages, paperW, paperH, fontSize, fontName, orientation);
+            // Render each page
+            renderTextBanner(text, pagesWide, paperW, paperH, fontSize, fontName, textStartX, orientation);
         }
 
-        function distributeCharacters(text, pageCount, pageWidth, ctx) {
-            const pages = [];
-            for (let i = 0; i < pageCount; i++) {
-                pages.push({ chars: '', startX: 0 });
-            }
-
-            // Calculate cumulative positions for each character
-            const charPositions = [];
-            let xPos = 0;
-
-            for (const char of text) {
-                const charWidth = ctx.measureText(char).width;
-                charPositions.push({ char, x: xPos, width: charWidth });
-                xPos += charWidth;
-            }
-
-            const totalWidth = xPos;
-            const totalBannerWidth = pageWidth * pageCount;
-
-            // Center the text in the banner
-            const startOffset = (totalBannerWidth - totalWidth) / 2;
-
-            // Assign each character to a page
-            for (const cp of charPositions) {
-                const charCenter = startOffset + cp.x + cp.width / 2;
-                let pageIndex = Math.floor(charCenter / pageWidth);
-                pageIndex = Math.max(0, Math.min(pageCount - 1, pageIndex));
-                pages[pageIndex].chars += cp.char;
-            }
-
-            // Calculate startX for each page's text (for centering within page)
-            for (let i = 0; i < pageCount; i++) {
-                const pageChars = pages[i].chars;
-                if (pageChars) {
-                    const pageTextWidth = ctx.measureText(pageChars).width;
-                    pages[i].width = pageTextWidth;
-                }
-            }
-
-            return pages;
-        }
-
-        function renderTextPages(pages, paperW, paperH, fontSize, fontName, orientation) {
+        function renderTextBanner(text, pageCount, paperW, paperH, fontSize, fontName, textStartX, orientation) {
             const output = document.getElementById('output');
             output.innerHTML = '';
 
             const orientationLabel = orientation === 'landscape' ? '11×8.5"' : '8.5×11"';
             document.getElementById('output-info').innerText =
-                `${pages.length} pages (${orientationLabel} each)`;
+                `${pageCount} pages (${orientationLabel} each)`;
 
-            pages.forEach((page, index) => {
+            for (let i = 0; i < pageCount; i++) {
                 const canvas = document.createElement('canvas');
                 canvas.width = paperW;
                 canvas.height = paperH;
@@ -550,15 +621,17 @@
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, paperW, paperH);
 
-                // Draw text
+                // Draw the FULL text, offset for this page
+                // Page 0 shows x: 0 to paperW
+                // Page 1 shows x: paperW to paperW*2
+                // So we draw text at (textStartX - i*paperW)
                 ctx.fillStyle = 'black';
                 ctx.font = `bold ${fontSize}px "${fontName}", sans-serif`;
-                ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
+                ctx.textAlign = 'left';
 
-                if (page.chars) {
-                    ctx.fillText(page.chars, paperW / 2, paperH / 2);
-                }
+                const drawX = textStartX - (i * paperW);
+                ctx.fillText(text, drawX, paperH / 2);
 
                 // Create preview container
                 const pageDiv = document.createElement('div');
@@ -569,12 +642,12 @@
 
                 const label = document.createElement('div');
                 label.className = 'page-label';
-                label.innerText = `Page ${index + 1}`;
+                label.innerText = `Page ${i + 1}`;
 
                 pageDiv.appendChild(img);
                 pageDiv.appendChild(label);
                 output.appendChild(pageDiv);
-            });
+            }
 
             document.getElementById('printBtn').disabled = false;
         }
@@ -683,12 +756,7 @@
             }, 300);
         });
 
-        // Regenerate on font change
-        document.getElementById('fontSelect').addEventListener('change', () => {
-            if (document.getElementById('bannerText').value.trim()) {
-                generateTextBanner();
-            }
-        });
+        // Font change is handled by the custom dropdown click handler above
 
         // Regenerate on page count change
         document.getElementById('textPagesWide').addEventListener('change', () => {
