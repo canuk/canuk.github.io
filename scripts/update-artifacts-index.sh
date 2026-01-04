@@ -35,7 +35,7 @@ for file in "$ARTIFACTS_DIR"/*.html; do
     [[ "$filename" == "index.html" ]] && continue
 
     basename_no_ext="${filename%.html}"
-    thumbnail="$THUMBNAILS_DIR/${basename_no_ext}.png"
+    thumbnail="$THUMBNAILS_DIR/${basename_no_ext}.webp"
 
     if [[ "$SKIP_THUMBNAILS" == "true" ]]; then
         continue
@@ -44,7 +44,7 @@ for file in "$ARTIFACTS_DIR"/*.html; do
     # Generate thumbnail if it doesn't exist or is older than source
     if [[ ! -f "$thumbnail" ]] || [[ "$file" -nt "$thumbnail" ]]; then
         echo "Generating thumbnail for $filename..."
-        shot-scraper "$file" -o "$thumbnail" --width 800 --height 600 2>/dev/null || {
+        shot-scraper "$file" -o "$thumbnail" --width 800 --height 600 --quality 80 2>/dev/null || {
             echo "  Warning: Failed to generate thumbnail for $filename"
         }
     fi
@@ -60,8 +60,8 @@ for file in "$ARTIFACTS_DIR"/*.html; do
     [[ "$filename" == "index.html" ]] && continue
 
     basename_no_ext="${filename%.html}"
-    thumbnail="thumbnails/${basename_no_ext}.png"
-    thumbnail_path="$THUMBNAILS_DIR/${basename_no_ext}.png"
+    thumbnail="thumbnails/${basename_no_ext}.webp"
+    thumbnail_path="$THUMBNAILS_DIR/${basename_no_ext}.webp"
 
     # Extract title from <title> tag
     title=$(sed -n 's/.*<title>\([^<]*\)<\/title>.*/\1/p' "$file" | head -1)
@@ -82,7 +82,7 @@ for file in "$ARTIFACTS_DIR"/*.html; do
     if [[ -f "$thumbnail_path" ]]; then
         img_html="<img src=\"$thumbnail\" class=\"card-img-top\" alt=\"$title preview\">"
     else
-        img_html="<div class=\"card-img-top bg-secondary d-flex align-items-center justify-content-center\" style=\"height: 180px;\"><i class=\"fa-solid fa-code fa-3x text-white opacity-50\"></i></div>"
+        img_html="<div class=\"card-img-top bg-secondary d-flex align-items-center justify-content-center\" style=\"height: 180px;\"><i class=\"bi bi-code-slash fs-1 text-white opacity-50\"></i></div>"
     fi
 
     cards_html+="      <div class=\"col\">
