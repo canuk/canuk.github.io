@@ -14,17 +14,27 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
         body {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             color: #e0e0e0;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            min-height: 100vh;
-            padding: 20px;
+            padding: 1.5vh 1.5vw;
+            display: flex;
+            flex-direction: column;
         }
 
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 100%;
+            width: 100%;
+            height: 100%;
         }
 
         /* Header / Config Section */
@@ -32,12 +42,13 @@
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 15px;
-            padding: 15px 20px;
+            gap: 1vw;
+            padding: 1vh 1.5vw;
             background: rgba(0, 0, 0, 0.4);
             border-radius: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 1.5vh;
             border: 1px solid rgba(0, 204, 255, 0.2);
+            flex-shrink: 0;
         }
 
         .header h1 {
@@ -151,8 +162,9 @@
         .main-content {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
+            gap: 1.5vw;
+            margin-bottom: 1.5vh;
+            flex-shrink: 0;
         }
 
         @media (max-width: 768px) {
@@ -227,15 +239,15 @@
 
         /* Flip tile styling - retro split-flap display */
         .flip-tile {
-            width: 28px;
-            height: 36px;
+            width: clamp(20px, 2.5vw, 32px);
+            height: clamp(26px, 3.2vw, 42px);
             background: linear-gradient(180deg, #1a3a8a 0%, #2a4a9a 49%, #1a3a8a 51%, #2a4a9a 100%);
             color: #fff;
             display: flex;
             justify-content: center;
             align-items: center;
             font-family: 'Courier New', monospace;
-            font-size: 1.1rem;
+            font-size: clamp(0.9rem, 1.2vw, 1.3rem);
             font-weight: bold;
             border-radius: 3px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
@@ -325,8 +337,12 @@
             background: linear-gradient(180deg, #0a0a15 0%, #151525 100%);
             border: 2px solid #333;
             border-radius: 12px;
-            padding: 20px;
+            padding: 1.5vh 1.5vw;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
 
         .pattern-header {
@@ -372,7 +388,8 @@
         .pattern-container {
             position: relative;
             width: 100%;
-            aspect-ratio: 16 / 10;
+            flex: 1;
+            min-height: 0;
             overflow: hidden;
         }
 
@@ -505,14 +522,24 @@
         /* Footer */
         .footer {
             text-align: center;
-            padding: 15px;
+            padding: 0.8vh 0;
             color: #555;
-            font-size: 0.85rem;
+            font-size: clamp(0.65rem, 0.9vw, 0.85rem);
+            flex-shrink: 0;
         }
 
         .footer a {
             color: #0cf;
             text-decoration: none;
+        }
+
+        /* Kiosk mode - hide header on small height screens or via URL param */
+        body.kiosk .header {
+            display: none;
+        }
+
+        body.kiosk .footer {
+            display: none;
         }
     </style>
 </head>
@@ -1211,8 +1238,17 @@
 
         // Initialize
         (async function init() {
+            // Check for kiosk mode via URL param (?kiosk=1)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('kiosk') === '1') {
+                document.body.classList.add('kiosk');
+            }
+
+            // Check for airport in URL (?icao=KHMT)
+            const urlIcao = urlParams.get('icao');
+
             // Load last airport or default to KHMT
-            const lastAirport = localStorage.getItem('lastAirport') || 'KHMT';
+            const lastAirport = urlIcao || localStorage.getItem('lastAirport') || 'KHMT';
             dom.icaoInput.value = lastAirport;
 
             // Initialize empty flip boards
