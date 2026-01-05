@@ -628,29 +628,36 @@
             return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
         }
 
+        // CORS proxy for APIs that don't support browser requests
+        const CORS_PROXY = 'https://corsproxy.io/?';
+
+        function proxyUrl(url) {
+            return CORS_PROXY + encodeURIComponent(url);
+        }
+
         // API Functions
         async function fetchAirport(icao) {
-            const response = await fetch(`https://api.adsb.lol/api/0/airport/${icao.toUpperCase()}`);
+            const response = await fetch(proxyUrl(`https://api.adsb.lol/api/0/airport/${icao.toUpperCase()}`));
             if (!response.ok) throw new Error('Airport not found');
             return await response.json();
         }
 
         async function fetchAirportInfo(icao) {
-            const response = await fetch(`https://aviationweather.gov/api/data/airport?ids=${icao.toUpperCase()}&format=json`);
+            const response = await fetch(proxyUrl(`https://aviationweather.gov/api/data/airport?ids=${icao.toUpperCase()}&format=json`));
             if (!response.ok) throw new Error('Airport info not found');
             const data = await response.json();
             return data[0];
         }
 
         async function fetchMetar(icao) {
-            const response = await fetch(`https://aviationweather.gov/api/data/metar?ids=${icao.toUpperCase()}&format=json`);
+            const response = await fetch(proxyUrl(`https://aviationweather.gov/api/data/metar?ids=${icao.toUpperCase()}&format=json`));
             if (!response.ok) return null;
             const data = await response.json();
             return data[0];
         }
 
         async function fetchAircraft(lat, lon, radius = 5) {
-            const response = await fetch(`https://api.adsb.lol/v2/lat/${lat}/lon/${lon}/dist/${radius}`);
+            const response = await fetch(proxyUrl(`https://api.adsb.lol/v2/lat/${lat}/lon/${lon}/dist/${radius}`));
             if (!response.ok) throw new Error('Failed to fetch aircraft');
             return await response.json();
         }
