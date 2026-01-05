@@ -208,80 +208,109 @@
         .flight-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             min-height: 200px;
         }
 
         .flight-row {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 6px;
-            border-left: 3px solid transparent;
-            transition: all 0.3s;
+            gap: 4px;
         }
 
-        .flight-row.arriving {
-            border-left-color: #0cf;
-        }
-
-        .flight-row.departing {
-            border-left-color: #fbbf24;
-        }
-
-        .flight-row.new {
-            animation: slideIn 0.5s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .callsign {
+        /* Flip tile styling - retro split-flap display */
+        .flip-tile {
+            width: 28px;
+            height: 36px;
+            background: linear-gradient(180deg, #1a3a8a 0%, #2a4a9a 49%, #1a3a8a 51%, #2a4a9a 100%);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             font-family: 'Courier New', monospace;
             font-size: 1.1rem;
             font-weight: bold;
-            color: #fff;
-            min-width: 80px;
+            border-radius: 3px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+            text-shadow: 0 0 8px rgba(255,255,255,0.5);
+            position: relative;
+            perspective: 200px;
         }
 
-        .aircraft-type {
-            font-size: 0.85rem;
+        .flip-tile::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .flip-tile.flipping {
+            animation: flipTile 0.3s ease-in-out;
+        }
+
+        @keyframes flipTile {
+            0% { transform: rotateX(0deg); }
+            50% { transform: rotateX(-90deg); }
+            100% { transform: rotateX(0deg); }
+        }
+
+        .flip-tile.empty {
+            background: linear-gradient(180deg, #0a1a4a 0%, #1a2a5a 49%, #0a1a4a 51%, #1a2a5a 100%);
+            color: transparent;
+        }
+
+        .flight-row .time-separator {
+            width: 12px;
             color: #666;
-            flex: 1;
+            text-align: center;
+            font-weight: bold;
         }
 
-        .flight-time {
-            font-size: 0.85rem;
-            color: #888;
-            font-family: 'Courier New', monospace;
+        .flight-row .status-tile {
+            width: auto;
+            padding: 0 8px;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
         }
 
-        .flight-status {
-            font-size: 0.75rem;
-            padding: 2px 8px;
-            border-radius: 4px;
-            text-transform: uppercase;
+        .flight-row .status-tile.arriving {
+            background: linear-gradient(180deg, #0088aa 0%, #00aacc 49%, #0088aa 51%, #00aacc 100%);
         }
 
-        .flight-status.pattern { background: #0cf; color: #000; }
-        .flight-status.landed { background: #22c55e; color: #000; }
-        .flight-status.departed { background: #fbbf24; color: #000; }
+        .flight-row .status-tile.departing {
+            background: linear-gradient(180deg, #cc8800 0%, #ddaa00 49%, #cc8800 51%, #ddaa00 100%);
+        }
 
         .empty-message {
             color: #555;
             text-align: center;
             padding: 40px;
             font-style: italic;
+        }
+
+        /* Header row for flip board */
+        .flip-header {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+        }
+
+        .flip-header span {
+            width: 28px;
+            text-align: center;
+            font-size: 0.65rem;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .flip-header .time-header {
+            width: 68px;
+            text-align: center;
         }
 
         /* Traffic Pattern Visualization */
@@ -518,8 +547,12 @@
                     <svg viewBox="0 0 24 24"><path d="M2.5 19h19v2h-19v-2zm19.57-9.36c-.21-.8-1.04-1.28-1.84-1.06L14.92 10l-6.9-6.43-1.93.51 4.14 7.17-4.97 1.33-1.97-1.54-1.45.39 2.59 4.49L21 11.49c.81-.23 1.28-1.05 1.07-1.85z"/></svg>
                     <span class="board-title arrivals">Arrivals</span>
                 </div>
+                <div class="flip-header">
+                    <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span>
+                    <span class="time-header">TIME</span>
+                </div>
                 <div class="flight-list" id="arrivalsList">
-                    <div class="empty-message">No recent arrivals</div>
+                    <div class="empty-message">Waiting for aircraft...</div>
                 </div>
             </div>
 
@@ -528,8 +561,12 @@
                     <svg viewBox="0 0 24 24"><path d="M2.5 19h19v2h-19v-2zm7.18-5.73l4.35 1.16 5.31 1.42c.8.21 1.62-.26 1.84-1.06.21-.79-.26-1.62-1.06-1.84l-5.31-1.42-2.76-9.02-1.93-.51v8.28L5.15 8.95l-.93-2.32-1.45-.39v5.17l1.6.43 5.31 1.43z"/></svg>
                     <span class="board-title departures">Departures</span>
                 </div>
+                <div class="flip-header">
+                    <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span>
+                    <span class="time-header">TIME</span>
+                </div>
                 <div class="flight-list" id="departuresList">
-                    <div class="empty-message">No recent departures</div>
+                    <div class="empty-message">Waiting for aircraft...</div>
                 </div>
             </div>
         </div>
@@ -801,19 +838,53 @@
         }
 
         function updateFlightList(listEl, flights, type) {
-            if (flights.length === 0) {
-                listEl.innerHTML = `<div class="empty-message">No recent ${type}</div>`;
-                return;
+            const maxRows = 6;
+            const callsignLen = 6;
+
+            // Build rows
+            let html = '';
+            for (let i = 0; i < maxRows; i++) {
+                const flight = flights[i];
+                if (flight) {
+                    const callsign = (flight.callsign || flight.hex || '').toUpperCase().slice(0, callsignLen);
+                    const time = formatTime(flight.time);
+                    const isNew = flight.isNew;
+
+                    html += '<div class="flight-row">';
+
+                    // Callsign tiles
+                    for (let j = 0; j < callsignLen; j++) {
+                        const char = callsign[j] || '';
+                        const flipClass = isNew ? 'flipping' : '';
+                        const emptyClass = char ? '' : 'empty';
+                        html += `<div class="flip-tile ${flipClass} ${emptyClass}" style="animation-delay: ${j * 0.05}s">${char}</div>`;
+                    }
+
+                    // Time tiles
+                    const [hours, mins] = time.split(':');
+                    html += `<div class="flip-tile ${isNew ? 'flipping' : ''}" style="animation-delay: 0.3s">${hours[0]}</div>`;
+                    html += `<div class="flip-tile ${isNew ? 'flipping' : ''}" style="animation-delay: 0.35s">${hours[1]}</div>`;
+                    html += `<span class="time-separator">:</span>`;
+                    html += `<div class="flip-tile ${isNew ? 'flipping' : ''}" style="animation-delay: 0.4s">${mins[0]}</div>`;
+                    html += `<div class="flip-tile ${isNew ? 'flipping' : ''}" style="animation-delay: 0.45s">${mins[1]}</div>`;
+
+                    html += '</div>';
+                } else {
+                    // Empty row
+                    html += '<div class="flight-row">';
+                    for (let j = 0; j < callsignLen; j++) {
+                        html += '<div class="flip-tile empty"></div>';
+                    }
+                    html += '<div class="flip-tile empty"></div>';
+                    html += '<div class="flip-tile empty"></div>';
+                    html += '<span class="time-separator">:</span>';
+                    html += '<div class="flip-tile empty"></div>';
+                    html += '<div class="flip-tile empty"></div>';
+                    html += '</div>';
+                }
             }
 
-            listEl.innerHTML = flights.slice(0, 6).map((f, i) => `
-                <div class="flight-row ${type === 'arrivals' ? 'arriving' : 'departing'} ${f.isNew ? 'new' : ''}">
-                    <span class="callsign">${f.callsign || f.registration || f.hex}</span>
-                    <span class="aircraft-type">${f.type || ''}</span>
-                    <span class="flight-time">${formatTime(f.time)}</span>
-                    <span class="flight-status ${f.status}">${f.status}</span>
-                </div>
-            `).join('');
+            listEl.innerHTML = html;
 
             // Clear new flag after animation
             flights.forEach(f => f.isNew = false);
@@ -1102,11 +1173,37 @@
             drawPattern();
         });
 
+        // Initialize empty flip boards
+        function initEmptyBoards() {
+            const maxRows = 6;
+            const callsignLen = 6;
+
+            let html = '';
+            for (let i = 0; i < maxRows; i++) {
+                html += '<div class="flight-row">';
+                for (let j = 0; j < callsignLen; j++) {
+                    html += '<div class="flip-tile empty"></div>';
+                }
+                html += '<div class="flip-tile empty"></div>';
+                html += '<div class="flip-tile empty"></div>';
+                html += '<span class="time-separator">:</span>';
+                html += '<div class="flip-tile empty"></div>';
+                html += '<div class="flip-tile empty"></div>';
+                html += '</div>';
+            }
+
+            dom.arrivalsList.innerHTML = html;
+            dom.departuresList.innerHTML = html;
+        }
+
         // Initialize
         (async function init() {
             // Load last airport or default to KHMT
             const lastAirport = localStorage.getItem('lastAirport') || 'KHMT';
             dom.icaoInput.value = lastAirport;
+
+            // Initialize empty flip boards
+            initEmptyBoards();
 
             // Draw empty pattern
             drawPattern();
