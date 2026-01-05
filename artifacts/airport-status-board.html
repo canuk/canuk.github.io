@@ -950,8 +950,8 @@
 
             // Runway numbers from selected runway (e.g., "05/23" -> 05, 23)
             let rwyNum1 = '05', rwyNum2 = '23';
-            if (state.selectedRunway) {
-                const parts = state.selectedRunway.split('/');
+            if (state.selectedRunway && state.selectedRunway.id) {
+                const parts = state.selectedRunway.id.split('/');
                 if (parts.length === 2) {
                     rwyNum1 = parts[0];
                     rwyNum2 = parts[1];
