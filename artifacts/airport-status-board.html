@@ -400,30 +400,34 @@
 
         /* Pattern SVG Styles */
         .runway-surface {
-            fill: #2a2a2a;
-            stroke: #444;
+            fill: #3a3a3a;
+            stroke: #555;
             stroke-width: 2;
         }
 
         .runway-centerline {
-            stroke: #aaa;
+            stroke: #ccc;
             stroke-width: 2;
             stroke-dasharray: 20 15;
             stroke-linecap: round;
         }
 
+        .threshold-marking {
+            fill: #ccc;
+        }
+
         .runway-number {
-            fill: #fff;
-            font-family: 'Courier New', monospace;
-            font-size: 32px;
+            fill: #ccc;
+            font-family: 'Arial Black', 'Helvetica', sans-serif;
+            font-size: 28px;
             font-weight: bold;
             text-anchor: middle;
             dominant-baseline: middle;
         }
 
         .pattern-outline {
-            stroke: #555;
-            stroke-width: 3;
+            stroke: #666;
+            stroke-width: 2;
             fill: none;
             stroke-linecap: round;
             stroke-linejoin: round;
@@ -949,7 +953,7 @@
             const isLeft = state.patternSide === 'left';
 
             // Runway numbers from selected runway (e.g., "05/23" -> 05, 23)
-            let rwyNum1 = '05', rwyNum2 = '23';
+            let rwyNum1 = '9', rwyNum2 = '27';
             if (state.selectedRunway && state.selectedRunway.id) {
                 const parts = state.selectedRunway.id.split('/');
                 if (parts.length === 2) {
@@ -958,20 +962,23 @@
                 }
             }
 
-            // Layout constants - fixed positions like the physical display
-            // For left traffic: runway at bottom, pattern above
-            // For right traffic: runway at top, pattern below
-            const rwyY = isLeft ? 420 : 80;
-            const rwyWidth = 300;
+            // Layout constants matching the reference diagram
+            // Runway is always horizontal, centered
+            const rwyWidth = 400;
             const rwyHeight = 50;
             const rwyX = (w - rwyWidth) / 2;
+            const rwyY = isLeft ? h - 100 : 50; // Bottom for left traffic, top for right
 
-            // Pattern rectangle dimensions
-            const patternWidth = 350;
+            // Pattern dimensions
             const patternHeight = 280;
-            const patternX = rwyX - 30;
-            const patternY = isLeft ? rwyY - patternHeight - 20 : rwyY + rwyHeight + 20;
-            const cornerRadius = 40;
+            const patternLeft = rwyX - 50;  // Extends slightly left of runway
+            const patternRight = rwyX + rwyWidth + 50; // Extends slightly right
+            const patternTop = isLeft ? rwyY - patternHeight : rwyY + rwyHeight;
+            const cornerRadius = 30;
+
+            // Runway center for coordinate transformations
+            const rwyMidX = rwyX + rwyWidth / 2;
+            const rwyMidY = rwyY + rwyHeight / 2;
 
             // Get active legs based on aircraft in pattern
             const activeLegs = new Set();
@@ -979,177 +986,157 @@
                 if (ac.leg) activeLegs.add(ac.leg);
             });
 
-            // Helper to create OLED-style leg display
-            const createLegDisplay = (x, y, text, legName) => {
-                const isActive = activeLegs.has(legName);
-                const textWidth = text.length * 10 + 16;
-                const textHeight = 24;
-                return `
-                    <g class="leg-display" transform="translate(${x - textWidth/2}, ${y - textHeight/2})">
-                        <rect class="leg-display-bg" width="${textWidth}" height="${textHeight}" rx="4"/>
-                        <text class="leg-display-text ${isActive ? 'active' : ''}" x="${textWidth/2}" y="${textHeight/2 + 1}">${text}</text>
-                    </g>
-                `;
-            };
-
             // Build SVG content
             let svgContent = '';
 
-            // Pattern outline - rounded rectangle (like the wire in the photo)
+            // === PATTERN OUTLINE ===
+            // Rounded rectangle above (left traffic) or below (right traffic) the runway
             if (isLeft) {
-                // Left traffic: pattern above runway
+                // Left traffic: pattern ABOVE runway
+                // Shape: from upwind (right) around counterclockwise to final (left)
                 svgContent += `
                     <path class="pattern-outline" d="
-                        M ${rwyX + rwyWidth/2} ${rwyY}
-                        L ${rwyX + rwyWidth/2} ${patternY + patternHeight}
-                        L ${patternX + patternWidth} ${patternY + patternHeight}
-                        Q ${patternX + patternWidth + cornerRadius} ${patternY + patternHeight} ${patternX + patternWidth + cornerRadius} ${patternY + patternHeight - cornerRadius}
-                        L ${patternX + patternWidth + cornerRadius} ${patternY + cornerRadius}
-                        Q ${patternX + patternWidth + cornerRadius} ${patternY} ${patternX + patternWidth} ${patternY}
-                        L ${patternX + cornerRadius} ${patternY}
-                        Q ${patternX} ${patternY} ${patternX} ${patternY + cornerRadius}
-                        L ${patternX} ${patternY + patternHeight - cornerRadius}
-                        Q ${patternX} ${patternY + patternHeight} ${patternX + cornerRadius} ${patternY + patternHeight}
-                        L ${rwyX + rwyWidth/2 - 60} ${patternY + patternHeight}
+                        M ${rwyX + rwyWidth - 40} ${rwyY}
+                        L ${rwyX + rwyWidth - 40} ${patternTop + patternHeight}
+                        Q ${patternRight} ${patternTop + patternHeight} ${patternRight} ${patternTop + patternHeight - cornerRadius}
+                        L ${patternRight} ${patternTop + cornerRadius}
+                        Q ${patternRight} ${patternTop} ${patternRight - cornerRadius} ${patternTop}
+                        L ${patternLeft + cornerRadius} ${patternTop}
+                        Q ${patternLeft} ${patternTop} ${patternLeft} ${patternTop + cornerRadius}
+                        L ${patternLeft} ${patternTop + patternHeight - cornerRadius}
+                        Q ${patternLeft} ${patternTop + patternHeight} ${patternLeft + cornerRadius} ${patternTop + patternHeight}
+                        L ${rwyX + 40} ${patternTop + patternHeight}
+                        L ${rwyX + 40} ${rwyY}
                     "/>
                 `;
             } else {
-                // Right traffic: pattern below runway
+                // Right traffic: pattern BELOW runway
                 svgContent += `
                     <path class="pattern-outline" d="
-                        M ${rwyX + rwyWidth/2} ${rwyY + rwyHeight}
-                        L ${rwyX + rwyWidth/2} ${patternY}
-                        L ${patternX + patternWidth} ${patternY}
-                        Q ${patternX + patternWidth + cornerRadius} ${patternY} ${patternX + patternWidth + cornerRadius} ${patternY + cornerRadius}
-                        L ${patternX + patternWidth + cornerRadius} ${patternY + patternHeight - cornerRadius}
-                        Q ${patternX + patternWidth + cornerRadius} ${patternY + patternHeight} ${patternX + patternWidth} ${patternY + patternHeight}
-                        L ${patternX + cornerRadius} ${patternY + patternHeight}
-                        Q ${patternX} ${patternY + patternHeight} ${patternX} ${patternY + patternHeight - cornerRadius}
-                        L ${patternX} ${patternY + cornerRadius}
-                        Q ${patternX} ${patternY} ${patternX + cornerRadius} ${patternY}
-                        L ${rwyX + rwyWidth/2 - 60} ${patternY}
+                        M ${rwyX + rwyWidth - 40} ${rwyY + rwyHeight}
+                        L ${rwyX + rwyWidth - 40} ${patternTop}
+                        Q ${patternRight} ${patternTop} ${patternRight} ${patternTop + cornerRadius}
+                        L ${patternRight} ${patternTop + patternHeight - cornerRadius}
+                        Q ${patternRight} ${patternTop + patternHeight} ${patternRight - cornerRadius} ${patternTop + patternHeight}
+                        L ${patternLeft + cornerRadius} ${patternTop + patternHeight}
+                        Q ${patternLeft} ${patternTop + patternHeight} ${patternLeft} ${patternTop + patternHeight - cornerRadius}
+                        L ${patternLeft} ${patternTop + cornerRadius}
+                        Q ${patternLeft} ${patternTop} ${patternLeft + cornerRadius} ${patternTop}
+                        L ${rwyX + 40} ${patternTop}
+                        L ${rwyX + 40} ${rwyY + rwyHeight}
                     "/>
                 `;
             }
 
-            // Runway surface
-            svgContent += `
-                <rect class="runway-surface" x="${rwyX}" y="${rwyY}" width="${rwyWidth}" height="${rwyHeight}" rx="4"/>
-                <line class="runway-centerline" x1="${rwyX + 20}" y1="${rwyY + rwyHeight/2}" x2="${rwyX + rwyWidth - 20}" y2="${rwyY + rwyHeight/2}"/>
-            `;
+            // === RUNWAY ===
+            svgContent += `<rect class="runway-surface" x="${rwyX}" y="${rwyY}" width="${rwyWidth}" height="${rwyHeight}" rx="2"/>`;
 
-            // Runway numbers inside the runway
-            svgContent += `
-                <text class="runway-number" x="${rwyX + 50}" y="${rwyY + rwyHeight/2 + 2}">${rwyNum1}</text>
-                <text class="runway-number" x="${rwyX + rwyWidth - 50}" y="${rwyY + rwyHeight/2 + 2}">${rwyNum2}</text>
-            `;
+            // Centerline
+            svgContent += `<line class="runway-centerline" x1="${rwyX + 70}" y1="${rwyMidY}" x2="${rwyX + rwyWidth - 70}" y2="${rwyMidY}"/>`;
 
-            // Leg labels positioned like OLED displays in the photo
-            if (isLeft) {
-                // Left traffic pattern positions
-                svgContent += createLegDisplay(patternX - 50, patternY + patternHeight/2, 'UPWIND', 'upwind');
-                svgContent += createLegDisplay(patternX + 60, patternY + patternHeight + 40, 'XWIND', 'crosswind');
-                svgContent += createLegDisplay(patternX + patternWidth/2 + 40, patternY + patternHeight + 40, 'DNWIND', 'downwind');
-                svgContent += createLegDisplay(patternX + patternWidth + cornerRadius + 50, patternY + patternHeight/2, 'BASE', 'base');
-                svgContent += createLegDisplay(patternX + patternWidth/2 + 40, patternY - 25, 'FINAL', 'final');
-            } else {
-                // Right traffic pattern positions (flipped)
-                svgContent += createLegDisplay(patternX - 50, patternY + patternHeight/2, 'UPWIND', 'upwind');
-                svgContent += createLegDisplay(patternX + 60, patternY - 25, 'XWIND', 'crosswind');
-                svgContent += createLegDisplay(patternX + patternWidth/2 + 40, patternY - 25, 'DNWIND', 'downwind');
-                svgContent += createLegDisplay(patternX + patternWidth + cornerRadius + 50, patternY + patternHeight/2, 'BASE', 'base');
-                svgContent += createLegDisplay(patternX + patternWidth/2 + 40, patternY + patternHeight + 40, 'FINAL', 'final');
+            // Threshold markings (white bars at each end)
+            const thresholdWidth = 40;
+            const barWidth = 6;
+            const barSpacing = 10;
+            const numBars = 4;
+            const barHeight = rwyHeight - 10;
+
+            // Left threshold
+            for (let i = 0; i < numBars; i++) {
+                const bx = rwyX + 8 + i * barSpacing;
+                svgContent += `<rect class="threshold-marking" x="${bx}" y="${rwyY + 5}" width="${barWidth}" height="${barHeight}" rx="1"/>`;
             }
 
-            // Draw aircraft at their pattern positions
+            // Right threshold
+            for (let i = 0; i < numBars; i++) {
+                const bx = rwyX + rwyWidth - 8 - barWidth - i * barSpacing;
+                svgContent += `<rect class="threshold-marking" x="${bx}" y="${rwyY + 5}" width="${barWidth}" height="${barHeight}" rx="1"/>`;
+            }
+
+            // Runway numbers (rotated 90°)
+            // Left number rotates -90° (reads bottom to top)
+            // Right number rotates 90° (reads top to bottom)
+            const numOffsetX = 55;
+            svgContent += `
+                <text class="runway-number" x="${rwyX + numOffsetX}" y="${rwyMidY}" transform="rotate(-90, ${rwyX + numOffsetX}, ${rwyMidY})">${rwyNum1}</text>
+                <text class="runway-number" x="${rwyX + rwyWidth - numOffsetX}" y="${rwyMidY}" transform="rotate(90, ${rwyX + rwyWidth - numOffsetX}, ${rwyMidY})">${rwyNum2}</text>
+            `;
+
+            // === LEG LABELS ===
+            // Position labels around the pattern matching the reference diagram
+            const labelStyle = (text, isActive) => {
+                const color = isActive ? '#0cf' : '#666';
+                const filter = isActive ? 'drop-shadow(0 0 5px rgba(0, 204, 255, 0.8))' : '';
+                return `fill="${color}" style="filter: ${filter}"`;
+            };
+
+            if (isLeft) {
+                // Left traffic: Upwind (right), Crosswind (right side going up),
+                // Downwind (top going left), Base (left side going down), Final (left approaching)
+                svgContent += `<text class="leg-label" ${labelStyle('Upwind', activeLegs.has('upwind'))} x="${rwyX + rwyWidth + 15}" y="${rwyY + rwyHeight + 20}" font-size="14" font-family="sans-serif">Upwind</text>`;
+                svgContent += `<text class="leg-label" ${labelStyle('Crosswind', activeLegs.has('crosswind'))} x="${patternRight + 15}" y="${patternTop + patternHeight/2}" font-size="14" font-family="sans-serif" transform="rotate(90, ${patternRight + 15}, ${patternTop + patternHeight/2})">Crosswind</text>`;
+                svgContent += `<text class="leg-label" ${labelStyle('Downwind', activeLegs.has('downwind'))} x="${rwyMidX}" y="${patternTop - 10}" font-size="14" font-family="sans-serif" text-anchor="middle">Midfield Downwind</text>`;
+                svgContent += `<text class="leg-label" ${labelStyle('Base', activeLegs.has('base'))} x="${patternLeft - 15}" y="${patternTop + patternHeight/2}" font-size="14" font-family="sans-serif" transform="rotate(-90, ${patternLeft - 15}, ${patternTop + patternHeight/2})">Base</text>`;
+                svgContent += `<text class="leg-label" ${labelStyle('Final', activeLegs.has('final'))} x="${rwyX - 15}" y="${rwyY + rwyHeight + 20}" font-size="14" font-family="sans-serif" text-anchor="end">Final</text>`;
+            } else {
+                // Right traffic (mirrored)
+                svgContent += `<text class="leg-label" ${labelStyle('Upwind', activeLegs.has('upwind'))} x="${rwyX + rwyWidth + 15}" y="${rwyY - 5}" font-size="14" font-family="sans-serif">Upwind</text>`;
+                svgContent += `<text class="leg-label" ${labelStyle('Crosswind', activeLegs.has('crosswind'))} x="${patternRight + 15}" y="${patternTop + patternHeight/2}" font-size="14" font-family="sans-serif" transform="rotate(90, ${patternRight + 15}, ${patternTop + patternHeight/2})">Crosswind</text>`;
+                svgContent += `<text class="leg-label" ${labelStyle('Downwind', activeLegs.has('downwind'))} x="${rwyMidX}" y="${patternTop + patternHeight + 20}" font-size="14" font-family="sans-serif" text-anchor="middle">Midfield Downwind</text>`;
+                svgContent += `<text class="leg-label" ${labelStyle('Base', activeLegs.has('base'))} x="${patternLeft - 15}" y="${patternTop + patternHeight/2}" font-size="14" font-family="sans-serif" transform="rotate(-90, ${patternLeft - 15}, ${patternTop + patternHeight/2})">Base</text>`;
+                svgContent += `<text class="leg-label" ${labelStyle('Final', activeLegs.has('final'))} x="${rwyX - 15}" y="${rwyY - 5}" font-size="14" font-family="sans-serif" text-anchor="end">Final</text>`;
+            }
+
+            // === AIRCRAFT POSITIONING ===
+            // Transpose GPS coordinates to pattern display
+            // The runway heading becomes horizontal (pointing right)
             state.aircraft.forEach((ac, hex) => {
-                if (!ac.leg) return; // Only show aircraft in the pattern
+                if (!ac.lat || !ac.lon) return;
 
-                // Map leg to position on the visual pattern
-                let x, y;
-                const leg = ac.leg;
+                // Get bearing and distance from airport
+                const bearing = getBearing(state.airport.lat, state.airport.lon, ac.lat, ac.lon);
+                const distance = getDistance(state.airport.lat, state.airport.lon, ac.lat, ac.lon);
 
+                // Skip if too far (outside pattern area)
+                if (distance > 3) return;
+
+                // Rotate coordinates so runway heading becomes horizontal
+                // runwayHeading points in the direction of the higher-numbered runway end
+                const rotatedBearing = bearing - state.runwayHeading;
+
+                // Convert polar to cartesian (scale: ~80px per nm for good visibility)
+                const scale = 80;
+                const dx = distance * Math.sin(toRadians(rotatedBearing)) * scale;
+                const dy = -distance * Math.cos(toRadians(rotatedBearing)) * scale;
+
+                // Position relative to runway center
+                let x = rwyMidX + dx;
+                let y = rwyMidY + dy;
+
+                // For left traffic, pattern is above runway (negative y relative to runway)
+                // For right traffic, pattern is below runway (positive y relative to runway)
                 if (isLeft) {
-                    switch (leg) {
-                        case 'upwind':
-                            x = patternX + 20;
-                            y = patternY + patternHeight - 40;
-                            break;
-                        case 'crosswind':
-                            x = patternX + 40;
-                            y = patternY + patternHeight/2;
-                            break;
-                        case 'downwind':
-                            x = patternX + patternWidth/2;
-                            y = patternY + 40;
-                            break;
-                        case 'base':
-                            x = patternX + patternWidth + cornerRadius;
-                            y = patternY + patternHeight/2;
-                            break;
-                        case 'final':
-                            x = rwyX + rwyWidth/2;
-                            y = patternY + patternHeight - 60;
-                            break;
-                        default:
-                            return;
-                    }
-                } else {
-                    switch (leg) {
-                        case 'upwind':
-                            x = patternX + 20;
-                            y = patternY + 40;
-                            break;
-                        case 'crosswind':
-                            x = patternX + 40;
-                            y = patternY + patternHeight/2;
-                            break;
-                        case 'downwind':
-                            x = patternX + patternWidth/2;
-                            y = patternY + patternHeight - 40;
-                            break;
-                        case 'base':
-                            x = patternX + patternWidth + cornerRadius;
-                            y = patternY + patternHeight/2;
-                            break;
-                        case 'final':
-                            x = rwyX + rwyWidth/2;
-                            y = patternY + 60;
-                            break;
-                        default:
-                            return;
-                    }
+                    // Flip Y so pattern aircraft appear above runway
+                    y = rwyMidY - dy;
                 }
+
+                // Skip if outside viewbox
+                if (x < 30 || x > w - 30 || y < 30 || y > h - 30) return;
+
+                // Aircraft icon rotation: show actual track, adjusted for display orientation
+                const iconRotation = ac.track - state.runwayHeading + 90; // +90 because runway points right
 
                 const isDeparting = ac.classification === 'departing';
                 const label = ac.r || ac.flight || hex.slice(-4);
 
-                // Get rotation based on leg and pattern direction
-                let rotation = 0;
-                if (isLeft) {
-                    switch (leg) {
-                        case 'upwind': rotation = 0; break;
-                        case 'crosswind': rotation = 270; break;
-                        case 'downwind': rotation = 180; break;
-                        case 'base': rotation = 90; break;
-                        case 'final': rotation = 0; break;
-                    }
-                } else {
-                    switch (leg) {
-                        case 'upwind': rotation = 180; break;
-                        case 'crosswind': rotation = 90; break;
-                        case 'downwind': rotation = 0; break;
-                        case 'base': rotation = 270; break;
-                        case 'final': rotation = 180; break;
-                    }
-                }
-
+                // Draw aircraft (simple airplane shape)
                 svgContent += `
                     <g class="aircraft-marker" transform="translate(${x}, ${y})">
-                        <g transform="rotate(${rotation})">
-                            <path class="aircraft-icon ${isDeparting ? 'departing' : ''}" d="M0,-15 L5,10 L0,5 L-5,10 Z" />
+                        <g transform="rotate(${iconRotation})">
+                            <path class="aircraft-icon ${isDeparting ? 'departing' : ''}"
+                                  d="M0,-12 L3,-4 L3,2 L10,8 L10,11 L3,7 L3,10 L5,13 L5,15 L0,13 L-5,15 L-5,13 L-3,10 L-3,7 L-10,11 L-10,8 L-3,2 L-3,-4 Z"/>
                         </g>
-                        <text class="aircraft-label" y="22">${label}</text>
+                        <text class="aircraft-label" y="20">${label}</text>
                     </g>
                 `;
             });
