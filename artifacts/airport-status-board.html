@@ -218,6 +218,13 @@
             gap: 4px;
         }
 
+        .flight-row .time-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 20px;
+        }
+
         /* Flip tile styling - retro split-flap display */
         .flip-tile {
             width: 28px;
@@ -549,7 +556,7 @@
                 </div>
                 <div class="flip-header">
                     <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span>
-                    <span class="time-header">TIME</span>
+                    <span class="time-header" style="margin-left: 20px;">TIME</span>
                 </div>
                 <div class="flight-list" id="arrivalsList">
                     <div class="empty-message">Waiting for aircraft...</div>
@@ -563,7 +570,7 @@
                 </div>
                 <div class="flip-header">
                     <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span>
-                    <span class="time-header">TIME</span>
+                    <span class="time-header" style="margin-left: 20px;">TIME</span>
                 </div>
                 <div class="flight-list" id="departuresList">
                     <div class="empty-message">Waiting for aircraft...</div>
@@ -860,13 +867,15 @@
                         html += `<div class="flip-tile ${flipClass} ${emptyClass}" style="animation-delay: ${j * 0.05}s">${char}</div>`;
                     }
 
-                    // Time tiles
+                    // Time tiles (wrapped in group for spacing)
                     const [hours, mins] = time.split(':');
+                    html += '<div class="time-group">';
                     html += `<div class="flip-tile ${isNew ? 'flipping' : ''}" style="animation-delay: 0.3s">${hours[0]}</div>`;
                     html += `<div class="flip-tile ${isNew ? 'flipping' : ''}" style="animation-delay: 0.35s">${hours[1]}</div>`;
                     html += `<span class="time-separator">:</span>`;
                     html += `<div class="flip-tile ${isNew ? 'flipping' : ''}" style="animation-delay: 0.4s">${mins[0]}</div>`;
                     html += `<div class="flip-tile ${isNew ? 'flipping' : ''}" style="animation-delay: 0.45s">${mins[1]}</div>`;
+                    html += '</div>';
 
                     html += '</div>';
                 } else {
@@ -875,11 +884,13 @@
                     for (let j = 0; j < callsignLen; j++) {
                         html += '<div class="flip-tile empty"></div>';
                     }
+                    html += '<div class="time-group">';
                     html += '<div class="flip-tile empty"></div>';
                     html += '<div class="flip-tile empty"></div>';
                     html += '<span class="time-separator">:</span>';
                     html += '<div class="flip-tile empty"></div>';
                     html += '<div class="flip-tile empty"></div>';
+                    html += '</div>';
                     html += '</div>';
                 }
             }
@@ -1184,11 +1195,13 @@
                 for (let j = 0; j < callsignLen; j++) {
                     html += '<div class="flip-tile empty"></div>';
                 }
+                html += '<div class="time-group">';
                 html += '<div class="flip-tile empty"></div>';
                 html += '<div class="flip-tile empty"></div>';
                 html += '<span class="time-separator">:</span>';
                 html += '<div class="flip-tile empty"></div>';
                 html += '<div class="flip-tile empty"></div>';
+                html += '</div>';
                 html += '</div>';
             }
 
