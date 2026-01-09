@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive aerodynamics simulator exploring lift coefficient, angle of attack, and the lift equation using thin airfoil theory.">
+    <meta name="tags" content="aviation, education, simulation">
+    <meta name="created" content="2025-01-09">
+    <title>Aerodynamic Lift Optimization Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MathJax v3 Configuration -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                packages: {'[+]': ['html']}
+            },
+            loader: { load: ['[tex]/html'] },
+            svg: { 
+                fontCache: 'global',
+                displayAlign: 'center'
+            }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        canvas {
+            image-rendering: auto;
+            touch-action: none;
+            display: block;
+        }
+
+        input[type=range] {
+            accent-color: #3b82f6;
+        }
+
+        /* Fix for MathJax disrupting layout */
+        mjx-container[display="true"] {
+            margin: 0.5rem 0 !important;
+        }
+        .header-formula mjx-container {
+            display: inline-block !important;
+            margin: 0 !important;
+            vertical-align: middle;
+        }
+
+        .stall-warning {
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .formula-box {
+            background: rgba(15, 23, 42, 0.8);
+            border-left: 4px solid #3b82f6;
+        }
+
+        /* MathJax Styling Hooks */
+        .math-active-cl {
+            color: #60a5fa !important;
+            fill: #60a5fa !important;
+            filter: drop-shadow(0 0 5px #3b82f6);
+            transition: all 0.2s ease;
+        }
+        
+        .math-active-l {
+            color: #ffffff !important;
+            fill: #ffffff !important;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+            transition: all 0.2s ease;
+        }
+
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #3b82f6;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight text-blue-400">Aerodynamic Optimization Lab</h1>
+                <p class="text-slate-400 italic">Interpreting the mathematical laws of flight</p>
+            </div>
+            <div class="glass-panel px-4 py-2 rounded-lg flex items-center gap-4">
+                <div class="text-right">
+                    <p class="text-xs uppercase text-slate-500 font-bold">Optimization Mission</p>
+                    <p id="mission-status" class="text-sm font-semibold text-yellow-500 font-mono tracking-wider">FIND MAX LIFT</p>
+                </div>
+                <div class="h-10 w-10 rounded-full border-2 border-slate-700 flex items-center justify-center bg-slate-800">
+                    <span id="score-icon" class="text-lg">🎯</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Column: Controls & Formulas (4 cols) -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Controls -->
+                <section class="glass-panel p-6 rounded-2xl space-y-6">
+                    <h2 class="text-lg font-semibold border-b border-slate-700 pb-2">Control Systems</h2>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-end">
+                            <label class="text-sm font-medium text-slate-300 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                Angle of Attack ($\alpha$)
+                            </label>
+                            <span class="mono text-blue-400 font-bold text-xl"><span id="aoa-val">0</span>°</span>
+                        </div>
+                        <input type="range" id="aoa-slider" min="-10" max="30" step="0.5" value="0" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-[10px] text-slate-500 mono">
+                            <span>-10°</span>
+                            <span>0°</span>
+                            <span>15° (CRITICAL)</span>
+                            <span>30°</span>
+                        </div>
+                    </div>
+
+                    <!-- Realistic Velocity Checkbox -->
+                    <div class="flex items-center justify-between pt-2">
+                        <label for="velocity-toggle" class="text-xs font-medium text-slate-400 uppercase tracking-wider">Realistic Velocity Drop</label>
+                        <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" name="toggle" id="velocity-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                            <label for="velocity-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 1: CL Calculation -->
+                <section class="glass-panel p-6 rounded-2xl space-y-4 bg-slate-900/40">
+                    <h2 class="text-lg font-semibold border-b border-slate-700 pb-2 header-formula">Step 1: Calculating $C_L$</h2>
+                    <div class="formula-box p-4 rounded-r-lg">
+                        <div class="text-center py-2">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold mb-2 tracking-widest italic">Thin Airfoil Theory</p>
+                            <div class="text-xl font-serif text-slate-300">
+                                $$ C_L = a_0 \cdot (\alpha - \alpha_0) $$
+                            </div>
+                        </div>
+                        <div class="space-y-2 pt-3 border-t border-slate-800 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">$a_0$ (Lift Slope)</span>
+                                <span class="mono">0.11 / deg</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">$\alpha_0$ (Zero-Lift Angle)</span>
+                                <span class="mono">-2.0°</span>
+                            </div>
+                            <div class="flex justify-between font-bold text-blue-400 pt-1">
+                                <span>Resulting $C_L$</span>
+                                <span id="cl-calc-res" class="mono">0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 2: Total Lift -->
+                <section class="glass-panel p-6 rounded-2xl space-y-4">
+                    <h2 class="text-lg font-semibold border-b border-slate-700 pb-2">Step 2: Total Lift Force</h2>
+                    <div class="formula-box p-4 rounded-r-lg space-y-4">
+                        <div class="text-center py-2 bg-black/20 rounded-lg border border-white/5">
+                            <div class="text-2xl font-serif text-slate-300 py-2">
+                                $$ \class{math-l}{L} = \frac{1}{2} \rho v^2 S \class{math-cl}{C_L} $$
+                            </div>
+                        </div>
+                        <div class="space-y-2 text-[11px]">
+                            <div class="flex justify-between text-slate-400">
+                                <span>$\rho$ (Air Density)</span>
+                                <span class="mono">1.225 kg/m³</span>
+                            </div>
+                            <div class="flex justify-between transition-colors duration-300" id="v-row">
+                                <span class="text-slate-400">$v$ (Velocity)</span>
+                                <span class="mono text-slate-200"><span id="v-eq-val">50.0</span> m/s</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                                <span>$S$ (Wing Area)</span>
+                                <span class="mono">20 m²</span>
+                            </div>
+                            <div id="cl-row" class="flex justify-between text-base font-bold border-t border-slate-800 pt-2 transition-all duration-300">
+                                <span class="text-blue-400">$C_L$ (coefficient)</span>
+                                <span id="cl-eq-val" class="mono text-blue-400">0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="lift-result-box" class="bg-blue-600/10 p-4 rounded-xl border border-blue-500/20 text-center transition-all duration-300">
+                        <div class="flex items-center justify-center gap-1 header-formula">
+                            <p class="text-[10px] uppercase text-slate-400 font-bold tracking-tighter whitespace-nowrap">Lift Force Output</p>
+                            <p class="text-[10px] uppercase text-slate-400 font-bold tracking-tighter">($L$)</p>
+                        </div>
+                        <p class="text-3xl font-bold text-white mono"><span id="total-lift">0</span> <span class="text-sm font-normal text-slate-400">N</span></p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Column: Visualizations (8 cols) -->
+            <div class="lg:col-span-8 space-y-6">
+                <!-- Simulation Canvas -->
+                <div class="glass-panel rounded-2xl overflow-hidden relative group">
+                    <div class="absolute top-4 left-4 z-10 flex gap-2">
+                        <span class="px-2 py-1 bg-black/60 rounded text-[10px] font-bold text-blue-400 uppercase tracking-widest border border-blue-900">Virtual Wind Tunnel</span>
+                        <span id="flow-label" class="px-2 py-1 bg-green-900/40 rounded text-[10px] font-bold text-green-400 uppercase tracking-widest border border-green-800">Laminar</span>
+                    </div>
+                    <canvas id="sim-canvas" class="w-full aspect-[16/9] bg-[#020617]"></canvas>
+                    
+                    <div id="stall-alert" class="hidden absolute inset-0 bg-red-950/20 flex items-center justify-center pointer-events-none">
+                        <div class="bg-red-600 px-6 py-2 rounded-full font-bold uppercase tracking-tighter text-sm stall-warning shadow-2xl">STALL</div>
+                    </div>
+                </div>
+
+                <!-- Graph Canvas -->
+                <div class="glass-panel p-6 rounded-2xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-bold uppercase tracking-widest text-slate-400">Aerodynamic Performance</h3>
+                        <div class="flex gap-4 text-[10px] mono">
+                            <div class="flex items-center gap-1">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full"></span> $C_L$
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="w-2 h-2 bg-white rounded-full"></span> Lift Force ($N$)
+                            </div>
+                        </div>
+                    </div>
+                    <canvas id="graph-canvas" class="w-full h-48 md:h-64"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Aero Data ---
+        const AIRFOIL_SHAPE = [
+            {x: 0, y: 0}, {x: 5, y: -8}, {x: 15, y: -15}, {x: 30, y: -20}, 
+            {x: 50, y: -20}, {x: 75, y: -12}, {x: 90, y: -5}, {x: 100, y: 0},
+            {x: 90, y: 3}, {x: 75, y: 6}, {x: 50, y: 10}, {x: 30, y: 12}, 
+            {x: 15, y: 10}, {x: 5, y: 5}, {x: 0, y: 0}
+        ];
+
+        const RHO = 1.225;
+        const BASE_VELOCITY = 50;
+        const AREA = 20;
+
+        const config = {
+            criticalAoA: 16,
+            stallSteepness: 0.15,
+            liftSlope: 0.11,
+            zeroLiftAoA: -2.0,
+            maxHistory: 300,
+            particleCount: 120,
+            maxClAxis: 2.5,
+            maxForceAxis: 75000
+        };
+
+        let state = {
+            aoa: 0,
+            cl: 0,
+            v: 50,
+            lift: 0,
+            isStalling: false,
+            bestCl: 0,
+            history: [],
+            particles: [],
+            isAdjusting: false,
+            realisticVelocity: false,
+            timer: null
+        };
+
+        // --- DOM Elements ---
+        const els = {
+            slider: document.getElementById('aoa-slider'),
+            vToggle: document.getElementById('velocity-toggle'),
+            aoaText: document.getElementById('aoa-val'),
+            clCalc: document.getElementById('cl-calc-res'),
+            clEq: document.getElementById('cl-eq-val'),
+            vEq: document.getElementById('v-eq-val'),
+            vRow: document.getElementById('v-row'),
+            liftText: document.getElementById('total-lift'),
+            flowLabel: document.getElementById('flow-label'),
+            stallAlert: document.getElementById('stall-alert'),
+            clRow: document.getElementById('cl-row'),
+            liftBox: document.getElementById('lift-result-box'),
+            missionStatus: document.getElementById('mission-status'),
+            scoreIcon: document.getElementById('score-icon'),
+            simCanvas: document.getElementById('sim-canvas'),
+            graphCanvas: document.getElementById('graph-canvas')
+        };
+
+        const ctxs = {
+            sim: els.simCanvas.getContext('2d'),
+            graph: els.graphCanvas.getContext('2d')
+        };
+
+        // --- Physics Engine ---
+        function getCl(a) {
+            if (a < config.criticalAoA) {
+                return config.liftSlope * (a - config.zeroLiftAoA);
+            }
+            const peak = config.liftSlope * (config.criticalAoA - config.zeroLiftAoA);
+            return peak * Math.exp(-config.stallSteepness * (a - config.criticalAoA));
+        }
+
+        function initParticles() {
+            state.particles = [];
+            const w = els.simCanvas.width;
+            const h = els.simCanvas.height;
+            for(let i = 0; i < config.particleCount; i++) {
+                state.particles.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    s: 3 + Math.random() * 4,
+                    o: Math.random() * 100
+                });
+            }
+        }
+
+        // --- Drawing ---
+        function drawSim() {
+            const ctx = ctxs.sim;
+            const w = els.simCanvas.width;
+            const h = els.simCanvas.height;
+            if (w === 0 || h === 0) return;
+
+            ctx.clearRect(0, 0, w, h);
+            const wx = w * 0.4;
+            const wy = h * 0.5;
+
+            const speedScale = state.v / 50;
+            state.particles.forEach(p => {
+                p.x += p.s * speedScale;
+                if (p.x > w) {
+                    p.x = -20;
+                    p.y = Math.random() * h;
+                }
+
+                let y = p.y;
+                if (p.x > wx - 150 && p.x < wx + 400) {
+                    const lx = (p.x - wx) / 250;
+                    const influence = Math.exp(-Math.pow(lx - 0.1, 2) * 4);
+                    
+                    if (state.isStalling) {
+                        if (p.x > wx + 40) {
+                            const noise = Math.sin(Date.now()/50 + p.o) * (state.aoa - 10);
+                            y += noise;
+                        } else {
+                            y += (state.aoa * 1.5) * influence;
+                        }
+                    } else {
+                        const deflection = (state.aoa * 3.5) * influence;
+                        y += deflection;
+                    }
+                }
+
+                ctx.beginPath();
+                ctx.strokeStyle = state.isStalling ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.moveTo(p.x, y);
+                ctx.lineTo(p.x - 15, y);
+                ctx.stroke();
+            });
+
+            ctx.save();
+            ctx.translate(wx, wy);
+            
+            if (state.lift > 100) {
+                const vectorLen = (state.lift / 75000) * 150;
+                ctx.beginPath();
+                ctx.strokeStyle = state.isStalling ? '#ef4444' : '#3b82f6';
+                ctx.lineWidth = 4;
+                ctx.moveTo(30, 0);
+                ctx.lineTo(30, -vectorLen);
+                ctx.lineTo(25, -vectorLen + 10);
+                ctx.moveTo(30, -vectorLen);
+                ctx.lineTo(35, -vectorLen + 10);
+                ctx.stroke();
+
+                ctx.fillStyle = state.isStalling ? '#f87171' : '#60a5fa';
+                ctx.font = 'bold 10px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText(`LIFT: ${Math.round(state.lift)} N`, 30, -vectorLen - 10);
+            }
+
+            ctx.rotate(state.aoa * Math.PI / 180);
+            ctx.beginPath();
+            ctx.moveTo(AIRFOIL_SHAPE[0].x * 3, AIRFOIL_SHAPE[0].y * 3);
+            for(let i=1; i < AIRFOIL_SHAPE.length; i++) {
+                ctx.lineTo(AIRFOIL_SHAPE[i].x * 3, AIRFOIL_SHAPE[i].y * 3);
+            }
+            ctx.closePath();
+            ctx.fillStyle = '#1e293b';
+            ctx.fill();
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawGraph() {
+            const ctx = ctxs.graph;
+            const w = els.graphCanvas.width;
+            const h = els.graphCanvas.height;
+            const pad = 50;
+            if (w === 0 || h === 0) return;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Left Axis (Cl)
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(pad, 10);
+            ctx.lineTo(pad, h - pad);
+            ctx.stroke();
+
+            // Right Axis (Force N)
+            ctx.beginPath();
+            ctx.moveTo(w - pad, 10);
+            ctx.lineTo(w - pad, h - pad);
+            ctx.stroke();
+
+            // X Axis
+            ctx.beginPath();
+            ctx.moveTo(pad, h - pad);
+            ctx.lineTo(w - pad, h - pad);
+            ctx.stroke();
+
+            // Labels
+            ctx.font = '10px JetBrains Mono';
+            ctx.fillStyle = '#3b82f6'; // Match Cl line
+            ctx.textAlign = 'right';
+            ctx.fillText("CL", pad - 10, 20);
+            
+            ctx.fillStyle = '#f8fafc'; // Match Lift line
+            ctx.textAlign = 'left';
+            ctx.fillText("Force (N)", w - pad + 10, 20);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.textAlign = 'center';
+            ctx.fillText("Angle of Attack (\u03B1)", w/2, h - 10);
+
+            // Ticks
+            ctx.textAlign = 'right';
+            for(let i=0; i<=5; i++) {
+                let val = (i * 0.5).toFixed(1);
+                let y = (h - pad) - (i * (h - pad - 20) / 5);
+                ctx.fillStyle = '#3b82f6';
+                ctx.fillText(val, pad - 5, y + 3);
+                
+                let forceVal = (i * config.maxForceAxis / 5).toLocaleString();
+                ctx.fillStyle = '#f8fafc';
+                ctx.textAlign = 'left';
+                ctx.fillText(forceVal, w - pad + 5, y + 3);
+                ctx.textAlign = 'right';
+            }
+
+            if (state.history.length > 1) {
+                const sortedHistory = [...state.history].sort((a,b) => a.a - b.a);
+
+                // Draw CL Curve (Blue)
+                ctx.beginPath();
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 2.5;
+                sortedHistory.forEach((p, i) => {
+                    const x = pad + (p.a + 10) * ((w - 2 * pad) / 40);
+                    const y = (h - pad) - (p.c * ((h - pad - 20) / config.maxClAxis));
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+
+                // Draw Force Curve (White/Dashed)
+                ctx.beginPath();
+                ctx.strokeStyle = '#f8fafc';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 2]);
+                sortedHistory.forEach((p, i) => {
+                    const x = pad + (p.a + 10) * ((w - 2 * pad) / 40);
+                    // Force depends on state.v at the time of recording, 
+                    // or we can calculate based on current toggle state for smooth rendering
+                    const currentV = state.realisticVelocity ? Math.max(20, BASE_VELOCITY - (Math.max(0, p.a) * 1.5)) : BASE_VELOCITY;
+                    const force = 0.5 * RHO * Math.pow(currentV, 2) * AREA * p.c;
+                    const y = (h - pad) - (force * ((h - pad - 20) / config.maxForceAxis));
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Current Points
+                const curX = pad + (state.aoa + 10) * ((w - 2 * pad) / 40);
+                const curYCl = (h - pad) - (state.cl * ((h - pad - 20) / config.maxClAxis));
+                const curYForce = (h - pad) - (state.lift * ((h - pad - 20) / config.maxForceAxis));
+                
+                // Cl Indicator
+                ctx.fillStyle = state.isStalling ? '#ef4444' : '#3b82f6';
+                ctx.beginPath(); ctx.arc(curX, curYCl, 5, 0, Math.PI * 2); ctx.fill();
+                
+                // Force Indicator
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(curX, curYForce, 4, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        function update() {
+            state.aoa = parseFloat(els.slider.value);
+            state.realisticVelocity = els.vToggle.checked;
+            state.cl = getCl(state.aoa);
+
+            if (state.realisticVelocity) {
+                state.v = Math.max(20, BASE_VELOCITY - (Math.max(0, state.aoa) * 1.5));
+            } else {
+                state.v = BASE_VELOCITY;
+            }
+
+            state.lift = 0.5 * RHO * Math.pow(state.v, 2) * AREA * state.cl;
+            state.isStalling = state.aoa > config.criticalAoA;
+
+            if (state.cl > state.bestCl) {
+                state.bestCl = state.cl;
+                if (state.bestCl > 1.95) {
+                    els.missionStatus.innerText = "OPTIMIZED";
+                    els.missionStatus.className = "text-sm font-semibold text-green-400 font-mono tracking-wider";
+                    els.scoreIcon.innerText = "🏆";
+                }
+            }
+
+            els.aoaText.innerText = state.aoa;
+            els.clCalc.innerText = state.cl.toFixed(2);
+            els.clEq.innerText = state.cl.toFixed(2);
+            els.vEq.innerText = state.v.toFixed(1);
+            els.liftText.innerText = Math.round(state.lift).toLocaleString();
+            
+            if (state.realisticVelocity) {
+                els.vRow.classList.add('text-blue-200');
+                els.vRow.classList.remove('text-slate-400');
+            } else {
+                els.vRow.classList.remove('text-blue-200');
+                els.vRow.classList.add('text-slate-400');
+            }
+
+            els.flowLabel.innerText = state.isStalling ? "Stall / Turbulent" : "Laminar Flow";
+            els.flowLabel.className = `px-2 py-1 rounded text-[10px] font-bold uppercase border ${state.isStalling ? 'bg-red-900/40 text-red-400 border-red-800' : 'bg-green-900/40 text-green-400 border-green-800'}`;
+            els.stallAlert.style.display = state.isStalling ? 'flex' : 'none';
+
+            const mathCls = document.querySelectorAll('.math-cl');
+            const mathLs = document.querySelectorAll('.math-l');
+            if (state.isAdjusting) {
+                mathCls.forEach(el => el.classList.add('math-active-cl'));
+                mathLs.forEach(el => el.classList.add('math-active-l'));
+                els.clRow.classList.add('bg-blue-900/30', 'scale-[1.02]');
+                els.liftBox.classList.add('bg-blue-500/20', 'border-blue-400');
+            } else {
+                mathCls.forEach(el => el.classList.remove('math-active-cl'));
+                mathLs.forEach(el => el.classList.remove('math-active-l'));
+                els.clRow.classList.remove('bg-blue-900/30', 'scale-[1.02]');
+                els.liftBox.classList.remove('bg-blue-500/20', 'border-blue-400');
+            }
+
+            const lastPoint = state.history[state.history.length - 1];
+            if (!lastPoint || Math.abs(lastPoint.a - state.aoa) > 0.15) {
+                state.history.push({a: state.aoa, c: state.cl, v: state.v});
+                if (state.history.length > config.maxHistory) state.history.shift();
+            }
+
+            drawSim();
+            drawGraph();
+            requestAnimationFrame(update);
+        }
+
+        function resize() {
+            const simCont = els.simCanvas.parentElement;
+            els.simCanvas.width = simCont.clientWidth;
+            els.simCanvas.height = simCont.clientHeight;
+            
+            const graphCont = els.graphCanvas.parentElement;
+            els.graphCanvas.width = graphCont.clientWidth - 40;
+            els.graphCanvas.height = 250;
+            
+            initParticles();
+        }
+
+        window.addEventListener('resize', resize);
+        
+        els.slider.addEventListener('input', () => {
+            state.isAdjusting = true;
+            clearTimeout(state.timer);
+            state.timer = setTimeout(() => {
+                state.isAdjusting = false;
+            }, 300);
+        });
+
+        window.onload = () => {
+            resize();
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise();
+            }
+            update();
+        };
+    </script>
+</body>
+</html>
