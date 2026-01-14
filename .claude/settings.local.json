@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/Users/reubent/projects/canuk.github.io/scripts/update-artifacts-index.sh:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(pip install:*)",
+      "Bash(shot-scraper install:*)"
+    ]
+  }
+}
