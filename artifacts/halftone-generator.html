@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Create repeatable halftone dot patterns with customizable sizes, spacing, and colors. Export as SVG or CSS.">
+    <meta name="tags" content="design, svg, pattern, generator">
+    <meta name="created" content="2025-01-06">
+    <title>Repeatable Halftone Pattern Generator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: #1a1a1a;
+        }
+
+        .control-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .radio-option label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: 400;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e5e5;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: none;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .value-display {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .preview-container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            margin-bottom: 24px;
+        }
+
+        .preview-wrapper {
+            display: flex;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .code-box {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .code-box label {
+            margin-bottom: 8px;
+        }
+
+        pre {
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 4px;
+            padding: 12px;
+            overflow-x: auto;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Repeatable Halftone Pattern Generator</h1>
+
+        <div class="control-group">
+            <label>Column Mode</label>
+            <div class="radio-group">
+                <div class="radio-option">
+                    <input type="radio" id="single" name="columnMode" value="single">
+                    <label for="single">Single Column</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="dual" name="columnMode" value="dual" checked>
+                    <label for="dual">Dual Column (Staggered)</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="height">Pattern Height (px)</label>
+            <input type="range" id="height" min="100" max="1000" step="10" value="300">
+            <div class="value-display" id="heightValue">300px</div>
+        </div>
+
+        <div class="control-group">
+            <label for="startSize">Start Size (px)</label>
+            <input type="range" id="startSize" min="4" max="60" step="1" value="20">
+            <div class="value-display" id="startSizeValue">20px</div>
+        </div>
+
+        <div class="control-group">
+            <label for="endSize">End Size (px)</label>
+            <input type="range" id="endSize" min="0" max="20" step="1" value="0">
+            <div class="value-display" id="endSizeValue">0px</div>
+        </div>
+
+        <div class="control-group">
+            <label for="columnSpacing">Column Spacing (px)</label>
+            <input type="range" id="columnSpacing" min="0" max="100" step="1" value="20">
+            <div class="value-display" id="columnSpacingValue">20px (total width: 60px)</div>
+        </div>
+
+        <div class="control-group">
+            <label for="spacingMultiplier">Spacing Multiplier (relative to dot size)</label>
+            <input type="range" id="spacingMultiplier" min="0.5" max="3" step="0.1" value="0.8">
+            <div class="value-display" id="spacingMultiplierValue">0.8× (minimum spacing: 16.0px)</div>
+        </div>
+
+        <div class="control-group">
+            <label for="dots">Number of Dots (max: <span id="maxDotsDisplay">18</span>)</label>
+            <input type="range" id="dots" min="2" max="18" step="1" value="15">
+            <div class="value-display" id="dotsValue">15 dots (spacing: 21.4px)</div>
+        </div>
+
+        <div class="control-group">
+            <label for="dotColor">Dot Color</label>
+            <input type="color" id="dotColor" value="#E6F3FF">
+        </div>
+
+        <div class="control-group">
+            <label for="bgColor">Background Color</label>
+            <input type="color" id="bgColor" value="#FFFFFF">
+        </div>
+
+        <div class="preview-container" id="previewContainer">
+            <div class="preview-wrapper" id="previewWrapper"></div>
+        </div>
+
+        <div class="button-group">
+            <button id="downloadBtn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Download SVG
+            </button>
+            <button id="copyBtn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Copy CSS Code
+            </button>
+        </div>
+
+        <div class="code-box">
+            <label>SVG Code:</label>
+            <pre id="svgCode"></pre>
+        </div>
+
+        <div class="code-box">
+            <label>CSS Code:</label>
+            <pre id="cssCode"></pre>
+        </div>
+    </div>
+
+    <script>
+        const controls = {
+            height: document.getElementById('height'),
+            startSize: document.getElementById('startSize'),
+            endSize: document.getElementById('endSize'),
+            columnSpacing: document.getElementById('columnSpacing'),
+            spacingMultiplier: document.getElementById('spacingMultiplier'),
+            dots: document.getElementById('dots'),
+            dotColor: document.getElementById('dotColor'),
+            bgColor: document.getElementById('bgColor'),
+            columnMode: document.querySelectorAll('input[name="columnMode"]')
+        };
+
+        const displays = {
+            height: document.getElementById('heightValue'),
+            startSize: document.getElementById('startSizeValue'),
+            endSize: document.getElementById('endSizeValue'),
+            columnSpacing: document.getElementById('columnSpacingValue'),
+            spacingMultiplier: document.getElementById('spacingMultiplierValue'),
+            dots: document.getElementById('dotsValue'),
+            maxDots: document.getElementById('maxDotsDisplay')
+        };
+
+        const previewContainer = document.getElementById('previewContainer');
+        const previewWrapper = document.getElementById('previewWrapper');
+        const svgCodeDisplay = document.getElementById('svgCode');
+        const cssCodeDisplay = document.getElementById('cssCode');
+
+        function getColumnMode() {
+            return document.querySelector('input[name="columnMode"]:checked').value;
+        }
+
+        function calculateMaxDots() {
+            const height = parseFloat(controls.height.value);
+            const startSize = parseFloat(controls.startSize.value);
+            const spacingMultiplier = parseFloat(controls.spacingMultiplier.value);
+            const minSpacing = startSize * spacingMultiplier;
+            return Math.floor(height / minSpacing);
+        }
+
+        function updateMaxDots() {
+            const maxDots = calculateMaxDots();
+            controls.dots.max = maxDots;
+            displays.maxDots.textContent = maxDots;
+            
+            if (parseInt(controls.dots.value) > maxDots) {
+                controls.dots.value = maxDots;
+            }
+        }
+
+        function generatePattern() {
+            const height = parseFloat(controls.height.value);
+            const startSize = parseFloat(controls.startSize.value);
+            const endSize = parseFloat(controls.endSize.value);
+            const columnSpacing = parseFloat(controls.columnSpacing.value);
+            const dots = parseInt(controls.dots.value);
+            const dotColor = controls.dotColor.value;
+            const columnMode = getColumnMode();
+            
+            const minColumnWidth = Math.max(startSize, endSize);
+            const svgWidth = columnMode === 'dual' ? minColumnWidth * 2 + columnSpacing : minColumnWidth + columnSpacing;
+            
+            const dotGap = height / (dots - 1);
+            const verticalOffset = dotGap / 2;
+            
+            let circles = [];
+            
+            for (let i = 0; i < dots; i++) {
+                const y = i * dotGap;
+                const x = columnMode === 'dual' ? minColumnWidth / 2 : svgWidth / 2;
+                
+                const progress = y / height;
+                const size = Math.max(0, startSize - (progress * (startSize - endSize)));
+                const opacity = 1 - progress;
+                
+                if (size > 0) {
+                    circles.push({
+                        cx: x.toFixed(2),
+                        cy: y.toFixed(2),
+                        r: (size / 2).toFixed(2),
+                        fill: dotColor,
+                        opacity: opacity
+                    });
+                    
+                    if (columnMode === 'dual') {
+                        circles.push({
+                            cx: (x + minColumnWidth + columnSpacing).toFixed(2),
+                            cy: (y + verticalOffset).toFixed(2),
+                            r: (size / 2).toFixed(2),
+                            fill: dotColor,
+                            opacity: opacity
+                        });
+                    }
+                }
+            }
+            
+            return { circles, svgWidth, height };
+        }
+
+        function createSVG(pattern) {
+            const circlesHTML = pattern.circles.map(c => 
+                `  <circle cx="${c.cx}" cy="${c.cy}" r="${c.r}" fill="${c.fill}" opacity="${c.opacity}"/>`
+            ).join('\n');
+            
+            return `<svg
+  width="${pattern.svgWidth}"
+  height="${pattern.height}"
+  viewBox="0 0 ${pattern.svgWidth} ${pattern.height}"
+  xmlns="http://www.w3.org/2000/svg">
+${circlesHTML}
+</svg>`;
+        }
+
+        function updatePreview() {
+            const pattern = generatePattern();
+            const bgColor = controls.bgColor.value;
+            
+            previewContainer.style.backgroundColor = bgColor;
+            previewWrapper.innerHTML = '';
+            
+            for (let i = 0; i < 4; i++) {
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', pattern.svgWidth);
+                svg.setAttribute('height', pattern.height);
+                svg.setAttribute('viewBox', `0 0 ${pattern.svgWidth} ${pattern.height}`);
+                
+                pattern.circles.forEach(c => {
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', c.cx);
+                    circle.setAttribute('cy', c.cy);
+                    circle.setAttribute('r', c.r);
+                    circle.setAttribute('fill', c.fill);
+                    circle.setAttribute('opacity', c.opacity);
+                    svg.appendChild(circle);
+                });
+                
+                previewWrapper.appendChild(svg);
+            }
+        }
+
+        function updateCode() {
+            const pattern = generatePattern();
+            const svgCode = createSVG(pattern);
+            const bgColor = controls.bgColor.value;
+            
+            svgCodeDisplay.textContent = svgCode;
+            
+            const cssCode = `body {
+  background-color: ${bgColor};
+  background-image: url('data:image/svg+xml;utf8,${encodeURIComponent(svgCode)}');
+  background-repeat: repeat-x;
+}`;
+            
+            cssCodeDisplay.textContent = cssCode;
+        }
+
+        function updateDisplays() {
+            const height = parseFloat(controls.height.value);
+            const startSize = parseFloat(controls.startSize.value);
+            const endSize = parseFloat(controls.endSize.value);
+            const columnSpacing = parseFloat(controls.columnSpacing.value);
+            const spacingMultiplier = parseFloat(controls.spacingMultiplier.value);
+            const dots = parseInt(controls.dots.value);
+            const columnMode = getColumnMode();
+            
+            const minColumnWidth = Math.max(startSize, endSize);
+            const svgWidth = columnMode === 'dual' ? minColumnWidth * 2 + columnSpacing : minColumnWidth + columnSpacing;
+            
+            displays.height.textContent = `${height}px`;
+            displays.startSize.textContent = `${startSize}px`;
+            displays.endSize.textContent = `${endSize}px`;
+            displays.columnSpacing.textContent = `${columnSpacing}px (total width: ${svgWidth}px)`;
+            displays.spacingMultiplier.textContent = `${spacingMultiplier}× (minimum spacing: ${(startSize * spacingMultiplier).toFixed(1)}px)`;
+            displays.dots.textContent = `${dots} dots (spacing: ${(height / (dots - 1)).toFixed(1)}px)`;
+        }
+
+        function updateAll() {
+            updateMaxDots();
+            updateDisplays();
+            updatePreview();
+            updateCode();
+        }
+
+        controls.height.addEventListener('input', updateAll);
+        controls.startSize.addEventListener('input', updateAll);
+        controls.endSize.addEventListener('input', updateAll);
+        controls.columnSpacing.addEventListener('input', updateAll);
+        controls.spacingMultiplier.addEventListener('input', updateAll);
+        controls.dots.addEventListener('input', updateAll);
+        controls.dotColor.addEventListener('input', updateAll);
+        controls.bgColor.addEventListener('input', updateAll);
+        controls.columnMode.forEach(radio => {
+            radio.addEventListener('change', updateAll);
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const pattern = generatePattern();
+            const svgCode = createSVG(pattern);
+            const blob = new Blob([svgCode], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'halftone-pattern.svg';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            const cssCode = cssCodeDisplay.textContent;
+            navigator.clipboard.writeText(cssCode).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                }, 2000);
+            });
+        });
+
+        updateAll();
+    </script>
+</body>
+</html>

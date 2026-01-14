@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Explore word embeddings in 2D space, showing how words with similar meanings cluster together.">
+    <meta name="tags" content="ml, education, visualization, nlp">
+    <meta name="created" content="2025-01-06">
+    <title>Word Embeddings Visualizer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        
+        /* Section styling */
+        .section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .section h2 {
+            margin: 0 0 15px 0;
+            font-size: 1rem;
+            color: #aaa;
+        }
+        
+        /* Word selector */
+        .word-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .word-btn {
+            padding: 10px 18px;
+            border: 2px solid #444;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        
+        .word-btn:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .word-btn.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.3);
+        }
+        
+        .word-btn.animal { border-left: 4px solid #48bb78; }
+        .word-btn.royalty { border-left: 4px solid #ed8936; }
+        .word-btn.food { border-left: 4px solid #f56565; }
+        .word-btn.vehicle { border-left: 4px solid #4299e1; }
+        
+        .category-legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        
+        .legend-dot.animal { background: #48bb78; }
+        .legend-dot.royalty { background: #ed8936; }
+        .legend-dot.food { background: #f56565; }
+        .legend-dot.vehicle { background: #4299e1; }
+        
+        /* Vector display */
+        .vector-display {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .vector-card {
+            flex: 1;
+            min-width: 280px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .vector-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .vector-card .word-label {
+            color: #667eea;
+        }
+        
+        .vector-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .vector-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .dimension-label {
+            width: 80px;
+            font-size: 0.75rem;
+            color: #888;
+            text-align: right;
+        }
+        
+        .bar-container {
+            flex: 1;
+            height: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .bar-center {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .bar {
+            position: absolute;
+            top: 2px;
+            bottom: 2px;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+        
+        .bar.positive {
+            left: 50%;
+            background: linear-gradient(90deg, #48bb78, #68d391);
+        }
+        
+        .bar.negative {
+            right: 50%;
+            background: linear-gradient(90deg, #fc8181, #f56565);
+        }
+        
+        .value-label {
+            width: 50px;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+        
+        /* 2D Plot */
+        .plot-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .plot-axis {
+            position: absolute;
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .plot-axis.x {
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+        }
+        
+        .plot-axis.y {
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 1px;
+        }
+        
+        .plot-point {
+            position: absolute;
+            width: 60px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            transform: translate(-50%, -50%);
+            border: 2px solid transparent;
+        }
+        
+        .plot-point:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            z-index: 10;
+        }
+        
+        .plot-point.selected {
+            border-color: #fff;
+            box-shadow: 0 0 15px rgba(255,255,255,0.3);
+        }
+        
+        .plot-point.animal { background: rgba(72, 187, 120, 0.8); }
+        .plot-point.royalty { background: rgba(237, 137, 54, 0.8); }
+        .plot-point.food { background: rgba(245, 101, 101, 0.8); }
+        .plot-point.vehicle { background: rgba(66, 153, 225, 0.8); }
+        
+        .axis-label {
+            position: absolute;
+            font-size: 0.8rem;
+            color: #888;
+        }
+        
+        .axis-label.x-label {
+            bottom: 10px;
+            right: 10px;
+        }
+        
+        .axis-label.y-label {
+            top: 10px;
+            left: 10px;
+        }
+        
+        /* Similarity section */
+        .similarity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .similarity-card {
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .similarity-words {
+            font-size: 0.9rem;
+        }
+        
+        .similarity-score {
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+        
+        .similarity-score.high {
+            background: rgba(72, 187, 120, 0.3);
+            color: #68d391;
+        }
+        
+        .similarity-score.medium {
+            background: rgba(237, 137, 54, 0.3);
+            color: #ed8936;
+        }
+        
+        .similarity-score.low {
+            background: rgba(245, 101, 101, 0.3);
+            color: #fc8181;
+        }
+        
+        /* Math demo */
+        .math-demo {
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 1.1rem;
+            text-align: center;
+            line-height: 2;
+        }
+        
+        .math-word {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 6px;
+            margin: 0 5px;
+        }
+        
+        .math-word.royalty { background: rgba(237, 137, 54, 0.3); }
+        .math-word.animal { background: rgba(72, 187, 120, 0.3); }
+        
+        .math-operator {
+            color: #667eea;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+        
+        .math-result {
+            color: #48bb78;
+            font-weight: bold;
+        }
+        
+        /* Explanation */
+        .explanation {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 3px solid #667eea;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Word Embeddings Visualizer</h1>
+        <p class="subtitle">See how words become numbers that capture meaning</p>
+        
+        <!-- Word Selection -->
+        <div class="section">
+            <h2>① Select Words to Compare</h2>
+            
+            <div class="category-legend">
+                <div class="legend-item"><div class="legend-dot animal"></div> Animals</div>
+                <div class="legend-item"><div class="legend-dot royalty"></div> Royalty</div>
+                <div class="legend-item"><div class="legend-dot food"></div> Food</div>
+                <div class="legend-item"><div class="legend-dot vehicle"></div> Vehicles</div>
+            </div>
+            
+            <div class="word-grid" id="wordGrid">
+                <!-- Filled by JS -->
+            </div>
+        </div>
+        
+        <!-- Vector Display -->
+        <div class="section">
+            <h2>② The Embedding Vectors (Simplified to 6 Dimensions)</h2>
+            <div class="vector-display" id="vectorDisplay">
+                <div class="vector-card">
+                    <p style="color: #888; margin: 0;">Select words above to see their vectors</p>
+                </div>
+            </div>
+            <div class="explanation">
+                <strong>What you're seeing:</strong> Real embeddings have 768+ dimensions. 
+                I've simplified to 6 interpretable dimensions so you can see patterns. 
+                Each bar shows how much that word relates to a concept. 
+                Similar words have similar patterns.
+            </div>
+        </div>
+        
+        <!-- 2D Plot -->
+        <div class="section">
+            <h2>③ Words in 2D Space (Projected from 6D)</h2>
+            <div class="plot-container" id="plotContainer">
+                <div class="plot-axis x"></div>
+                <div class="plot-axis y"></div>
+                <div class="axis-label x-label">living → non-living</div>
+                <div class="axis-label y-label">↑ power/status</div>
+                <!-- Points added by JS -->
+            </div>
+            <div class="explanation">
+                <strong>Notice:</strong> Similar words cluster together! 
+                Animals are near animals, royalty near royalty. 
+                This is how neural networks "understand" that words are related.
+            </div>
+        </div>
+        
+        <!-- Similarity Scores -->
+        <div class="section">
+            <h2>④ Similarity Scores (Cosine Similarity)</h2>
+            <div class="similarity-grid" id="similarityGrid">
+                <!-- Filled by JS -->
+            </div>
+            <div class="explanation">
+                <strong>How similarity works:</strong> We measure the angle between two vectors. 
+                If they point the same direction → similar meaning (score near 1.0). 
+                If they point opposite directions → opposite meaning (score near -1.0).
+            </div>
+        </div>
+        
+        <!-- Math Demo -->
+        <div class="section">
+            <h2>⑤ The Famous Word Math</h2>
+            <div class="math-demo">
+                <span class="math-word royalty">king</span>
+                <span class="math-operator">−</span>
+                <span class="math-word royalty">man</span>
+                <span class="math-operator">+</span>
+                <span class="math-word royalty">woman</span>
+                <span class="math-operator">≈</span>
+                <span class="math-result">queen</span>
+            </div>
+            <div class="explanation">
+                <strong>Why this works:</strong> The vector for "king" minus "man" gives you 
+                the concept of "royalty without maleness". Add "woman" and you get 
+                "royalty with femaleness" — which lands near "queen" in the vector space.
+                <br><br>
+                Similarly: 
+                <span class="math-word animal">cat</span> − <span class="math-word animal">small</span> + <span class="math-word animal">big</span> ≈ <span class="math-result">lion</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // WORD DATA
+        // ============================================================
+        
+        // Simplified 6D embeddings (interpretable dimensions)
+        // Dimensions: [living, power, size, edible, mechanical, gender(m→f)]
+        const words = {
+            // Animals
+            cat:     { vec: [0.9, 0.1, -0.5, -0.3, -0.8, 0.2], category: 'animal' },
+            dog:     { vec: [0.9, 0.2, 0.0, -0.3, -0.8, 0.0], category: 'animal' },
+            lion:    { vec: [0.9, 0.7, 0.6, -0.2, -0.8, -0.2], category: 'animal' },
+            mouse:   { vec: [0.9, -0.3, -0.8, -0.2, -0.7, 0.1], category: 'animal' },
+            
+            // Royalty
+            king:    { vec: [0.8, 0.95, 0.3, -0.5, -0.3, -0.8], category: 'royalty' },
+            queen:   { vec: [0.8, 0.9, 0.2, -0.5, -0.3, 0.8], category: 'royalty' },
+            prince:  { vec: [0.8, 0.6, 0.1, -0.5, -0.3, -0.7], category: 'royalty' },
+            princess:{ vec: [0.8, 0.55, 0.0, -0.5, -0.3, 0.7], category: 'royalty' },
+            man:     { vec: [0.85, 0.2, 0.2, -0.5, -0.2, -0.9], category: 'royalty' },
+            woman:   { vec: [0.85, 0.2, 0.1, -0.5, -0.2, 0.9], category: 'royalty' },
+            
+            // Food
+            apple:   { vec: [-0.2, -0.5, -0.5, 0.95, -0.9, 0.0], category: 'food' },
+            banana:  { vec: [-0.2, -0.5, -0.4, 0.95, -0.9, 0.0], category: 'food' },
+            pizza:   { vec: [-0.3, -0.3, 0.1, 0.9, -0.7, 0.0], category: 'food' },
+            bread:   { vec: [-0.3, -0.4, -0.2, 0.9, -0.8, 0.0], category: 'food' },
+            
+            // Vehicles
+            car:     { vec: [-0.8, 0.3, 0.4, -0.9, 0.95, 0.0], category: 'vehicle' },
+            truck:   { vec: [-0.8, 0.4, 0.8, -0.9, 0.95, -0.1], category: 'vehicle' },
+            bike:    { vec: [-0.5, 0.0, -0.3, -0.8, 0.7, 0.0], category: 'vehicle' },
+            plane:   { vec: [-0.8, 0.6, 0.9, -0.9, 0.9, 0.0], category: 'vehicle' },
+        };
+        
+        const dimensionNames = [
+            'living',
+            'power',
+            'size', 
+            'edible',
+            'mechanical',
+            'gender (m→f)'
+        ];
+        
+        let selectedWords = ['king', 'queen'];
+        
+        // ============================================================
+        // MATH UTILITIES
+        // ============================================================
+        
+        function cosineSimilarity(a, b) {
+            let dot = 0, magA = 0, magB = 0;
+            for (let i = 0; i < a.length; i++) {
+                dot += a[i] * b[i];
+                magA += a[i] * a[i];
+                magB += b[i] * b[i];
+            }
+            return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+        }
+        
+        // ============================================================
+        // UI RENDERING
+        // ============================================================
+        
+        function renderWordGrid() {
+            const grid = document.getElementById('wordGrid');
+            grid.innerHTML = '';
+            
+            for (const [word, data] of Object.entries(words)) {
+                const btn = document.createElement('button');
+                btn.className = `word-btn ${data.category}`;
+                if (selectedWords.includes(word)) {
+                    btn.classList.add('selected');
+                }
+                btn.textContent = word;
+                btn.onclick = () => toggleWord(word);
+                grid.appendChild(btn);
+            }
+        }
+        
+        function toggleWord(word) {
+            if (selectedWords.includes(word)) {
+                selectedWords = selectedWords.filter(w => w !== word);
+            } else if (selectedWords.length < 4) {
+                selectedWords.push(word);
+            }
+            updateDisplay();
+        }
+        
+        function renderVectors() {
+            const container = document.getElementById('vectorDisplay');
+            
+            if (selectedWords.length === 0) {
+                container.innerHTML = `
+                    <div class="vector-card">
+                        <p style="color: #888; margin: 0;">Select words above to see their vectors</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = selectedWords.map(word => {
+                const data = words[word];
+                const barsHtml = data.vec.map((val, i) => {
+                    const width = Math.abs(val) * 45;
+                    const barClass = val >= 0 ? 'positive' : 'negative';
+                    const barStyle = val >= 0 
+                        ? `width: ${width}%` 
+                        : `width: ${width}%`;
+                    
+                    return `
+                        <div class="vector-row">
+                            <div class="dimension-label">${dimensionNames[i]}</div>
+                            <div class="bar-container">
+                                <div class="bar-center"></div>
+                                <div class="bar ${barClass}" style="${barStyle}"></div>
+                            </div>
+                            <div class="value-label">${val.toFixed(2)}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                return `
+                    <div class="vector-card">
+                        <h3><span class="word-label">${word}</span></h3>
+                        <div class="vector-bars">
+                            ${barsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderPlot() {
+            const container = document.getElementById('plotContainer');
+            
+            // Remove old points
+            container.querySelectorAll('.plot-point').forEach(p => p.remove());
+            
+            // Add all words as points
+            for (const [word, data] of Object.entries(words)) {
+                const point = document.createElement('div');
+                point.className = `plot-point ${data.category}`;
+                if (selectedWords.includes(word)) {
+                    point.classList.add('selected');
+                }
+                point.textContent = word;
+                point.onclick = () => toggleWord(word);
+                
+                // Project to 2D using first two dimensions
+                // living → x, power → y
+                const x = 50 + (data.vec[0] * 40); // living
+                const y = 50 - (data.vec[1] * 40); // power (inverted for screen coords)
+                
+                point.style.left = `${x}%`;
+                point.style.top = `${y}%`;
+                
+                container.appendChild(point);
+            }
+        }
+        
+        function renderSimilarities() {
+            const container = document.getElementById('similarityGrid');
+            
+            if (selectedWords.length < 2) {
+                container.innerHTML = '<p style="color: #888;">Select at least 2 words to see similarities</p>';
+                return;
+            }
+            
+            const pairs = [];
+            for (let i = 0; i < selectedWords.length; i++) {
+                for (let j = i + 1; j < selectedWords.length; j++) {
+                    const w1 = selectedWords[i];
+                    const w2 = selectedWords[j];
+                    const sim = cosineSimilarity(words[w1].vec, words[w2].vec);
+                    pairs.push({ w1, w2, sim });
+                }
+            }
+            
+            pairs.sort((a, b) => b.sim - a.sim);
+            
+            container.innerHTML = pairs.map(({ w1, w2, sim }) => {
+                let scoreClass = 'low';
+                if (sim > 0.7) scoreClass = 'high';
+                else if (sim > 0.3) scoreClass = 'medium';
+                
+                return `
+                    <div class="similarity-card">
+                        <div class="similarity-words">${w1} ↔ ${w2}</div>
+                        <div class="similarity-score ${scoreClass}">${sim.toFixed(2)}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function updateDisplay() {
+            renderWordGrid();
+            renderVectors();
+            renderPlot();
+            renderSimilarities();
+        }
+        
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+        
+        updateDisplay();
+    </script>
+</body>
+</html>

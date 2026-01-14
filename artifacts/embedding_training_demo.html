@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Watch word embeddings learn in real-time as a neural network trains to understand semantic relationships.">
+    <meta name="tags" content="ml, education, visualization, nlp">
+    <meta name="created" content="2025-01-06">
+    <title>Watch Embeddings Learn</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        
+        .section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .section h2 {
+            margin: 0 0 15px 0;
+            font-size: 1rem;
+            color: #aaa;
+        }
+        
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn.primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn.primary:hover {
+            background: #5a67d8;
+        }
+        
+        .btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid #444;
+        }
+        
+        .btn.secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Stats */
+        .stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .stat {
+            background: rgba(0,0,0,0.2);
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 4px;
+        }
+        
+        /* Plot */
+        .plot-container {
+            position: relative;
+            width: 100%;
+            height: 450px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .plot-axis {
+            position: absolute;
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .plot-axis.x {
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+        }
+        
+        .plot-axis.y {
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 1px;
+        }
+        
+        .word-point {
+            position: absolute;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transform: translate(-50%, -50%);
+            transition: left 0.3s ease-out, top 0.3s ease-out;
+            cursor: default;
+            white-space: nowrap;
+        }
+        
+        .word-point.animal { background: rgba(72, 187, 120, 0.85); }
+        .word-point.fruit { background: rgba(237, 137, 54, 0.85); }
+        .word-point.vehicle { background: rgba(66, 153, 225, 0.85); }
+        .word-point.country { background: rgba(159, 122, 234, 0.85); }
+        
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+        }
+        
+        .legend-dot.animal { background: rgba(72, 187, 120, 0.85); }
+        .legend-dot.fruit { background: rgba(237, 137, 54, 0.85); }
+        .legend-dot.vehicle { background: rgba(66, 153, 225, 0.85); }
+        .legend-dot.country { background: rgba(159, 122, 234, 0.85); }
+        
+        /* Training sentences */
+        .sentences-box {
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+        }
+        
+        .sentence {
+            margin-bottom: 5px;
+            color: #888;
+        }
+        
+        .sentence.active {
+            color: #fff;
+            background: rgba(102, 126, 234, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .sentence .target {
+            color: #f6e05e;
+            font-weight: bold;
+        }
+        
+        .sentence .context {
+            color: #68d391;
+        }
+        
+        /* Explanation */
+        .explanation {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 3px solid #667eea;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        /* Vector viewer */
+        .vector-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+        
+        .vector-card {
+            background: rgba(0,0,0,0.25);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        
+        .vector-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .vector-word {
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        
+        .vector-word.animal { color: #48bb78; }
+        .vector-word.fruit { color: #ed8936; }
+        .vector-word.vehicle { color: #4299e1; }
+        .vector-word.country { color: #9f7aea; }
+        
+        .vector-dims {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .vector-dim {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .dim-label {
+            width: 30px;
+            font-size: 0.75rem;
+            color: #888;
+        }
+        
+        .dim-bar-container {
+            flex: 1;
+            height: 16px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            position: relative;
+        }
+        
+        .dim-bar-center {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .dim-bar {
+            position: absolute;
+            top: 2px;
+            bottom: 2px;
+            border-radius: 2px;
+        }
+        
+        .dim-bar.positive {
+            left: 50%;
+            background: #48bb78;
+        }
+        
+        .dim-bar.negative {
+            right: 50%;
+            background: #f56565;
+        }
+        
+        .dim-value {
+            width: 45px;
+            font-size: 0.75rem;
+            font-family: monospace;
+            text-align: right;
+            color: #aaa;
+        }
+        
+        /* Speed control */
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #888;
+            font-size: 0.85rem;
+        }
+        
+        .speed-control input {
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Watch Embeddings Organize</h1>
+        <p class="subtitle">See how random 4D vectors become meaningful through training (100 sentences)</p>
+        
+        <!-- Explanation -->
+        <div class="section">
+            <h2>What You're Watching</h2>
+            <div class="explanation">
+                <strong>The task:</strong> Predict which words appear near each other in sentences.<br><br>
+                <strong>What happens:</strong> Words that appear in similar contexts get pulled together. 
+                Animals cluster because they all appear near words like "runs", "eats", "fur". 
+                Fruits cluster because they appear near "sweet", "eat", "grows".<br><br>
+                <strong>The embeddings start random</strong> — watch them organize as training progresses.
+            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="section">
+            <h2>Controls</h2>
+            <div class="controls">
+                <button class="btn primary" id="startBtn" onclick="startTraining()">▶ Start Training</button>
+                <button class="btn secondary" id="stepBtn" onclick="trainStep()">Step Once</button>
+                <button class="btn secondary" onclick="reset()">Reset (Randomize)</button>
+                <div class="speed-control">
+                    <label>Speed:</label>
+                    <input type="range" id="speedSlider" min="1" max="100" value="50">
+                    <span id="speedLabel">50ms</span>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="epochCount">0</div>
+                    <div class="stat-label">Training Steps</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="lossValue">-</div>
+                    <div class="stat-label">Loss (lower = better)</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="clusterScore">0%</div>
+                    <div class="stat-label">Cluster Quality</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Visualization -->
+        <div class="section">
+            <h2>2D Projection of 4D Embedding Space</h2>
+            <div class="plot-container" id="plot">
+                <div class="plot-axis x"></div>
+                <div class="plot-axis y"></div>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot animal"></div> Animals</div>
+                <div class="legend-item"><div class="legend-dot fruit"></div> Fruits</div>
+                <div class="legend-item"><div class="legend-dot vehicle"></div> Vehicles</div>
+                <div class="legend-item"><div class="legend-dot country"></div> Countries</div>
+            </div>
+        </div>
+        
+        <!-- Vector Viewer -->
+        <div class="section">
+            <h2>Raw Vectors (4 Dimensions)</h2>
+            <div class="controls" style="margin-bottom: 15px;">
+                <button class="btn secondary" id="toggleVectorsBtn" onclick="toggleVectors()">Show Vectors</button>
+                <select id="categoryFilter" onchange="updateVectorDisplay()" style="padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid #444;">
+                    <option value="all">All Categories</option>
+                    <option value="animal">Animals</option>
+                    <option value="fruit">Fruits</option>
+                    <option value="vehicle">Vehicles</option>
+                    <option value="country">Countries</option>
+                </select>
+            </div>
+            <div id="vectorViewer" style="display: none;">
+                <div class="vector-grid" id="vectorGrid">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+            <div class="explanation">
+                <strong>What you're seeing:</strong> Each word has 4 numbers (its position in 4D space). 
+                Similar words end up with similar numbers. The bars show each dimension's value from -2 (left) to +2 (right).
+            </div>
+        </div>
+        
+        <!-- Training sentences -->
+        <div class="section">
+            <h2>Training Data (Sentences)</h2>
+            <div class="sentences-box" id="sentencesBox">
+                <!-- Filled by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // VOCABULARY AND CATEGORIES
+        // ============================================================
+        
+        const words = {
+            // Animals
+            cat: 'animal',
+            dog: 'animal',
+            lion: 'animal',
+            tiger: 'animal',
+            bear: 'animal',
+            
+            // Fruits
+            apple: 'fruit',
+            banana: 'fruit',
+            orange: 'fruit',
+            grape: 'fruit',
+            mango: 'fruit',
+            
+            // Vehicles
+            car: 'vehicle',
+            truck: 'vehicle',
+            bus: 'vehicle',
+            bike: 'vehicle',
+            train: 'vehicle',
+            
+            // Countries
+            france: 'country',
+            japan: 'country',
+            brazil: 'country',
+            egypt: 'country',
+            canada: 'country',
+        };
+        
+        const wordList = Object.keys(words);
+        
+        // Training sentences - words that appear together should become similar
+        const sentences = [
+            // Animal sentences - handwritten variety
+            "the cat chased the dog",
+            "the lion hunted the tiger",
+            "the bear caught a fish",
+            "the dog played with the cat",
+            "the tiger and lion are wild",
+            "my cat and dog are pets",
+            "the bear is a large animal",
+            "the lion roared at the tiger",
+            "the cat and dog slept together",
+            "the bear and lion are powerful",
+            "the tiger stalked its prey",
+            "my dog chased the cat again",
+            "the wild tiger met the lion",
+            "the bear and tiger are dangerous",
+            "the cat hid from the dog",
+            
+            // Fruit sentences - handwritten variety
+            "I ate an apple and banana",
+            "the orange and mango are sweet",
+            "she picked grape and apple",
+            "banana and orange are tropical",
+            "the mango tastes like grape",
+            "I bought apple orange banana",
+            "the grape and mango are ripe",
+            "he loves apple and orange juice",
+            "banana mango smoothie is delicious",
+            "the apple fell near the grape",
+            "orange and banana for breakfast",
+            "mango is sweeter than apple",
+            "I prefer grape over orange",
+            "the banana and apple were fresh",
+            "she ate mango with grape",
+            
+            // Vehicle sentences - handwritten variety
+            "the car passed the truck",
+            "I rode the bus and train",
+            "the bike is faster than walking",
+            "the truck carried the car",
+            "we took the train not the bus",
+            "my bike is near the car",
+            "the bus followed the truck",
+            "the train is faster than the car",
+            "I parked my bike by the bus",
+            "the truck and bus are large",
+            "she drives a car not a bike",
+            "the train arrived before the bus",
+            "his truck is bigger than my car",
+            "the bike and car need fuel",
+            "we loaded the bike onto the truck",
+            
+            // Country sentences - handwritten variety
+            "france and japan have great food",
+            "brazil and egypt are warm",
+            "I visited canada and france",
+            "japan and brazil play soccer",
+            "egypt is ancient like japan",
+            "canada is cold unlike brazil",
+            "france and egypt have history",
+            "japan and canada are islands partly",
+            "brazil and france play football",
+            "egypt and japan have pyramids temples",
+            "I flew from canada to brazil",
+            "france and brazil speak romance languages",
+            "japan and egypt attract tourists",
+            "canada and france are allies",
+            "brazil and egypt have rivers",
+            
+            // Cross-category negative examples (these help push categories apart)
+            "the cat does not eat car",
+            "france is not a fruit",
+            "the train is not an animal",
+            "apple is not a country",
+            
+            // More animal pairs - programmatic
+            "cat and lion are felines",
+            "dog and bear have fur",
+            "tiger and cat have stripes spots",
+            "lion and bear are strong",
+            "dog and tiger can run fast",
+            "cat and bear hunt prey",
+            "lion and dog are mammals",
+            "tiger and bear live in forests",
+            "cat and tiger are related",
+            "dog and lion have teeth",
+            
+            // More fruit pairs - programmatic
+            "apple and mango grow on trees",
+            "banana and grape are nutritious",
+            "orange and apple have vitamins",
+            "mango and banana are yellow",
+            "grape and orange make wine juice",
+            "apple and banana in fruit salad",
+            "orange and mango are citrus tropical",
+            "grape and apple make cider",
+            "banana and mango are tropical fruits",
+            "apple and orange at the market",
+            
+            // More vehicle pairs - programmatic
+            "car and bus have wheels",
+            "truck and train carry cargo",
+            "bike and car use roads",
+            "bus and train are public transit",
+            "truck and bike need drivers",
+            "car and train have engines",
+            "bus and bike are transportation",
+            "truck and car have headlights",
+            "train and bike are efficient",
+            "car and truck burn fuel",
+            
+            // More country pairs - programmatic
+            "france and canada speak french",
+            "japan and egypt have ancient culture",
+            "brazil and canada are large",
+            "egypt and france have monuments",
+            "japan and brazil have coastlines",
+            "canada and egypt have deserts snow",
+            "france and brazil have diverse regions",
+            "japan and canada are developed",
+            "egypt and brazil have rivers",
+            "france and japan have cuisine",
+        ];
+        
+        // ============================================================
+        // EMBEDDING STATE
+        // ============================================================
+        
+        let embeddings = {};  // word -> [x, y, z, w] (4 dimensions)
+        let epoch = 0;
+        let isTraining = false;
+        let trainingInterval = null;
+        let currentSentenceIdx = 0;
+        
+        const learningRate = 0.15;
+        
+        function initializeEmbeddings() {
+            embeddings = {};
+            for (const word of wordList) {
+                embeddings[word] = [
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                ];
+            }
+        }
+        
+        // ============================================================
+        // TRAINING LOGIC
+        // ============================================================
+        
+        function cosineSimilarity(a, b) {
+            let dot = 0, magA = 0, magB = 0;
+            for (let i = 0; i < a.length; i++) {
+                dot += a[i] * b[i];
+                magA += a[i] * a[i];
+                magB += b[i] * b[i];
+            }
+            return dot / (Math.sqrt(magA) * Math.sqrt(magB) + 0.0001);
+        }
+        
+        function trainOnSentence(sentence) {
+            const wordsInSentence = sentence.toLowerCase().split(' ').filter(w => wordList.includes(w));
+            
+            if (wordsInSentence.length < 2) return 0;
+            
+            let totalLoss = 0;
+            
+            // For each pair of words in the sentence, pull them together
+            for (let i = 0; i < wordsInSentence.length; i++) {
+                for (let j = i + 1; j < wordsInSentence.length; j++) {
+                    const word1 = wordsInSentence[i];
+                    const word2 = wordsInSentence[j];
+                    
+                    const emb1 = embeddings[word1];
+                    const emb2 = embeddings[word2];
+                    
+                    // Calculate distance in 4D
+                    let distSq = 0;
+                    const deltas = [];
+                    for (let d = 0; d < 4; d++) {
+                        const delta = emb2[d] - emb1[d];
+                        deltas.push(delta);
+                        distSq += delta * delta;
+                    }
+                    const dist = Math.sqrt(distSq) + 0.0001;
+                    totalLoss += dist;
+                    
+                    // Move towards each other in all 4 dimensions
+                    for (let d = 0; d < 4; d++) {
+                        emb1[d] += learningRate * (deltas[d] / dist) * 0.5;
+                        emb2[d] -= learningRate * (deltas[d] / dist) * 0.5;
+                    }
+                }
+            }
+            
+            // Push apart from random negative samples (words NOT in sentence)
+            for (const word of wordsInSentence) {
+                const negatives = wordList.filter(w => !wordsInSentence.includes(w));
+                const negWord = negatives[Math.floor(Math.random() * negatives.length)];
+                
+                const emb1 = embeddings[word];
+                const emb2 = embeddings[negWord];
+                
+                let distSq = 0;
+                const deltas = [];
+                for (let d = 0; d < 4; d++) {
+                    const delta = emb2[d] - emb1[d];
+                    deltas.push(delta);
+                    distSq += delta * delta;
+                }
+                const dist = Math.sqrt(distSq) + 0.0001;
+                
+                // Push apart (but weaker)
+                if (dist < 1.5) {
+                    for (let d = 0; d < 4; d++) {
+                        emb1[d] -= learningRate * (deltas[d] / dist) * 0.3;
+                        emb2[d] += learningRate * (deltas[d] / dist) * 0.3;
+                    }
+                }
+            }
+            
+            return totalLoss;
+        }
+        
+        function trainStep() {
+            const sentence = sentences[currentSentenceIdx];
+            const loss = trainOnSentence(sentence);
+            
+            currentSentenceIdx = (currentSentenceIdx + 1) % sentences.length;
+            epoch++;
+            
+            updateDisplay(loss, currentSentenceIdx);
+        }
+        
+        function startTraining() {
+            if (isTraining) {
+                isTraining = false;
+                clearInterval(trainingInterval);
+                document.getElementById('startBtn').textContent = '▶ Start Training';
+                return;
+            }
+            
+            isTraining = true;
+            document.getElementById('startBtn').textContent = '⏸ Pause';
+            
+            const speed = 110 - document.getElementById('speedSlider').value;
+            trainingInterval = setInterval(() => {
+                trainStep();
+            }, speed);
+        }
+        
+        function reset() {
+            isTraining = false;
+            clearInterval(trainingInterval);
+            document.getElementById('startBtn').textContent = '▶ Start Training';
+            
+            epoch = 0;
+            currentSentenceIdx = 0;
+            initializeEmbeddings();
+            updateDisplay(0, 0);
+        }
+        
+        // ============================================================
+        // CLUSTER QUALITY METRIC
+        // ============================================================
+        
+        function calculateClusterQuality() {
+            let sameCategory = 0;
+            let sameCategoryTotal = 0;
+            let diffCategory = 0;
+            let diffCategoryTotal = 0;
+            
+            for (let i = 0; i < wordList.length; i++) {
+                for (let j = i + 1; j < wordList.length; j++) {
+                    const w1 = wordList[i];
+                    const w2 = wordList[j];
+                    const sim = cosineSimilarity(embeddings[w1], embeddings[w2]);
+                    
+                    if (words[w1] === words[w2]) {
+                        sameCategory += sim;
+                        sameCategoryTotal++;
+                    } else {
+                        diffCategory += sim;
+                        diffCategoryTotal++;
+                    }
+                }
+            }
+            
+            const avgSame = sameCategory / sameCategoryTotal;
+            const avgDiff = diffCategory / diffCategoryTotal;
+            
+            // Quality = how much more similar same-category words are
+            const quality = (avgSame - avgDiff + 1) / 2;  // normalize to 0-1
+            return Math.max(0, Math.min(100, quality * 100));
+        }
+        
+        // ============================================================
+        // DISPLAY
+        // ============================================================
+        
+        function updateDisplay(loss, sentenceIdx) {
+            // Update stats
+            document.getElementById('epochCount').textContent = epoch.toLocaleString();
+            document.getElementById('lossValue').textContent = loss > 0 ? loss.toFixed(3) : '-';
+            document.getElementById('clusterScore').textContent = calculateClusterQuality().toFixed(0) + '%';
+            
+            // Update plot - project 4D to 2D using first two principal axes
+            const plot = document.getElementById('plot');
+            
+            // Remove old points
+            plot.querySelectorAll('.word-point').forEach(p => p.remove());
+            
+            // Simple projection: use dimensions 0,1 and 2,3 combined
+            const projected = {};
+            for (const word of wordList) {
+                const e = embeddings[word];
+                projected[word] = [
+                    e[0] * 0.7 + e[2] * 0.3,  // x = mix of dim 0 and 2
+                    e[1] * 0.7 + e[3] * 0.3   // y = mix of dim 1 and 3
+                ];
+            }
+            
+            // Find bounds for scaling
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            for (const word of wordList) {
+                const [x, y] = projected[word];
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
+            }
+            
+            const padding = 0.5;
+            const rangeX = Math.max(maxX - minX, 1) + padding * 2;
+            const rangeY = Math.max(maxY - minY, 1) + padding * 2;
+            
+            // Add points
+            for (const word of wordList) {
+                const [x, y] = projected[word];
+                const category = words[word];
+                
+                const pctX = ((x - minX + padding) / rangeX) * 80 + 10;
+                const pctY = ((y - minY + padding) / rangeY) * 80 + 10;
+                
+                const point = document.createElement('div');
+                point.className = `word-point ${category}`;
+                point.textContent = word;
+                point.style.left = `${pctX}%`;
+                point.style.top = `${pctY}%`;
+                
+                plot.appendChild(point);
+            }
+            
+            // Update sentences display
+            const sentencesBox = document.getElementById('sentencesBox');
+            sentencesBox.innerHTML = sentences.map((s, i) => {
+                const highlighted = s.split(' ').map(w => {
+                    if (wordList.includes(w.toLowerCase())) {
+                        return `<span class="context">${w}</span>`;
+                    }
+                    return w;
+                }).join(' ');
+                
+                return `<div class="sentence ${i === sentenceIdx ? 'active' : ''}">${highlighted}</div>`;
+            }).join('');
+            
+            // Removed auto-scroll - was causing UI issues
+            
+            // Update vector viewer if visible
+            updateVectorDisplay();
+        }
+        
+        // Speed slider
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            const speed = 110 - e.target.value;
+            document.getElementById('speedLabel').textContent = speed + 'ms';
+            
+            if (isTraining) {
+                clearInterval(trainingInterval);
+                trainingInterval = setInterval(trainStep, speed);
+            }
+        });
+        
+        // Vector viewer
+        let vectorsVisible = false;
+        
+        function toggleVectors() {
+            vectorsVisible = !vectorsVisible;
+            document.getElementById('vectorViewer').style.display = vectorsVisible ? 'block' : 'none';
+            document.getElementById('toggleVectorsBtn').textContent = vectorsVisible ? 'Hide Vectors' : 'Show Vectors';
+            if (vectorsVisible) {
+                updateVectorDisplay();
+            }
+        }
+        
+        function updateVectorDisplay() {
+            if (!vectorsVisible) return;
+            
+            const filter = document.getElementById('categoryFilter').value;
+            const grid = document.getElementById('vectorGrid');
+            
+            let wordsToShow = wordList;
+            if (filter !== 'all') {
+                wordsToShow = wordList.filter(w => words[w] === filter);
+            }
+            
+            grid.innerHTML = wordsToShow.map(word => {
+                const emb = embeddings[word];
+                const category = words[word];
+                
+                const dimsHtml = emb.map((val, i) => {
+                    const pct = Math.min(Math.abs(val) / 2 * 50, 50); // scale to max 50% width
+                    const barClass = val >= 0 ? 'positive' : 'negative';
+                    
+                    return `
+                        <div class="vector-dim">
+                            <div class="dim-label">d${i + 1}</div>
+                            <div class="dim-bar-container">
+                                <div class="dim-bar-center"></div>
+                                <div class="dim-bar ${barClass}" style="width: ${pct}%"></div>
+                            </div>
+                            <div class="dim-value">${val.toFixed(3)}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                return `
+                    <div class="vector-card">
+                        <div class="vector-card-header">
+                            <span class="vector-word ${category}">${word}</span>
+                        </div>
+                        <div class="vector-dims">
+                            ${dimsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+        
+        initializeEmbeddings();
+        updateDisplay(0, 0);
+    </script>
+</body>
+</html>

@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generate soothing ambient soundscapes with customizable presets, scales, and environmental textures using Tone.js.">
+    <meta name="tags" content="audio, music, generator, relaxation">
+    <meta name="created" content="2025-01-06">
+    <title>Ambient Tone.js Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #111827;
+            color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: #1f2937;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            padding: 2rem;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #5eead4;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .controls-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .play-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 1rem;
+        }
+        
+        .play-button.playing {
+            background-color: #ef4444;
+        }
+        
+        .play-button.playing:hover {
+            background-color: #dc2626;
+        }
+        
+        .play-button.stopped {
+            background-color: #10b981;
+        }
+        
+        .play-button.stopped:hover {
+            background-color: #059669;
+        }
+        
+        .scale-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .scale-selector label {
+            font-size: 0.875rem;
+        }
+        
+        .scale-selector select {
+            background-color: #374151;
+            color: #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+            border: none;
+        }
+        
+        .presets-section {
+            margin: 1.5rem 0;
+        }
+        
+        .presets-section h3 {
+            color: #5eead4;
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .presets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.5rem;
+        }
+        
+        .preset-button {
+            padding: 0.5rem;
+            font-size: 0.875rem;
+            border-radius: 0.375rem;
+            border: 1px solid #4b5563;
+            background-color: #374151;
+            color: #d1d5db;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .preset-button:hover {
+            border-color: #14b8a6;
+        }
+        
+        .preset-button.active {
+            background-color: #0f766e;
+            border-color: #5eead4;
+            color: white;
+        }
+        
+        .preset-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .sliders-section {
+            margin: 1.5rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .slider-control {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 0.5rem;
+            background-color: #4b5563;
+            border-radius: 9999px;
+            appearance: none;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 1rem;
+            height: 1rem;
+            background-color: #5eead4;
+            border-radius: 9999px;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 1rem;
+            height: 1rem;
+            background-color: #5eead4;
+            border-radius: 9999px;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .dropdown-control {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .dropdown-control label {
+            font-size: 0.875rem;
+        }
+        
+        .dropdown-control select {
+            width: 100%;
+            background-color: #374151;
+            color: #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            border: none;
+        }
+        
+        .info-section {
+            margin-top: 2rem;
+            font-size: 0.875rem;
+            color: #9ca3af;
+        }
+        
+        .info-section p {
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-box {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #374151;
+            border-radius: 0.375rem;
+        }
+        
+        .info-box h4 {
+            color: #5eead4;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-box ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .info-box li {
+            margin-bottom: 0.25rem;
+            line-height: 1.5;
+        }
+        
+        .info-box .biome-name {
+            color: #5eead4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ambient Tone.js Generator</h1>
+        
+        <div class="controls-header">
+            <button id="playButton" class="play-button stopped">Play</button>
+            
+            <div class="scale-selector">
+                <label>Scale:</label>
+                <select id="scaleSelect">
+                    <option value="pentatonic">Pentatonic</option>
+                    <option value="major">Major</option>
+                    <option value="minor">Minor</option>
+                    <option value="lydian">Lydian</option>
+                    <option value="dorian">Dorian</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="presets-section">
+            <h3>Ambient Presets</h3>
+            <div class="presets-grid" id="presetsGrid"></div>
+        </div>
+        
+        <div class="sliders-section">
+            <div class="slider-control">
+                <div class="slider-label">
+                    <span>Note Density:</span>
+                    <span id="densityValue">3</span>
+                </div>
+                <input type="range" id="densitySlider" min="1" max="5" value="3">
+            </div>
+            
+            <div class="slider-control">
+                <div class="slider-label">
+                    <span>Reverb:</span>
+                    <span id="reverbValue">70%</span>
+                </div>
+                <input type="range" id="reverbSlider" min="30" max="95" value="70">
+            </div>
+            
+            <div class="slider-control">
+                <div class="slider-label">
+                    <span>Tempo:</span>
+                    <span id="tempoValue">70 BPM</span>
+                </div>
+                <input type="range" id="tempoSlider" min="50" max="85" value="70">
+            </div>
+            
+            <div class="dropdown-control">
+                <label>Primary Texture:</label>
+                <select id="textureSelect">
+                    <option value="pads">Ambient Pads</option>
+                    <option value="drones">Sustained Drones</option>
+                    <option value="bells">Gentle Bells</option>
+                </select>
+            </div>
+            
+            <div class="dropdown-control">
+                <label>Background Sound:</label>
+                <select id="noiseSelect">
+                    <option value="none">None</option>
+                    <option value="waves">Ocean Waves</option>
+                    <option value="wind">Wind</option>
+                    <option value="birds">Bird Atmosphere</option>
+                    <option value="leaves">Rustling Leaves</option>
+                    <option value="bubbles">Underwater</option>
+                    <option value="air">Air Movement</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <p>Click Play to start the ambient sound generator.</p>
+            <p>Choose a preset or adjust the controls to create different atmospheres.</p>
+            <p>All volume changes are gentle with no sudden swells or transitions.</p>
+            
+            <div class="info-box">
+                <h4>Ambient Textures:</h4>
+                <ul>
+                    <li><span class="biome-name">Space Drift:</span> Floating lydian drones with ethereal air textures</li>
+                    <li><span class="biome-name">Gentle Waves:</span> Soft major pads with subtle wave motion</li>
+                    <li><span class="biome-name">Night Forest:</span> Mystical pentatonic with bell tones and leaf sounds</li>
+                    <li><span class="biome-name">Morning Mist:</span> Airy major pads with gentle movement</li>
+                    <li><span class="biome-name">Desert Wind:</span> Sparse dorian drones with subtle wind textures</li>
+                    <li><span class="biome-name">Ocean Depths:</span> Deep lydian pads with underwater bubble sounds</li>
+                    <li><span class="biome-name">Rainforest:</span> Lush pentatonic with bell tones and bird sounds</li>
+                    <li><span class="biome-name">Meditation:</span> Minimal pentatonic drones focused on space and calm</li>
+                    <li><span class="biome-name">City Night:</span> Atmospheric minor pads with subtle air movement</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State variables
+        let isPlaying = false;
+        let density = 3;
+        let scale = 'pentatonic';
+        let reverb = 0.7;
+        let tempo = 70;
+        let textureType = 'pads';
+        let noiseType = 'none';
+        let activePreset = 'custom';
+        
+        // Audio components
+        let reverbEffect, delayEffect, filterLow, filterHigh, limiter, masterVolume;
+        let padSynth, droneSynth, bellSynth, bassSynth;
+        let droneLoop, padLoop, bellLoop, bassLoop;
+        let noiseSource, noiseGain, noiseFilter;
+        
+        // Presets
+        const presets = {
+            custom: { name: "Custom", scale: scale, density: density, reverb: reverb, tempo: tempo, noise: noiseType, texture: textureType },
+            spaceDrift: { name: "Space Drift", scale: "lydian", density: 2, reverb: 0.85, tempo: 60, noise: "air", texture: "drones" },
+            gentleWaves: { name: "Gentle Waves", scale: "major", density: 3, reverb: 0.7, tempo: 65, noise: "waves", texture: "pads" },
+            nightForest: { name: "Night Forest", scale: "pentatonic", density: 2, reverb: 0.8, tempo: 68, noise: "leaves", texture: "bells" },
+            morningMist: { name: "Morning Mist", scale: "major", density: 2, reverb: 0.75, tempo: 72, noise: "none", texture: "pads" },
+            desertWind: { name: "Desert Wind", scale: "dorian", density: 2, reverb: 0.6, tempo: 65, noise: "wind", texture: "drones" },
+            oceanDepths: { name: "Ocean Depths", scale: "lydian", density: 2, reverb: 0.9, tempo: 55, noise: "bubbles", texture: "pads" },
+            rainforest: { name: "Rainforest", scale: "pentatonic", density: 3, reverb: 0.65, tempo: 75, noise: "birds", texture: "bells" },
+            meditation: { name: "Meditation", scale: "pentatonic", density: 1, reverb: 0.8, tempo: 60, noise: "none", texture: "drones" },
+            cityNight: { name: "City Night", scale: "minor", density: 2, reverb: 0.7, tempo: 68, noise: "air", texture: "pads" }
+        };
+        
+        // Scales
+        const scales = {
+            pentatonic: ['C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5'],
+            major: ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'],
+            minor: ['C3', 'D3', 'Eb3', 'F3', 'G3', 'Ab3', 'Bb3', 'C4', 'D4', 'Eb4', 'F4', 'G4', 'Ab4', 'Bb4', 'C5'],
+            lydian: ['C3', 'D3', 'E3', 'F#3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F#4', 'G4', 'A4', 'B4', 'C5'],
+            dorian: ['C3', 'D3', 'Eb3', 'F3', 'G3', 'A3', 'Bb3', 'C4', 'D4', 'Eb4', 'F4', 'G4', 'A4', 'Bb4', 'C5']
+        };
+        
+        // Initialize UI
+        function initUI() {
+            // Create preset buttons
+            const presetsGrid = document.getElementById('presetsGrid');
+            Object.keys(presets).forEach(presetKey => {
+                const button = document.createElement('button');
+                button.className = 'preset-button';
+                button.textContent = presets[presetKey].name;
+                button.dataset.preset = presetKey;
+                button.addEventListener('click', () => applyPreset(presetKey));
+                presetsGrid.appendChild(button);
+            });
+            
+            // Play button
+            document.getElementById('playButton').addEventListener('click', togglePlay);
+            
+            // Scale selector
+            document.getElementById('scaleSelect').addEventListener('change', (e) => {
+                scale = e.target.value;
+                updateActivePreset();
+            });
+            
+            // Density slider
+            const densitySlider = document.getElementById('densitySlider');
+            densitySlider.addEventListener('input', (e) => {
+                density = parseInt(e.target.value);
+                document.getElementById('densityValue').textContent = density;
+                updateActivePreset();
+            });
+            
+            // Reverb slider
+            const reverbSlider = document.getElementById('reverbSlider');
+            reverbSlider.addEventListener('input', (e) => {
+                reverb = parseInt(e.target.value) / 100;
+                document.getElementById('reverbValue').textContent = parseInt(e.target.value) + '%';
+                updateActivePreset();
+            });
+            
+            // Tempo slider
+            const tempoSlider = document.getElementById('tempoSlider');
+            tempoSlider.addEventListener('input', (e) => {
+                tempo = parseInt(e.target.value);
+                document.getElementById('tempoValue').textContent = tempo + ' BPM';
+                updateActivePreset();
+            });
+            
+            // Texture selector
+            document.getElementById('textureSelect').addEventListener('change', (e) => {
+                textureType = e.target.value;
+                updateActivePreset();
+            });
+            
+            // Noise selector
+            document.getElementById('noiseSelect').addEventListener('change', (e) => {
+                noiseType = e.target.value;
+                updateActivePreset();
+            });
+        }
+        
+        function updateActivePreset() {
+            activePreset = 'custom';
+            updatePresetButtons();
+        }
+        
+        function updatePresetButtons() {
+            document.querySelectorAll('.preset-button').forEach(btn => {
+                if (btn.dataset.preset === activePreset) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+        
+        function applyPreset(presetKey) {
+            if (presetKey === 'custom' || isPlaying) return;
+            
+            const preset = presets[presetKey];
+            scale = preset.scale;
+            density = preset.density;
+            reverb = preset.reverb;
+            tempo = preset.tempo;
+            noiseType = preset.noise;
+            textureType = preset.texture;
+            activePreset = presetKey;
+            
+            // Update UI
+            document.getElementById('scaleSelect').value = scale;
+            document.getElementById('densitySlider').value = density;
+            document.getElementById('densityValue').textContent = density;
+            document.getElementById('reverbSlider').value = Math.round(reverb * 100);
+            document.getElementById('reverbValue').textContent = Math.round(reverb * 100) + '%';
+            document.getElementById('tempoSlider').value = tempo;
+            document.getElementById('tempoValue').textContent = tempo + ' BPM';
+            document.getElementById('textureSelect').value = textureType;
+            document.getElementById('noiseSelect').value = noiseType;
+            
+            updatePresetButtons();
+        }
+        
+        async function togglePlay() {
+            const playButton = document.getElementById('playButton');
+            
+            if (!isPlaying) {
+                await Tone.start();
+                await initializeAudio();
+                Tone.Transport.start();
+                
+                // Fade in
+                const now = Tone.now();
+                masterVolume.volume.value = -60;
+                masterVolume.volume.rampTo(-10, 2, now);
+                
+                isPlaying = true;
+                playButton.textContent = 'Stop';
+                playButton.className = 'play-button playing';
+                
+                // Disable presets while playing
+                document.querySelectorAll('.preset-button').forEach(btn => {
+                    btn.disabled = true;
+                });
+                document.getElementById('scaleSelect').disabled = true;
+                document.getElementById('textureSelect').disabled = true;
+                document.getElementById('noiseSelect').disabled = true;
+            } else {
+                // Fade out
+                const now = Tone.now();
+                masterVolume.volume.rampTo(-60, 2, now);
+                
+                setTimeout(() => {
+                    Tone.Transport.stop();
+                    cleanupAudio();
+                    
+                    isPlaying = false;
+                    playButton.textContent = 'Play';
+                    playButton.className = 'play-button stopped';
+                    
+                    // Re-enable presets
+                    document.querySelectorAll('.preset-button').forEach(btn => {
+                        btn.disabled = false;
+                    });
+                    document.getElementById('scaleSelect').disabled = false;
+                    document.getElementById('textureSelect').disabled = false;
+                    document.getElementById('noiseSelect').disabled = false;
+                }, 2000);
+            }
+        }
+        
+        async function initializeAudio() {
+            // Create effects chain
+            limiter = new Tone.Limiter(-3).toDestination();
+            masterVolume = new Tone.Volume(-12).connect(limiter);
+            
+            reverbEffect = new Tone.Reverb({
+                decay: 15,
+                wet: reverb,
+                preDelay: 0.5
+            }).connect(masterVolume);
+            
+            delayEffect = new Tone.FeedbackDelay({
+                delayTime: "8n",
+                feedback: 0.3,
+                wet: 0.4
+            }).connect(reverbEffect);
+            
+            filterLow = new Tone.Filter({
+                type: "lowpass",
+                frequency: 2000,
+                Q: 1
+            }).connect(delayEffect);
+            
+            filterHigh = new Tone.Filter({
+                type: "highpass",
+                frequency: 200,
+                Q: 0.5
+            }).connect(filterLow);
+            
+            // Create synths
+            padSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "sine" },
+                envelope: { attack: 2.5, decay: 0.5, sustain: 0.8, release: 8 }
+            }).connect(filterHigh);
+            padSynth.volume.value = -10;
+            
+            droneSynth = new Tone.PolySynth(Tone.AMSynth, {
+                harmonicity: 1.5,
+                oscillator: { type: "sine" },
+                envelope: { attack: 5, decay: 0.1, sustain: 1, release: 10 },
+                modulation: { type: "triangle" },
+                modulationEnvelope: { attack: 5, decay: 0, sustain: 1, release: 10 }
+            }).connect(filterHigh);
+            droneSynth.volume.value = -16;
+            
+            bellSynth = new Tone.PolySynth(Tone.FMSynth, {
+                harmonicity: 3,
+                modulationIndex: 2,
+                oscillator: { type: "sine" },
+                envelope: { attack: 0.2, decay: 1.5, sustain: 0.2, release: 5 },
+                modulation: { type: "sine" },
+                modulationEnvelope: { attack: 0.5, decay: 0.1, sustain: 0.2, release: 2 }
+            }).connect(filterHigh);
+            bellSynth.volume.value = -20;
+            
+            bassSynth = new Tone.MonoSynth({
+                oscillator: { type: "sine4" },
+                envelope: { attack: 2, decay: 0.4, sustain: 0.6, release: 4 },
+                filterEnvelope: { attack: 1, decay: 0.2, sustain: 0.5, release: 2, baseFrequency: 200, octaves: 2 }
+            }).connect(filterLow);
+            bassSynth.volume.value = -15;
+            
+            // Adjust synth volumes based on texture
+            switch(textureType) {
+                case 'drones':
+                    droneSynth.volume.value = -10;
+                    padSynth.volume.value = -18;
+                    bellSynth.volume.value = -30;
+                    break;
+                case 'bells':
+                    droneSynth.volume.value = -18;
+                    padSynth.volume.value = -15;
+                    bellSynth.volume.value = -15;
+                    break;
+                case 'pads':
+                default:
+                    droneSynth.volume.value = -16;
+                    padSynth.volume.value = -10;
+                    bellSynth.volume.value = -20;
+                    break;
+            }
+            
+            // Set tempo
+            Tone.Transport.bpm.value = tempo;
+            
+            // Create loops
+            createLoops();
+            
+            // Create environmental sounds
+            createEnvironmentalSound();
+        }
+        
+        function createLoops() {
+            const currentScale = scales[scale];
+            
+            // Drone loop
+            droneLoop = new Tone.Loop((time) => {
+                const root = currentScale[0];
+                const fifth = currentScale[4];
+                droneSynth.triggerAttackRelease([root, fifth], "25s", time, 0.3);
+                droneSynth.triggerAttackRelease(currentScale[2], "20s", time + 5, 0.2);
+            }, "20s").start(0);
+            
+            // Pad loop
+            padLoop = new Tone.Loop((time) => {
+                if (Math.random() < 0.3 + (density * 0.1)) {
+                    const rootIndex = Math.floor(Math.random() * 3);
+                    const baseNote = currentScale[rootIndex];
+                    const thirdIdx = currentScale.indexOf(baseNote) + 2;
+                    const fifthIdx = currentScale.indexOf(baseNote) + 4;
+                    const third = thirdIdx < currentScale.length ? currentScale[thirdIdx] : currentScale[thirdIdx - currentScale.length];
+                    const fifth = fifthIdx < currentScale.length ? currentScale[fifthIdx] : currentScale[fifthIdx - currentScale.length];
+                    const seventhIdx = currentScale.indexOf(baseNote) + 6;
+                    const seventh = seventhIdx < currentScale.length ? currentScale[seventhIdx] : currentScale[seventhIdx - currentScale.length];
+                    
+                    const chordNotes = Math.random() < 0.3 ? [baseNote, third, fifth, seventh] : [baseNote, third, fifth];
+                    const velocity = 0.2 + (Math.random() * 0.1);
+                    const humanizedTime = time + (Math.random() * 0.02);
+                    
+                    padSynth.triggerAttackRelease(chordNotes, "8n", humanizedTime, velocity);
+                }
+            }, "2n").start(0);
+            
+            // Bell loop
+            bellLoop = new Tone.Loop((time) => {
+                if (Math.random() < 0.1 + (density * 0.05)) {
+                    const idx = Math.floor(Math.random() * 5) + 5;
+                    const note = idx < currentScale.length ? currentScale[idx] : currentScale[currentScale.length - 1];
+                    const velocity = 0.1 + (Math.random() * 0.1);
+                    const humanizedTime = time + (Math.random() * 0.03);
+                    
+                    bellSynth.triggerAttackRelease(note, "16n", humanizedTime, velocity);
+                }
+            }, "4n").start("+0.5");
+            
+            // Bass loop
+            bassLoop = new Tone.Loop((time) => {
+                if (Math.random() < 0.15 + (density * 0.05)) {
+                    const bassIdx = Math.floor(Math.random() * 3);
+                    const bassNote = currentScale[bassIdx];
+                    const velocity = 0.3 + (Math.random() * 0.1);
+                    const humanizedTime = time + (Math.random() * 0.02);
+                    
+                    bassSynth.triggerAttackRelease(bassNote, "4n", humanizedTime, velocity);
+                }
+            }, "2n").start("+1");
+        }
+        
+        function createEnvironmentalSound() {
+            if (noiseType === 'none') return;
+            
+            noiseSource = new Tone.Noise("pink").start();
+            noiseGain = new Tone.Gain(0.04).connect(limiter);
+            noiseFilter = new Tone.Filter({
+                type: "bandpass",
+                Q: 1.0
+            }).connect(noiseGain);
+            
+            switch(noiseType) {
+                case 'waves':
+                    noiseFilter.frequency.value = 350;
+                    noiseFilter.Q.value = 0.5;
+                    const waveLFO = new Tone.LFO({ frequency: 0.05, min: 0.02, max: 0.06 }).connect(noiseGain.gain);
+                    waveLFO.start();
+                    break;
+                    
+                case 'wind':
+                    noiseFilter.frequency.value = 700;
+                    const windLFO = new Tone.LFO({ frequency: 0.03, min: 400, max: 1000, type: "sine" }).connect(noiseFilter.frequency);
+                    windLFO.start();
+                    noiseGain.gain.value = 0.03;
+                    break;
+                    
+                case 'birds':
+                    noiseFilter.frequency.value = 3500;
+                    noiseFilter.type = "highpass";
+                    noiseGain.gain.value = 0.01;
+                    break;
+                    
+                case 'leaves':
+                    noiseSource.type = "white";
+                    noiseFilter.frequency.value = 3500;
+                    noiseGain.gain.value = 0.01;
+                    break;
+                    
+                case 'bubbles':
+                    noiseFilter.frequency.value = 250;
+                    noiseFilter.Q.value = 1.5;
+                    const bubbleLFO = new Tone.LFO({ frequency: 0.1, min: 200, max: 400 }).connect(noiseFilter.frequency);
+                    bubbleLFO.start();
+                    noiseGain.gain.value = 0.02;
+                    break;
+                    
+                case 'air':
+                    noiseSource.type = "white";
+                    noiseFilter.frequency.value = 5000;
+                    noiseFilter.type = "highpass";
+                    noiseGain.gain.value = 0.008;
+                    break;
+            }
+            
+            noiseSource.connect(noiseFilter);
+        }
+        
+        function cleanupAudio() {
+            // Dispose loops
+            if (droneLoop) droneLoop.dispose();
+            if (padLoop) padLoop.dispose();
+            if (bellLoop) bellLoop.dispose();
+            if (bassLoop) bassLoop.dispose();
+            
+            // Dispose synths
+            if (padSynth) padSynth.dispose();
+            if (droneSynth) droneSynth.dispose();
+            if (bellSynth) bellSynth.dispose();
+            if (bassSynth) bassSynth.dispose();
+            
+            // Dispose effects
+            if (reverbEffect) reverbEffect.dispose();
+            if (delayEffect) delayEffect.dispose();
+            if (filterLow) filterLow.dispose();
+            if (filterHigh) filterHigh.dispose();
+            if (limiter) limiter.dispose();
+            if (masterVolume) masterVolume.dispose();
+            
+            // Dispose noise
+            if (noiseSource) {
+                noiseSource.stop();
+                noiseSource.dispose();
+                noiseSource = null;
+            }
+            if (noiseFilter) {
+                noiseFilter.dispose();
+                noiseFilter = null;
+            }
+            if (noiseGain) {
+                noiseGain.dispose();
+                noiseGain = null;
+            }
+        }
+        
+        // Initialize the UI when the page loads
+        initUI();
+        updatePresetButtons();
+    </script>
+</body>
+</html>

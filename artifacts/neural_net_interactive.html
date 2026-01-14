@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive neural network that learns the XOR function, visualizing activations and decision boundaries.">
+    <meta name="tags" content="ml, education, visualization">
+    <meta name="created" content="2025-01-06">
+    <title>Neural Network XOR Visualizer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        
+        /* Input Selection */
+        .input-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .input-section h2 {
+            margin: 0 0 15px 0;
+            font-size: 1rem;
+            color: #aaa;
+        }
+        
+        .input-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .input-btn {
+            padding: 12px 24px;
+            border: 2px solid #444;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .input-btn:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .input-btn.active {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.3);
+        }
+        
+        .input-btn .expected {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 4px;
+        }
+        
+        /* Network Visualization */
+        .network-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .network-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            position: relative;
+        }
+        
+        .layer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            z-index: 2;
+        }
+        
+        .layer-label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .neuron {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.3s;
+            border: 3px solid;
+        }
+        
+        .neuron.input-neuron {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+        
+        .neuron.hidden-neuron {
+            background: rgba(72, 187, 120, 0.2);
+            border-color: #48bb78;
+        }
+        
+        .neuron.output-neuron {
+            background: rgba(237, 137, 54, 0.2);
+            border-color: #ed8936;
+            width: 100px;
+            height: 100px;
+        }
+        
+        .neuron-value {
+            font-size: 1.4rem;
+        }
+        
+        .neuron-label {
+            font-size: 0.7rem;
+            color: #888;
+            margin-top: 2px;
+        }
+        
+        /* Connection lines via SVG */
+        .connections-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .connection {
+            stroke: #444;
+            stroke-width: 2;
+            fill: none;
+            transition: all 0.3s;
+        }
+        
+        .connection.positive {
+            stroke: #48bb78;
+        }
+        
+        .connection.negative {
+            stroke: #f56565;
+        }
+        
+        /* Calculation Steps */
+        .steps-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .steps-section h2 {
+            margin: 0 0 15px 0;
+            font-size: 1rem;
+            color: #aaa;
+        }
+        
+        .step {
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        
+        .step-title {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .step code {
+            color: #f6e05e;
+        }
+        
+        .step .result {
+            color: #48bb78;
+            font-weight: bold;
+        }
+        
+        /* Training Section */
+        .training-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .training-section h2 {
+            margin: 0 0 15px 0;
+            font-size: 1rem;
+            color: #aaa;
+        }
+        
+        .training-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .train-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .train-btn.primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .train-btn.primary:hover {
+            background: #5a67d8;
+        }
+        
+        .train-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid #444;
+        }
+        
+        .train-btn.secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .training-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        /* Results Grid */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .result-card {
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .result-input {
+            font-size: 0.85rem;
+            color: #888;
+        }
+        
+        .result-output {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .result-output.correct {
+            color: #48bb78;
+        }
+        
+        .result-output.wrong {
+            color: #f56565;
+        }
+        
+        .result-expected {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        /* Explanation */
+        .explanation {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 3px solid #667eea;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Neural Network XOR Visualizer</h1>
+        <p class="subtitle">Watch a neural network learn the XOR function step by step</p>
+        
+        <!-- Input Selection -->
+        <div class="input-section">
+            <h2>① Select an Input</h2>
+            <div class="input-buttons">
+                <button class="input-btn active" onclick="setInput(0, 0)">
+                    A=0, B=0
+                    <div class="expected">Expected: 0</div>
+                </button>
+                <button class="input-btn" onclick="setInput(0, 1)">
+                    A=0, B=1
+                    <div class="expected">Expected: 1</div>
+                </button>
+                <button class="input-btn" onclick="setInput(1, 0)">
+                    A=1, B=0
+                    <div class="expected">Expected: 1</div>
+                </button>
+                <button class="input-btn" onclick="setInput(1, 1)">
+                    A=1, B=1
+                    <div class="expected">Expected: 0</div>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Network Visualization -->
+        <div class="network-section">
+            <h2>② Watch Data Flow Through the Network</h2>
+            <div class="network-container" id="networkContainer">
+                <svg class="connections-svg" id="connectionsSvg"></svg>
+                
+                <!-- Input Layer -->
+                <div class="layer">
+                    <div class="layer-label">Input</div>
+                    <div class="neuron input-neuron" id="inputA">
+                        <div class="neuron-value" id="inputAVal">0</div>
+                        <div class="neuron-label">A</div>
+                    </div>
+                    <div class="neuron input-neuron" id="inputB">
+                        <div class="neuron-value" id="inputBVal">0</div>
+                        <div class="neuron-label">B</div>
+                    </div>
+                </div>
+                
+                <!-- Hidden Layer -->
+                <div class="layer">
+                    <div class="layer-label">Hidden</div>
+                    <div class="neuron hidden-neuron" id="hidden1">
+                        <div class="neuron-value" id="hidden1Val">?</div>
+                        <div class="neuron-label">H1</div>
+                    </div>
+                    <div class="neuron hidden-neuron" id="hidden2">
+                        <div class="neuron-value" id="hidden2Val">?</div>
+                        <div class="neuron-label">H2</div>
+                    </div>
+                </div>
+                
+                <!-- Output Layer -->
+                <div class="layer">
+                    <div class="layer-label">Output</div>
+                    <div class="neuron output-neuron" id="output">
+                        <div class="neuron-value" id="outputVal">?</div>
+                        <div class="neuron-label">Result</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Calculation Steps -->
+        <div class="steps-section">
+            <h2>③ The Math (Step by Step)</h2>
+            <div id="calculationSteps">
+                <div class="step">
+                    <div class="step-title">Select an input above to see the calculation</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Training Section -->
+        <div class="training-section">
+            <h2>④ Train the Network</h2>
+            <div class="training-controls">
+                <button class="train-btn primary" onclick="train(100)">Train 100 steps</button>
+                <button class="train-btn primary" onclick="train(1000)">Train 1000 steps</button>
+                <button class="train-btn secondary" onclick="resetNetwork()">Reset (Random Weights)</button>
+            </div>
+            
+            <div class="training-stats">
+                <div class="stat">
+                    <div class="stat-value" id="epochCount">0</div>
+                    <div class="stat-label">Training Steps</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="errorValue">-</div>
+                    <div class="stat-label">Total Error</div>
+                </div>
+            </div>
+            
+            <div class="results-grid" id="resultsGrid">
+                <!-- Filled by JS -->
+            </div>
+            
+            <div class="explanation">
+                <strong>How training works:</strong> Each step, we show the network all 4 XOR examples. 
+                When it gets one wrong, we calculate which weights were responsible for the error 
+                (backpropagation), then nudge them slightly in the right direction. After enough 
+                steps, the weights converge to values that correctly compute XOR.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // NEURAL NETWORK STATE
+        // ============================================================
+        
+        // Current inputs
+        let inputA = 0;
+        let inputB = 0;
+        
+        // Training data
+        const trainingData = [
+            { inputs: [0, 0], expected: 0 },
+            { inputs: [0, 1], expected: 1 },
+            { inputs: [1, 0], expected: 1 },
+            { inputs: [1, 1], expected: 0 },
+        ];
+        
+        // Network weights (randomly initialized)
+        let weights = {};
+        let epoch = 0;
+        const learningRate = 0.5;
+        
+        function initializeWeights() {
+            weights = {
+                // Input to Hidden
+                w_a_h1: Math.random() * 2 - 1,
+                w_b_h1: Math.random() * 2 - 1,
+                w_a_h2: Math.random() * 2 - 1,
+                w_b_h2: Math.random() * 2 - 1,
+                // Biases for hidden
+                b_h1: Math.random() * 2 - 1,
+                b_h2: Math.random() * 2 - 1,
+                // Hidden to Output
+                w_h1_o: Math.random() * 2 - 1,
+                w_h2_o: Math.random() * 2 - 1,
+                // Bias for output
+                b_o: Math.random() * 2 - 1,
+            };
+        }
+        
+        // ============================================================
+        // ACTIVATION FUNCTION
+        // ============================================================
+        
+        function sigmoid(x) {
+            return 1 / (1 + Math.exp(-x));
+        }
+        
+        function sigmoidDerivative(x) {
+            return x * (1 - x);
+        }
+        
+        // ============================================================
+        // FORWARD PASS
+        // ============================================================
+        
+        function forwardPass(a, b) {
+            // Hidden layer
+            const h1_sum = a * weights.w_a_h1 + b * weights.w_b_h1 + weights.b_h1;
+            const h1 = sigmoid(h1_sum);
+            
+            const h2_sum = a * weights.w_a_h2 + b * weights.w_b_h2 + weights.b_h2;
+            const h2 = sigmoid(h2_sum);
+            
+            // Output layer
+            const o_sum = h1 * weights.w_h1_o + h2 * weights.w_h2_o + weights.b_o;
+            const output = sigmoid(o_sum);
+            
+            return {
+                h1_sum, h1,
+                h2_sum, h2,
+                o_sum, output
+            };
+        }
+        
+        // ============================================================
+        // TRAINING (BACKPROPAGATION)
+        // ============================================================
+        
+        function trainOnce() {
+            let totalError = 0;
+            
+            for (const data of trainingData) {
+                const [a, b] = data.inputs;
+                const expected = data.expected;
+                
+                // Forward pass
+                const result = forwardPass(a, b);
+                
+                // Calculate error
+                const error = expected - result.output;
+                totalError += error * error;
+                
+                // Backpropagation
+                const outputDelta = error * sigmoidDerivative(result.output);
+                
+                const h1Error = outputDelta * weights.w_h1_o;
+                const h2Error = outputDelta * weights.w_h2_o;
+                
+                const h1Delta = h1Error * sigmoidDerivative(result.h1);
+                const h2Delta = h2Error * sigmoidDerivative(result.h2);
+                
+                // Update weights
+                weights.w_h1_o += learningRate * outputDelta * result.h1;
+                weights.w_h2_o += learningRate * outputDelta * result.h2;
+                weights.b_o += learningRate * outputDelta;
+                
+                weights.w_a_h1 += learningRate * h1Delta * a;
+                weights.w_b_h1 += learningRate * h1Delta * b;
+                weights.b_h1 += learningRate * h1Delta;
+                
+                weights.w_a_h2 += learningRate * h2Delta * a;
+                weights.w_b_h2 += learningRate * h2Delta * b;
+                weights.b_h2 += learningRate * h2Delta;
+            }
+            
+            return totalError;
+        }
+        
+        function train(steps) {
+            let totalError = 0;
+            for (let i = 0; i < steps; i++) {
+                totalError = trainOnce();
+                epoch++;
+            }
+            
+            document.getElementById('epochCount').textContent = epoch.toLocaleString();
+            document.getElementById('errorValue').textContent = totalError.toFixed(6);
+            
+            updateDisplay();
+            updateResultsGrid();
+        }
+        
+        function resetNetwork() {
+            initializeWeights();
+            epoch = 0;
+            document.getElementById('epochCount').textContent = '0';
+            document.getElementById('errorValue').textContent = '-';
+            updateDisplay();
+            updateResultsGrid();
+        }
+        
+        // ============================================================
+        // UI UPDATES
+        // ============================================================
+        
+        function setInput(a, b) {
+            inputA = a;
+            inputB = b;
+            
+            // Update button states
+            document.querySelectorAll('.input-btn').forEach((btn, i) => {
+                const inputs = [[0,0], [0,1], [1,0], [1,1]];
+                btn.classList.toggle('active', inputs[i][0] === a && inputs[i][1] === b);
+            });
+            
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            const result = forwardPass(inputA, inputB);
+            
+            // Update neuron values
+            document.getElementById('inputAVal').textContent = inputA;
+            document.getElementById('inputBVal').textContent = inputB;
+            document.getElementById('hidden1Val').textContent = result.h1.toFixed(2);
+            document.getElementById('hidden2Val').textContent = result.h2.toFixed(2);
+            document.getElementById('outputVal').textContent = result.output.toFixed(3);
+            
+            // Update calculation steps
+            const expected = trainingData.find(d => d.inputs[0] === inputA && d.inputs[1] === inputB).expected;
+            const isCorrect = Math.abs(result.output - expected) < 0.3;
+            
+            document.getElementById('calculationSteps').innerHTML = `
+                <div class="step">
+                    <div class="step-title">Hidden Neuron H1</div>
+                    sum = (${inputA} × ${weights.w_a_h1.toFixed(2)}) + (${inputB} × ${weights.w_b_h1.toFixed(2)}) + ${weights.b_h1.toFixed(2)} = <code>${result.h1_sum.toFixed(3)}</code><br>
+                    H1 = sigmoid(${result.h1_sum.toFixed(3)}) = <span class="result">${result.h1.toFixed(3)}</span>
+                </div>
+                <div class="step">
+                    <div class="step-title">Hidden Neuron H2</div>
+                    sum = (${inputA} × ${weights.w_a_h2.toFixed(2)}) + (${inputB} × ${weights.w_b_h2.toFixed(2)}) + ${weights.b_h2.toFixed(2)} = <code>${result.h2_sum.toFixed(3)}</code><br>
+                    H2 = sigmoid(${result.h2_sum.toFixed(3)}) = <span class="result">${result.h2.toFixed(3)}</span>
+                </div>
+                <div class="step">
+                    <div class="step-title">Output Neuron</div>
+                    sum = (${result.h1.toFixed(3)} × ${weights.w_h1_o.toFixed(2)}) + (${result.h2.toFixed(3)} × ${weights.w_h2_o.toFixed(2)}) + ${weights.b_o.toFixed(2)} = <code>${result.o_sum.toFixed(3)}</code><br>
+                    Output = sigmoid(${result.o_sum.toFixed(3)}) = <span class="result">${result.output.toFixed(3)}</span>
+                    <br><br>
+                    Expected: ${expected} | Got: ${result.output.toFixed(3)} | ${isCorrect ? '✅ Correct!' : '❌ Not quite...'}
+                </div>
+            `;
+            
+            drawConnections();
+        }
+        
+        function updateResultsGrid() {
+            let html = '';
+            for (const data of trainingData) {
+                const result = forwardPass(data.inputs[0], data.inputs[1]);
+                const isCorrect = Math.abs(result.output - data.expected) < 0.3;
+                
+                html += `
+                    <div class="result-card">
+                        <div class="result-input">[${data.inputs[0]}, ${data.inputs[1]}]</div>
+                        <div class="result-output ${isCorrect ? 'correct' : 'wrong'}">${result.output.toFixed(2)}</div>
+                        <div class="result-expected">expected: ${data.expected}</div>
+                    </div>
+                `;
+            }
+            document.getElementById('resultsGrid').innerHTML = html;
+        }
+        
+        function drawConnections() {
+            const container = document.getElementById('networkContainer');
+            const svg = document.getElementById('connectionsSvg');
+            const rect = container.getBoundingClientRect();
+            
+            svg.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
+            
+            const inputA = document.getElementById('inputA').getBoundingClientRect();
+            const inputB = document.getElementById('inputB').getBoundingClientRect();
+            const hidden1 = document.getElementById('hidden1').getBoundingClientRect();
+            const hidden2 = document.getElementById('hidden2').getBoundingClientRect();
+            const output = document.getElementById('output').getBoundingClientRect();
+            
+            function getCenter(el) {
+                const r = el;
+                return {
+                    x: r.left - rect.left + r.width / 2,
+                    y: r.top - rect.top + r.height / 2
+                };
+            }
+            
+            const iA = getCenter(inputA);
+            const iB = getCenter(inputB);
+            const h1 = getCenter(hidden1);
+            const h2 = getCenter(hidden2);
+            const o = getCenter(output);
+            
+            function weightClass(w) {
+                return w > 0 ? 'positive' : 'negative';
+            }
+            
+            function weightWidth(w) {
+                return Math.min(Math.abs(w) * 2 + 1, 6);
+            }
+            
+            svg.innerHTML = `
+                <line class="connection ${weightClass(weights.w_a_h1)}" x1="${iA.x}" y1="${iA.y}" x2="${h1.x}" y2="${h1.y}" stroke-width="${weightWidth(weights.w_a_h1)}"/>
+                <line class="connection ${weightClass(weights.w_b_h1)}" x1="${iB.x}" y1="${iB.y}" x2="${h1.x}" y2="${h1.y}" stroke-width="${weightWidth(weights.w_b_h1)}"/>
+                <line class="connection ${weightClass(weights.w_a_h2)}" x1="${iA.x}" y1="${iA.y}" x2="${h2.x}" y2="${h2.y}" stroke-width="${weightWidth(weights.w_a_h2)}"/>
+                <line class="connection ${weightClass(weights.w_b_h2)}" x1="${iB.x}" y1="${iB.y}" x2="${h2.x}" y2="${h2.y}" stroke-width="${weightWidth(weights.w_b_h2)}"/>
+                <line class="connection ${weightClass(weights.w_h1_o)}" x1="${h1.x}" y1="${h1.y}" x2="${o.x}" y2="${o.y}" stroke-width="${weightWidth(weights.w_h1_o)}"/>
+                <line class="connection ${weightClass(weights.w_h2_o)}" x1="${h2.x}" y1="${h2.y}" x2="${o.x}" y2="${o.y}" stroke-width="${weightWidth(weights.w_h2_o)}"/>
+            `;
+        }
+        
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+        
+        initializeWeights();
+        updateDisplay();
+        updateResultsGrid();
+        
+        window.addEventListener('resize', drawConnections);
+    </script>
+</body>
+</html>

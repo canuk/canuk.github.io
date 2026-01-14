@@ -100,6 +100,24 @@
             cursor: pointer;
         }
 
+        .swap-btn {
+            background: #1a1a2e;
+            border: 1px solid #444;
+            color: #0cf;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 4px;
+        }
+
+        .swap-btn:hover {
+            background: #2a2a4e;
+            border-color: #0cf;
+            box-shadow: 0 0 10px rgba(0, 204, 255, 0.3);
+        }
+
         .btn {
             background: linear-gradient(135deg, #0cf 0%, #0099cc 100%);
             color: #1a1a2e;
@@ -204,8 +222,8 @@
             height: 24px;
         }
 
-        .board-header.arrivals svg { fill: #0cf; }
-        .board-header.departures svg { fill: #fbbf24; }
+        .board-header.arrivals svg { fill: #ff8c00; }
+        .board-header.departures svg { fill: #ff8c00; }
 
         .board-title {
             font-size: 1.2rem;
@@ -214,8 +232,8 @@
             letter-spacing: 2px;
         }
 
-        .board-title.arrivals { color: #0cf; text-shadow: 0 0 10px rgba(0, 204, 255, 0.5); }
-        .board-title.departures { color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+        .board-title.arrivals { color: #ff8c00; text-shadow: 0 0 10px rgba(255, 140, 0, 0.5); }
+        .board-title.departures { color: #ff8c00; text-shadow: 0 0 10px rgba(255, 140, 0, 0.5); }
 
         .flight-list {
             display: flex;
@@ -296,11 +314,11 @@
         }
 
         .flight-row .status-tile.arriving {
-            background: linear-gradient(180deg, #0088aa 0%, #00aacc 49%, #0088aa 51%, #00aacc 100%);
+            background: linear-gradient(180deg, #cc6600 0%, #ff8c00 49%, #cc6600 51%, #ff8c00 100%);
         }
 
         .flight-row .status-tile.departing {
-            background: linear-gradient(180deg, #cc8800 0%, #ddaa00 49%, #cc8800 51%, #ddaa00 100%);
+            background: linear-gradient(180deg, #cc6600 0%, #ff8c00 49%, #cc6600 51%, #ff8c00 100%);
         }
 
         .empty-message {
@@ -431,6 +449,25 @@
             fill: none;
             stroke-linecap: round;
             stroke-linejoin: round;
+        }
+
+        .extended-centerline {
+            stroke: #444;
+            stroke-width: 1;
+            stroke-dasharray: 8 4;
+        }
+
+        .radius-circle {
+            stroke: #333;
+            stroke-width: 1;
+            stroke-dasharray: 4 4;
+            fill: none;
+        }
+
+        .corridor-line {
+            stroke: #383838;
+            stroke-width: 1;
+            stroke-dasharray: 6 3;
         }
 
         /* OLED-style leg display */
@@ -597,7 +634,7 @@
         <div class="main-content">
             <div class="status-board">
                 <div class="board-header arrivals">
-                    <svg viewBox="0 0 24 24"><path d="M2.5 19h19v2h-19v-2zm19.57-9.36c-.21-.8-1.04-1.28-1.84-1.06L14.92 10l-6.9-6.43-1.93.51 4.14 7.17-4.97 1.33-1.97-1.54-1.45.39 2.59 4.49L21 11.49c.81-.23 1.28-1.05 1.07-1.85z"/></svg>
+                    <svg viewBox="0 0 24 24"><path d="M2.5 19h19v2h-19v-2zm7.18-5.73l4.35 1.16 5.31 1.42c.8.21 1.62-.26 1.84-1.06.21-.79-.26-1.62-1.06-1.84l-5.31-1.42-2.76-9.02-1.93-.51v8.28L5.15 8.95l-.93-2.32-1.45-.39v5.17l1.6.43 5.31 1.43z"/></svg>
                     <span class="board-title arrivals">Arrivals</span>
                 </div>
                 <div class="flip-header">
@@ -611,7 +648,7 @@
 
             <div class="status-board">
                 <div class="board-header departures">
-                    <svg viewBox="0 0 24 24"><path d="M2.5 19h19v2h-19v-2zm7.18-5.73l4.35 1.16 5.31 1.42c.8.21 1.62-.26 1.84-1.06.21-.79-.26-1.62-1.06-1.84l-5.31-1.42-2.76-9.02-1.93-.51v8.28L5.15 8.95l-.93-2.32-1.45-.39v5.17l1.6.43 5.31 1.43z"/></svg>
+                    <svg viewBox="0 0 24 24"><path d="M2.5 19h19v2h-19v-2zm19.57-9.36c-.21-.8-1.04-1.28-1.84-1.06L14.92 10l-6.9-6.43-1.93.51 4.14 7.17-4.97 1.33-1.97-1.54-1.45.39 2.59 4.49L21 11.49c.81-.23 1.28-1.05 1.07-1.85z"/></svg>
                     <span class="board-title departures">Departures</span>
                 </div>
                 <div class="flip-header">
@@ -633,6 +670,7 @@
                     <select id="runwayInUseSelect" class="config-select" style="width: 70px;">
                         <option value="">--</option>
                     </select>
+                    <button id="swapRunwayBtn" class="swap-btn" title="Swap runway direction">⇄</button>
                 </div>
                 <div class="pattern-toggle">
                     <button id="leftPatternBtn" class="active">Left</button>
@@ -649,7 +687,7 @@
         <div class="footer">
             Data from <a href="https://adsb.lol" target="_blank">adsb.lol</a> &amp;
             <a href="https://aviationweather.gov" target="_blank">aviationweather.gov</a>
-            &bull; Updates every 5 seconds
+            &bull; Updates every 3 seconds
         </div>
     </div>
 
@@ -660,6 +698,7 @@
             runways: [],
             selectedRunway: null,
             runwayInUse: null,  // e.g., "27" - which end is active
+            runwaySwapped: false, // whether runway display is swapped (180° rotation)
             runwayHeading: 0,
             patternSide: 'left', // left or right
             weather: null,
@@ -669,11 +708,45 @@
             pollInterval: null
         };
 
+        // LocalStorage caching for arrivals/departures
+        const CACHE_KEY = 'airportStatusCache';
+        const CACHE_MAX_AGE = 30 * 60 * 1000; // 30 minutes
+
+        function saveCache() {
+            if (!state.airport) return;
+            const cache = {
+                icao: state.airport.icao,
+                timestamp: Date.now(),
+                arrivals: state.arrivals,
+                departures: state.departures,
+                selectedRunwayId: state.selectedRunway?.id,
+                runwayInUse: state.runwayInUse,
+                patternSide: state.patternSide
+            };
+            localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+        }
+
+        function loadCache(icao) {
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (!cached) return null;
+                const cache = JSON.parse(cached);
+                // Only use cache if same airport and not too old
+                if (cache.icao === icao && (Date.now() - cache.timestamp) < CACHE_MAX_AGE) {
+                    return cache;
+                }
+            } catch (e) {
+                console.warn('Failed to load cache:', e);
+            }
+            return null;
+        }
+
         // DOM Elements
         const dom = {
             icaoInput: document.getElementById('icaoInput'),
             runwaySelect: document.getElementById('runwaySelect'),
             runwayInUseSelect: document.getElementById('runwayInUseSelect'),
+            swapRunwayBtn: document.getElementById('swapRunwayBtn'),
             loadBtn: document.getElementById('loadBtn'),
             flightCategory: document.getElementById('flightCategory'),
             weatherInfo: document.getElementById('weatherInfo'),
@@ -754,10 +827,33 @@
             return data[0];
         }
 
-        async function fetchAircraft(lat, lon, radius = 5) {
-            const response = await fetch(proxyUrl(`https://api.adsb.lol/v2/lat/${lat}/lon/${lon}/dist/${radius}`));
-            if (!response.ok) throw new Error('Failed to fetch aircraft');
-            return await response.json();
+        async function fetchAircraft(lat, lon, radius = 5, retries = 2) {
+            // Add tiny random offset to coordinates to bust cache (< 10 meters, won't affect results)
+            const jitter = () => (Math.random() - 0.5) * 0.0001;
+            const jLat = (lat + jitter()).toFixed(6);
+            const jLon = (lon + jitter()).toFixed(6);
+            const url = `https://api.adsb.lol/v2/lat/${jLat}/lon/${jLon}/dist/${radius}`;
+
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                    const response = await fetch(proxyUrl(url), { cache: 'no-store' });
+                    if (!response.ok) {
+                        // Retry on 504 gateway timeout
+                        if (response.status === 504 && attempt < retries) {
+                            await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                            continue;
+                        }
+                        throw new Error(`Failed to fetch aircraft (${response.status})`);
+                    }
+                    return await response.json();
+                } catch (e) {
+                    if (attempt < retries) {
+                        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                        continue;
+                    }
+                    throw e;
+                }
+            }
         }
 
         // Pattern leg classification
@@ -920,6 +1016,24 @@
             drawPattern();
         }
 
+        function swapRunway() {
+            // Toggle the swapped state
+            state.runwaySwapped = !state.runwaySwapped;
+
+            // Swap the runway in use to the other end
+            if (state.selectedRunway && state.selectedRunway.id) {
+                const parts = state.selectedRunway.id.split('/');
+                if (parts.length === 2) {
+                    // If currently using parts[0], switch to parts[1] and vice versa
+                    if (state.runwayInUse === parts[0]) {
+                        selectRunwayInUse(parts[1]);
+                    } else {
+                        selectRunwayInUse(parts[0]);
+                    }
+                }
+            }
+        }
+
         function updateFlightList(listEl, flights, type) {
             const maxRows = 6;
             const callsignLen = 6;
@@ -979,36 +1093,53 @@
 
         function drawPattern() {
             const svg = dom.patternSvg;
+            if (!svg) return;
             const w = 800, h = 500;
             const isLeft = state.patternSide === 'left';
 
             // Runway numbers from selected runway (e.g., "05/23" -> 05, 23)
             // The runway in use determines which end is "active" (where we land)
+            // runwaySwapped flips the display orientation
             let rwyNum1 = '9', rwyNum2 = '27';
             let landingEnd = 'right'; // Which end we're landing ON (left or right on screen)
             if (state.selectedRunway && state.selectedRunway.id) {
                 const parts = state.selectedRunway.id.split('/');
                 if (parts.length === 2) {
-                    rwyNum1 = parts[0];
-                    rwyNum2 = parts[1];
-                    // Determine which end we land on based on runway in use
-                    if (state.runwayInUse === parts[0]) {
-                        landingEnd = 'left';
+                    // Swap runway numbers if swapped view
+                    if (state.runwaySwapped) {
+                        rwyNum1 = parts[1];
+                        rwyNum2 = parts[0];
                     } else {
-                        landingEnd = 'right';
+                        rwyNum1 = parts[0];
+                        rwyNum2 = parts[1];
                     }
+                    // Determine which end we land on based on runway in use
+                    // When swapped, the sides are flipped
+                    const rwyInUseOnLeft = state.runwaySwapped
+                        ? (state.runwayInUse === parts[1])
+                        : (state.runwayInUse === parts[0]);
+                    landingEnd = rwyInUseOnLeft ? 'left' : 'right';
                 }
             }
 
-            // Layout constants
-            const rwyWidth = 500;
-            const rwyHeight = 55;
+            // Fixed display dimensions for consistent visuals
+            const rwyWidth = 500;      // Fixed runway length in pixels
+            const rwyHeight = 55;      // Fixed runway width in pixels
             const rwyX = (w - rwyWidth) / 2;
-            const rwyMidX = rwyX + rwyWidth / 2;
+            const rwyMidX = w / 2;
 
-            // Pattern dimensions - extend beyond runway for upwind/final legs
-            const patternExtend = 160; // How far pattern extends beyond runway ends (doubled)
-            const patternHeight = 280;
+            // Fixed pattern display dimensions
+            const patternExtend = 75;  // Pattern extends beyond runway ends
+            const patternHeight = 240; // Downwind distance from runway
+
+            // Display ranges
+            const radiusNm = 5;        // Show aircraft within 5nm radius
+            const corridorNm = 10;     // Show aircraft up to 10nm on approach/departure
+            const corridorWidthDeg = 15; // Corridor half-width in degrees from runway heading
+
+            // Fixed scale for aircraft positioning (pixels per nautical mile)
+            // Scale to fit 10nm corridors in display width
+            const scale = (w - 40) / (corridorNm * 2); // ~38 px/nm for 10nm each direction
             const patternLeft = rwyX - patternExtend;
             const patternRight = rwyX + rwyWidth + patternExtend;
             const cornerRadius = 40;
@@ -1034,6 +1165,28 @@
 
             // Build SVG content
             let svgContent = '';
+
+            // === 5NM RADIUS CIRCLE ===
+            const radiusPx = radiusNm * scale;
+            svgContent += `<circle class="radius-circle" cx="${rwyMidX}" cy="${rwyMidY}" r="${radiusPx}"/>`;
+
+            // === APPROACH/DEPARTURE CORRIDORS ===
+            // Draw corridor boundaries extending to 10nm
+            const corridorLengthPx = corridorNm * scale;
+            const corridorHalfWidthPx = Math.tan(toRadians(corridorWidthDeg)) * corridorLengthPx;
+            // Left corridor (approach/departure)
+            svgContent += `<line class="corridor-line" x1="${rwyMidX}" y1="${rwyMidY}" x2="${rwyMidX - corridorLengthPx}" y2="${rwyMidY - corridorHalfWidthPx}"/>`;
+            svgContent += `<line class="corridor-line" x1="${rwyMidX}" y1="${rwyMidY}" x2="${rwyMidX - corridorLengthPx}" y2="${rwyMidY + corridorHalfWidthPx}"/>`;
+            // Right corridor (approach/departure)
+            svgContent += `<line class="corridor-line" x1="${rwyMidX}" y1="${rwyMidY}" x2="${rwyMidX + corridorLengthPx}" y2="${rwyMidY - corridorHalfWidthPx}"/>`;
+            svgContent += `<line class="corridor-line" x1="${rwyMidX}" y1="${rwyMidY}" x2="${rwyMidX + corridorLengthPx}" y2="${rwyMidY + corridorHalfWidthPx}"/>`;
+
+            // === EXTENDED CENTERLINE ===
+            // Show approach and departure paths extending beyond the pattern
+            const extendedLeft = 20;  // Left edge of viewbox
+            const extendedRight = w - 20;  // Right edge of viewbox
+            svgContent += `<line class="extended-centerline" x1="${extendedLeft}" y1="${rwyMidY}" x2="${patternLeft}" y2="${rwyMidY}"/>`;
+            svgContent += `<line class="extended-centerline" x1="${patternRight}" y1="${rwyMidY}" x2="${extendedRight}" y2="${rwyMidY}"/>`;
 
             // === PATTERN OUTLINE ===
             // Simple rounded rectangle aligned with runway centerline
@@ -1118,8 +1271,21 @@
             svgContent += `<text class="leg-label" ${labelStyle('Downwind', activeLegs.has('downwind'))} x="${rwyMidX}" y="${downwindY}" font-size="14" font-family="sans-serif" text-anchor="middle">Downwind</text>`;
 
             // === AIRCRAFT POSITIONING ===
-            // Transpose GPS coordinates to pattern display
-            // The runway heading becomes horizontal (pointing right)
+            // Aircraft positions are based on PHYSICAL runway orientation (fixed)
+            // Runway-in-use only affects labels, not aircraft positions
+
+            // Use the base runway heading (adjusted for swap display only)
+            const displayHeading = state.runwaySwapped
+                ? (state.runwayHeading + 180) % 360
+                : state.runwayHeading;
+
+            // Check if aircraft is in approach/departure corridor
+            function isInCorridor(bearing, rwyHdg) {
+                const diff1 = Math.abs(angleDiff(bearing, rwyHdg));
+                const diff2 = Math.abs(angleDiff(bearing, (rwyHdg + 180) % 360));
+                return diff1 <= corridorWidthDeg || diff2 <= corridorWidthDeg;
+            }
+
             state.aircraft.forEach((ac, hex) => {
                 if (!ac.lat || !ac.lon) return;
 
@@ -1127,44 +1293,41 @@
                 const bearing = getBearing(state.airport.lat, state.airport.lon, ac.lat, ac.lon);
                 const distance = getDistance(state.airport.lat, state.airport.lon, ac.lat, ac.lon);
 
-                // Skip if too far (outside pattern area)
-                if (distance > 3) return;
+                // Show aircraft if:
+                // 1. Within 5nm radius, OR
+                // 2. Within 10nm AND on approach/departure corridor
+                const inRadius = distance <= radiusNm;
+                const inCorridor = distance <= corridorNm && isInCorridor(bearing, state.runwayHeading);
+                if (!inRadius && !inCorridor) return;
 
-                // Rotate coordinates so runway heading becomes horizontal
-                // runwayHeading points in the direction of the higher-numbered runway end
-                const rotatedBearing = bearing - state.runwayHeading;
+                // Rotate so runway-in-use direction becomes +x (pointing right)
+                const rotatedBearing = bearing - displayHeading;
+                const rotatedRad = toRadians(rotatedBearing);
 
-                // Convert polar to cartesian (scale: ~80px per nm for good visibility)
-                const scale = 80;
-                const dx = distance * Math.sin(toRadians(rotatedBearing)) * scale;
-                const dy = -distance * Math.cos(toRadians(rotatedBearing)) * scale;
+                // Convert bearing to cartesian with runway pointing right
+                // rotatedBearing 0 = ahead (+x), 90 = right side (+y), 180 = behind (-x)
+                const dx = distance * Math.cos(rotatedRad) * scale;
+                const dy = distance * Math.sin(rotatedRad) * scale;
 
                 // Position relative to runway center
                 let x = rwyMidX + dx;
                 let y = rwyMidY + dy;
 
-                // Flip Y coordinate based on where the pattern actually is
-                // If pattern is above runway, aircraft on pattern side should have negative screen Y
-                if (patternAbove) {
-                    // Pattern is above, so flip Y (north in real world = up on screen)
-                    y = rwyMidY - dy;
-                }
-
                 // Skip if outside viewbox
-                if (x < 30 || x > w - 30 || y < 30 || y > h - 30) return;
+                if (x < 10 || x > w - 10 || y < 10 || y > h - 10) return;
 
-                // Aircraft icon rotation: show actual track, adjusted for display orientation
+                // Aircraft icon rotation: SVG path points UP (-Y), runway points RIGHT (+X)
+                // So add 90° to convert from heading to screen rotation
                 const track = ac.track || 0;
-                const iconRotation = track - state.runwayHeading + 90; // +90 because runway points right
+                const iconRotation = track - displayHeading + 90;
 
-                const isDeparting = ac.classification === 'departing';
                 const label = ac.r || ac.flight || hex.slice(-4);
 
-                // Draw aircraft (simple airplane shape)
+                // Draw aircraft
                 svgContent += `
                     <g class="aircraft-marker" transform="translate(${x}, ${y})">
                         <g transform="rotate(${iconRotation})">
-                            <path class="aircraft-icon ${isDeparting ? 'departing' : ''}"
+                            <path class="aircraft-icon"
                                   d="M0,-12 L3,-4 L3,2 L10,8 L10,11 L3,7 L3,10 L5,13 L5,15 L0,13 L-5,15 L-5,13 L-3,10 L-3,7 L-10,11 L-10,8 L-3,2 L-3,-4 Z"/>
                         </g>
                         <text class="aircraft-label" y="20">${label}</text>
@@ -1185,29 +1348,37 @@
             if (!state.airport) return;
 
             try {
-                const data = await fetchAircraft(state.airport.lat, state.airport.lon, 5);
+                const data = await fetchAircraft(state.airport.lat, state.airport.lon, 15);
                 const now = new Date();
 
-                // Process aircraft
-                const seenHex = new Set();
+                // Clear aircraft state - fresh data each poll (fixes stale aircraft bug)
+                state.aircraft.clear();
 
+                // Process aircraft from API
                 (data.ac || []).forEach(ac => {
-                    seenHex.add(ac.hex);
+                    // Filter out aircraft on the ground
+                    // alt_baro can be "ground" string or a number
+                    const altBaro = ac.alt_baro;
+                    const isGroundAlt = altBaro === 'ground' || altBaro === 'grnd' ||
+                                        (typeof altBaro === 'number' && altBaro < 200);
+                    const alt = (typeof altBaro === 'number' ? altBaro : ac.alt_geom) ?? 99999;
+                    const speed = ac.gs ?? 999;
+                    const isOnGround = isGroundAlt || (alt < 200 && speed < 30);
 
-                    const existing = state.aircraft.get(ac.hex);
+                    if (isOnGround) return;
+
                     const leg = classifyPatternLeg(ac);
                     const classification = classifyArrivalDeparture(ac);
 
-                    // Store/update aircraft
+                    // Add flying aircraft to state
                     state.aircraft.set(ac.hex, {
                         ...ac,
                         leg,
-                        classification,
-                        lastSeen: now
+                        classification
                     });
 
-                    // Track arrivals/departures
-                    if (classification === 'arriving' && (!existing || existing.classification !== 'arriving')) {
+                    // Track arrivals
+                    if (classification === 'arriving') {
                         const callsign = ac.r || ac.flight || ac.hex;
                         if (!state.arrivals.find(a => a.hex === ac.hex)) {
                             state.arrivals.unshift({
@@ -1223,7 +1394,8 @@
                         }
                     }
 
-                    if (classification === 'departing' && (!existing || existing.classification !== 'departing')) {
+                    // Track departures
+                    if (classification === 'departing') {
                         const callsign = ac.r || ac.flight || ac.hex;
                         if (!state.departures.find(d => d.hex === ac.hex)) {
                             state.departures.unshift({
@@ -1240,24 +1412,22 @@
                     }
                 });
 
-                // Remove stale aircraft (not seen in last 30 seconds)
-                const staleTime = new Date(now - 30000);
-                state.aircraft.forEach((ac, hex) => {
-                    if (ac.lastSeen < staleTime) {
-                        state.aircraft.delete(hex);
-                    }
-                });
-
                 // Update UI
                 updateFlightList(dom.arrivalsList, state.arrivals, 'arrivals');
                 updateFlightList(dom.departuresList, state.departures, 'departures');
                 drawPattern();
                 updateStatus(true, `${state.aircraft.size} aircraft tracked`);
 
+                // Save to cache
+                saveCache();
+
             } catch (error) {
                 console.error('Poll error:', error);
                 updateStatus(false, 'Connection error');
             }
+
+            // Schedule next poll (using setTimeout instead of setInterval for reliability)
+            setTimeout(pollAircraft, 3000);
         }
 
         // Load airport
@@ -1282,9 +1452,20 @@
 
                 state.airport = airport;
                 state.weather = metar;
-                state.arrivals = [];
-                state.departures = [];
                 state.aircraft.clear();
+
+                // Try to restore cached arrivals/departures
+                const cache = loadCache(icao);
+                if (cache) {
+                    state.arrivals = cache.arrivals || [];
+                    state.departures = cache.departures || [];
+                    // Clear isNew flags on cached items
+                    state.arrivals.forEach(a => a.isNew = false);
+                    state.departures.forEach(d => d.isNew = false);
+                } else {
+                    state.arrivals = [];
+                    state.departures = [];
+                }
 
                 // Parse runways
                 if (airportInfo && airportInfo.runways) {
@@ -1295,12 +1476,41 @@
                 }
 
                 updateRunwaySelect();
+
+                // Restore cached runway settings if available
+                if (cache) {
+                    // Find and select the cached runway
+                    const rwyId = cache.selectedRunwayId;
+                    const rwyIdx = state.runways.findIndex(r => r.id === rwyId);
+                    if (rwyIdx >= 0) {
+                        dom.runwaySelect.value = rwyIdx;
+                        selectRunway(rwyIdx);
+                        // Set the runway in use
+                        if (cache.runwayInUse && dom.runwayInUseSelect.querySelector(`option[value="${cache.runwayInUse}"]`)) {
+                            dom.runwayInUseSelect.value = cache.runwayInUse;
+                            selectRunwayInUse(cache.runwayInUse);
+                        }
+                    }
+                    if (cache.patternSide) {
+                        state.patternSide = cache.patternSide;
+                        if (cache.patternSide === 'left') {
+                            dom.leftPatternBtn.classList.add('active');
+                            dom.rightPatternBtn.classList.remove('active');
+                        } else {
+                            dom.rightPatternBtn.classList.add('active');
+                            dom.leftPatternBtn.classList.remove('active');
+                        }
+                    }
+                }
+
+                // Update flight lists with cached data
+                updateFlightList(dom.arrivalsList, state.arrivals, 'arrivals');
+                updateFlightList(dom.departuresList, state.departures, 'departures');
+
                 updateWeatherDisplay();
 
-                // Start polling
-                if (state.pollInterval) clearInterval(state.pollInterval);
-                state.pollInterval = setInterval(pollAircraft, 5000);
-                pollAircraft(); // Initial poll
+                // Start polling (uses setTimeout chain for reliability)
+                pollAircraft(); // Initial poll starts the chain
 
                 // Save to localStorage
                 localStorage.setItem('lastAirport', icao);
@@ -1328,13 +1538,17 @@
 
         dom.runwayInUseSelect.addEventListener('change', e => {
             selectRunwayInUse(e.target.value);
+            saveCache();
         });
+
+        dom.swapRunwayBtn.addEventListener('click', swapRunway);
 
         dom.leftPatternBtn.addEventListener('click', () => {
             state.patternSide = 'left';
             dom.leftPatternBtn.classList.add('active');
             dom.rightPatternBtn.classList.remove('active');
             drawPattern();
+            saveCache();
         });
 
         dom.rightPatternBtn.addEventListener('click', () => {
@@ -1342,6 +1556,7 @@
             dom.rightPatternBtn.classList.add('active');
             dom.leftPatternBtn.classList.remove('active');
             drawPattern();
+            saveCache();
         });
 
         // Initialize empty flip boards

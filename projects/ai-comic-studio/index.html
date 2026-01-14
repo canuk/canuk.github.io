@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building AI Comic Studio</title>
+    <meta name="description" content="How I built AI Comic Studio - an AI-powered comic creation tool for education. From multi-model image generation to content moderation and local-first storage.">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bs-body-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        body {
+            background-color: #f8f9fa;
+            line-height: 1.7;
+        }
+        .article-content {
+            max-width: 800px;
+        }
+        .toc {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: none;
+        }
+        .toc ol {
+            padding-left: 1.5rem;
+        }
+        .toc a {
+            color: #495057;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .toc a:hover {
+            color: #0d6efd;
+        }
+        .callout-box {
+            background: linear-gradient(135deg, #e7f1ff 0%, #f0f7ff 100%);
+            border-left: 4px solid #0d6efd;
+            padding: 1.25rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            margin: 1.5rem 0;
+        }
+        .callout-box h6 {
+            color: #0d6efd;
+            margin-bottom: 0.5rem;
+        }
+        .callout-box.warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #fffbeb 100%);
+            border-left-color: #ffc107;
+        }
+        .callout-box.warning h6 {
+            color: #997404;
+        }
+        .card-modern {
+            border: none;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+        pre {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem 1.25rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+        code {
+            font-family: 'Fira Code', monospace;
+        }
+        pre code {
+            color: inherit;
+            background: none;
+        }
+        p code, li code {
+            background-color: #e9ecef;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            color: #d63384;
+        }
+        h2 {
+            padding-top: 1rem;
+        }
+        h4 {
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .badge {
+            font-weight: 500;
+            padding: 0.5em 0.75em;
+        }
+        .list-group-item {
+            border: none;
+            background: white;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .list-group-item:hover {
+            background-color: #f8f9fa;
+        }
+        /* Syntax highlighting approximation */
+        .keyword { color: #569cd6; }
+        .string { color: #ce9178; }
+        .comment { color: #6a9955; }
+        .function { color: #dcdcaa; }
+        .number { color: #b5cea8; }
+    </style>
+</head>
+<body>
+<div class="container py-5">
+  <article class="article-content mx-auto">
+
+    <!-- Hero Section -->
+    <header class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3">Building AI Comic Studio</h1>
+      <p class="lead text-secondary">An AI-Powered Comic Creation Tool for Education</p>
+      <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+        <span class="badge" style="background-color: #F7DF1E; color: #000;"><i class="bi bi-braces me-1"></i>JavaScript</span>
+        <span class="badge" style="background-color: #DD2C00;"><i class="bi bi-fire me-1"></i>Firebase</span>
+        <span class="badge" style="background-color: #4285F4;"><i class="bi bi-google me-1"></i>Gemini</span>
+        <span class="badge" style="background-color: #10A37F;"><i class="bi bi-robot me-1"></i>OpenAI</span>
+        <span class="badge" style="background-color: #6C3483;"><i class="bi bi-database me-1"></i>IndexedDB</span>
+      </div>
+    </header>
+
+    <!-- Table of Contents -->
+    <nav class="toc card card-modern p-4 mb-5">
+      <h5 class="fw-bold mb-3"><i class="bi bi-list-ol me-2"></i>Contents</h5>
+      <ol class="mb-0">
+        <li><a href="#the-problem">The Problem</a></li>
+        <li><a href="#architecture">Architecture Overview</a></li>
+        <li><a href="#ai-models">Multi-Model AI Integration</a></li>
+        <li><a href="#async-processing">Async Image Generation with Pub/Sub</a></li>
+        <li><a href="#content-moderation">Content Moderation Pipeline</a></li>
+        <li><a href="#local-storage">Local-First Storage with IndexedDB</a></li>
+        <li><a href="#scene-management">Scene Card Management</a></li>
+        <li><a href="#comic-export">Comic Layout & PDF Export</a></li>
+        <li><a href="#lessons-learned">Lessons Learned</a></li>
+      </ol>
+    </nav>
+
+    <!-- The Problem -->
+    <section id="the-problem" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-exclamation-circle-fill text-warning me-2"></i>The Problem</h2>
+
+      <p>Teaching complex topics—like the Great Oxygenation Event in Earth science—can be challenging. Students often struggle to engage with abstract scientific concepts that happened billions of years ago. <strong>Visual storytelling</strong> can bridge this gap, but creating comics or graphic novels traditionally requires artistic skills many students don't have.</p>
+
+      <p>Existing AI image generators are either too expensive for classroom use, require technical expertise, or lack the guardrails needed for educational settings. Teachers need a tool that's simple enough for students to use independently, safe for the classroom, and produces results that actually look like comic panels.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-lightbulb-fill me-2"></i>The Goal</h6>
+        <p class="mb-0">Create a web-based comic creation tool where students describe scenes in plain English and AI generates consistent, comic-styled panels—with built-in content moderation and no data leaving the browser unnecessarily.</p>
+      </div>
+
+      <p>AI Comic Studio evolved to solve this: a modular JavaScript application with Firebase Cloud Functions handling AI generation, IndexedDB for local persistence, and a carefully tuned content moderation pipeline to keep things classroom-appropriate.</p>
+    </section>
+
+    <!-- Architecture Overview -->
+    <section id="architecture" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-diagram-3-fill text-primary me-2"></i>Architecture Overview</h2>
+
+      <p>The application follows a modular architecture with clear separation of concerns:</p>
+
+      <pre><code>public/js/modules/
+├── index.js          <span class="comment">// App bootstrap & global interface</span>
+├── database.js       <span class="comment">// IndexedDB operations</span>
+├── storage.js        <span class="comment">// Scene data persistence</span>
+├── sceneCards.js     <span class="comment">// Scene card UI components</span>
+├── imageGeneration.js<span class="comment">// AI image request handling</span>
+├── ui.js             <span class="comment">// Comic display & interactions</span>
+├── export.js         <span class="comment">// PDF generation</span>
+├── layout.js         <span class="comment">// Panel layout management</span>
+├── thumbnailNav.js   <span class="comment">// Scene thumbnail navigation</span>
+└── settings.js       <span class="comment">// User preferences</span>
+
+functions/
+└── index.js          <span class="comment">// Firebase Cloud Functions (V2)</span></code></pre>
+
+      <h4>Key Design Decisions</h4>
+      <ul>
+        <li><strong>ES Modules</strong> — Clean imports/exports, no build step required for development</li>
+        <li><strong>Firebase Cloud Functions V2</strong> — Better cold start performance, simpler configuration</li>
+        <li><strong>IndexedDB over localStorage</strong> — Handles larger data (base64 images) without 5MB limits</li>
+        <li><strong>Pub/Sub for async processing</strong> — Decouples request handling from image generation</li>
+      </ul>
+    </section>
+
+    <!-- Multi-Model AI Integration -->
+    <section id="ai-models" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-stars text-info me-2"></i>Multi-Model AI Integration</h2>
+
+      <p>The system supports multiple AI image generation models, each with different strengths:</p>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="card card-modern h-100 p-3">
+            <h6><i class="bi bi-google me-2 text-primary"></i>Gemini</h6>
+            <p class="mb-0 text-secondary small">Google's multimodal model. Default choice—good quality, fast generation.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card card-modern h-100 p-3">
+            <h6><i class="bi bi-image me-2 text-success"></i>Imagen 3</h6>
+            <p class="mb-0 text-secondary small">Google's dedicated image model. Higher quality, supports person generation controls.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card card-modern h-100 p-3">
+            <h6><i class="bi bi-robot me-2 text-dark"></i>GPT-Image-1</h6>
+            <p class="mb-0 text-secondary small">OpenAI's image model. Alternative option with different aesthetic.</p>
+          </div>
+        </div>
+      </div>
+
+      <h4>Prompt Engineering for Comic Styles</h4>
+      <p>Each scene combines user input with style-specific prompt engineering:</p>
+
+      <pre><code><span class="keyword">const</span> comicStyleDescriptions = {
+  graphic_novel: <span class="string">"a European graphic novel (inspired by Cyril Pedrosa) "</span> +
+                 <span class="string">"with precise linework, flat coloring, architectural details..."</span>,
+  anime_manga:   <span class="string">"A scenic anime-style illustration inspired by Studio Ghibli "</span> +
+                 <span class="string">"and Makoto Shinkai, featuring vibrant natural colors..."</span>,
+  cartoon:       <span class="string">"a simplified, exaggerated cartoon panel with bright, "</span> +
+                 <span class="string">"saturated colors akin to Adventure Time..."</span>,
+  photorealistic: <span class="string">"a photorealistic comic panel with hyper-detailed "</span> +
+                  <span class="string">"textures, accurate colors, and complex natural lighting..."</span>
+};</code></pre>
+
+      <h4>Camera Angle Descriptions</h4>
+      <p>Camera angles are translated into detailed composition guidance:</p>
+
+      <pre><code><span class="keyword">const</span> cameraDescriptions = {
+  <span class="string">'birds-eye'</span>: <span class="string">"Captured from a bird's eye view, this overhead shot "</span> +
+               <span class="string">"looks directly down, showcasing layout and spatial relationships..."</span>,
+  <span class="string">'dutch-angle'</span>: <span class="string">"Captured from a dutch angle, a diagonal composition "</span> +
+                 <span class="string">"due to a tilted camera, introduces unease or tension..."</span>,
+  <span class="string">'low-angle'</span>: <span class="string">"Captured from a low angle, this shot looks up from below, "</span> +
+               <span class="string">"emphasizing power or dominance..."</span>
+};</code></pre>
+    </section>
+
+    <!-- Async Processing with Pub/Sub -->
+    <section id="async-processing" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-arrow-repeat text-success me-2"></i>Async Image Generation with Pub/Sub</h2>
+
+      <p>Image generation can take 10-30 seconds. Rather than blocking HTTP requests, the system uses Google Cloud Pub/Sub for asynchronous processing:</p>
+
+      <pre><code><span class="comment">// 1. Client submits request → gets job ID immediately</span>
+POST /api/generate → { jobId: <span class="string">"uuid-..."</span> }
+
+<span class="comment">// 2. Request published to Pub/Sub topic</span>
+pubSubClient.topic(<span class="string">'image-generation-requests'</span>).publishMessage({
+  data: Buffer.from(JSON.stringify({ jobId, prompt, imageModel, ... }))
+});
+
+<span class="comment">// 3. Cloud Function triggered by Pub/Sub processes the job</span>
+exports.processImageGenerationPubSub = onMessagePublished(TOPIC, async (event) => {
+  <span class="comment">// Generate image, upload to Cloud Storage, update Firestore</span>
+});
+
+<span class="comment">// 4. Client polls for status</span>
+GET /api/checkStatus?jobId=... → { status: <span class="string">'completed'</span>, imageUrl: <span class="string">'...'</span> }</code></pre>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-speedometer2 me-2"></i>Why Pub/Sub?</h6>
+        <p class="mb-0">HTTP Cloud Functions have a 60-second timeout. Pub/Sub-triggered functions can run longer, handle retries automatically, and decouple the request/response cycle from actual processing.</p>
+      </div>
+
+      <h4>Client-Side Polling with Visual Feedback</h4>
+      <p>While waiting, the client shows a pixelation effect that animates through the existing image:</p>
+
+      <pre><code><span class="keyword">const</span> pixelationFactors = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">6</span>, <span class="number">8</span>, <span class="number">12</span>, <span class="number">16</span>, <span class="number">24</span>, <span class="number">32</span>];
+
+<span class="keyword">function</span> <span class="function">drawPixelatedOnCanvas</span>(ctx, canvas, sourceImage, factor) {
+  ctx.imageSmoothingEnabled = <span class="keyword">false</span>;
+  <span class="keyword">const</span> scaledW = Math.floor(canvas.width / factor);
+  <span class="keyword">const</span> scaledH = Math.floor(canvas.height / factor);
+  
+  <span class="comment">// Draw small, then scale up for pixelation effect</span>
+  ctx.drawImage(sourceImage, <span class="number">0</span>, <span class="number">0</span>, scaledW, scaledH);
+  ctx.drawImage(canvas, <span class="number">0</span>, <span class="number">0</span>, scaledW, scaledH, <span class="number">0</span>, <span class="number">0</span>, canvas.width, canvas.height);
+}</code></pre>
+    </section>
+
+    <!-- Content Moderation Pipeline -->
+    <section id="content-moderation" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-shield-check text-success me-2"></i>Content Moderation Pipeline</h2>
+
+      <p>For classroom use, content moderation is critical. Every prompt passes through OpenAI's GPT-4o-mini before image generation:</p>
+
+      <pre><code><span class="keyword">async function</span> <span class="function">checkContentModeration</span>(promptText) {
+  <span class="keyword">const</span> moderationPrompt = <span class="string">`
+    Evaluate if the following image generation prompt contains 
+    ANY explicitly inappropriate material for educational contexts.
+    
+    Check for:
+    1. Sexual content or innuendo
+    2. Graphic depictions of violence or gore
+    3. Hate speech, discrimination, or harassment
+    4. Illegal activities
+    5. Self-harm references
+    6. Profanity
+    7. Dangerous instructional content
+    
+    Note: Do NOT flag lighthearted, scientific, educational, or 
+    cartoonish references if they are not graphically violent.
+    
+    Prompt: "${promptText}"
+    
+    Return JSON: { flagged: boolean, reason: string, categories: [] }
+  `</span>;
+  
+  <span class="keyword">const</span> result = <span class="keyword">await</span> openai.chat.completions.create({
+    model: <span class="string">'gpt-4o-mini'</span>,
+    messages: [{ role: <span class="string">'user'</span>, content: moderationPrompt }],
+    response_format: { type: <span class="string">'json_object'</span> }
+  });
+  
+  <span class="keyword">return</span> JSON.parse(result.choices[<span class="number">0</span>].message.content);
+}</code></pre>
+
+      <div class="callout-box warning">
+        <h6><i class="bi bi-exclamation-triangle-fill me-2"></i>Tuning for Education</h6>
+        <p class="mb-0">The moderation prompt explicitly allows "lighthearted, scientific, educational, or cartoonish" content. This prevents false positives when students describe scenes like "bacteria struggling to survive" or "volcanic eruptions destroying habitats."</p>
+      </div>
+
+      <h4>Flagged Prompts Logging</h4>
+      <p>Flagged prompts are logged to Firestore for review, helping refine moderation rules over time:</p>
+
+      <pre><code><span class="keyword">if</span> (moderationResult.flagged) {
+  <span class="keyword">await</span> db.collection(<span class="string">'flaggedPrompts'</span>).add({
+    prompt: promptText,
+    reason: moderationResult.reason,
+    categories: moderationResult.categories,
+    flaggedTimestamp: FieldValue.serverTimestamp()
+  });
+}</code></pre>
+    </section>
+
+    <!-- Local-First Storage -->
+    <section id="local-storage" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-database-fill text-primary me-2"></i>Local-First Storage with IndexedDB</h2>
+
+      <p>Student work is stored locally in IndexedDB, not on remote servers. This provides privacy, offline access, and avoids backend storage costs:</p>
+
+      <pre><code><span class="keyword">const</span> DB_NAME = <span class="string">'graphic-novel-maker'</span>;
+<span class="keyword">const</span> SCENES_STORE = <span class="string">'scenes'</span>;
+<span class="keyword">const</span> HISTORY_STORE = <span class="string">'scene-history'</span>;
+
+request.onupgradeneeded = (event) => {
+  <span class="keyword">const</span> db = event.target.result;
+  
+  <span class="comment">// Composite key: [storyType, sceneNumber]</span>
+  <span class="keyword">const</span> scenesStore = db.createObjectStore(SCENES_STORE, { 
+    keyPath: [<span class="string">'storyType'</span>, <span class="string">'sceneNumber'</span>] 
+  });
+  scenesStore.createIndex(<span class="string">'by_storyType'</span>, <span class="string">'storyType'</span>);
+  
+  <span class="comment">// Auto-increment for history entries</span>
+  <span class="keyword">const</span> historyStore = db.createObjectStore(HISTORY_STORE, { 
+    keyPath: <span class="string">'id'</span>, 
+    autoIncrement: <span class="keyword">true</span> 
+  });
+  historyStore.createIndex(<span class="string">'by_scene'</span>, [<span class="string">'storyType'</span>, <span class="string">'sceneNumber'</span>]);
+};</code></pre>
+
+      <h4>Image Compression</h4>
+      <p>Generated images are compressed before storage to stay within IndexedDB practical limits:</p>
+
+      <pre><code><span class="keyword">async function</span> <span class="function">compressBase64Image</span>(base64, quality = <span class="number">0.7</span>, maxWidth = <span class="number">1024</span>) {
+  <span class="keyword">const</span> img = <span class="keyword">new</span> Image();
+  img.src = base64;
+  <span class="keyword">await</span> <span class="keyword">new</span> Promise(r => img.onload = r);
+  
+  <span class="keyword">let</span> { width, height } = img;
+  <span class="keyword">if</span> (width > maxWidth) {
+    height = (height * maxWidth) / width;
+    width = maxWidth;
+  }
+  
+  <span class="keyword">const</span> canvas = document.createElement(<span class="string">'canvas'</span>);
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext(<span class="string">'2d'</span>).drawImage(img, <span class="number">0</span>, <span class="number">0</span>, width, height);
+  
+  <span class="keyword">return</span> canvas.toDataURL(<span class="string">'image/jpeg'</span>, quality);
+}</code></pre>
+
+      <h4>Scene History</h4>
+      <p>Every image generation saves the previous version to history, allowing students to restore earlier attempts:</p>
+
+      <pre><code><span class="comment">// Before generating new image, save current to history</span>
+<span class="keyword">if</span> (currentScene.imageUrl) {
+  <span class="keyword">await</span> saveSceneToHistory(currentScene);
+}
+
+<span class="comment">// History modal lets students browse and restore</span>
+<span class="keyword">const</span> historyItems = <span class="keyword">await</span> getSceneHistory(storyType, sceneNumber);
+<span class="comment">// Returns array sorted by timestamp (newest first)</span></code></pre>
+    </section>
+
+    <!-- Scene Management -->
+    <section id="scene-management" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-collection-fill text-warning me-2"></i>Scene Card Management</h2>
+
+      <p>Each scene is represented by a card with controls for description, camera angle, mood, and aspect ratio:</p>
+
+      <h4>Dynamic Scene Cards</h4>
+      <p>Scene cards are created from a template and populated with saved data:</p>
+
+      <pre><code><span class="keyword">function</span> <span class="function">renderSceneCard</span>(sceneNumber, sceneData) {
+  <span class="keyword">const</span> template = document.getElementById(<span class="string">'sceneCardTemplate'</span>);
+  <span class="keyword">const</span> card = template.content.cloneNode(<span class="keyword">true</span>).querySelector(<span class="string">'.scene-card'</span>);
+  
+  card.id = <span class="string">`scene-card-</span>${sceneData.id}<span class="string">`</span>;
+  card.dataset.sceneId = sceneData.id;
+  card.dataset.sceneNumber = sceneNumber;
+  
+  <span class="comment">// Populate camera angle, mood, description, image...</span>
+  <span class="keyword">const</span> imageElement = card.querySelector(<span class="string">'.scene-image'</span>);
+  <span class="keyword">if</span> (sceneData.imageBase64) {
+    imageElement.src = sceneData.imageBase64;
+  } <span class="keyword">else if</span> (sceneData.imageUrl) {
+    imageElement.src = sceneData.imageUrl;
+  } <span class="keyword">else</span> {
+    imageElement.src = <span class="string">'/img/placeholder.webp'</span>;
+  }
+  
+  <span class="keyword">return</span> card;
+}</code></pre>
+
+      <h4>Thumbnail Navigation</h4>
+      <p>A thumbnail strip provides quick navigation between scenes, with IntersectionObserver tracking which scene is currently visible:</p>
+
+      <pre><code><span class="keyword">const</span> observer = <span class="keyword">new</span> IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    <span class="keyword">if</span> (entry.isIntersecting) {
+      setActiveThumbnail(entry.target.dataset.sceneId);
+    }
+  });
+}, { root: scrollContainer, threshold: <span class="number">0.5</span> });
+
+sceneCards.forEach(card => observer.observe(card));</code></pre>
+
+      <h4>Aspect Ratio Support</h4>
+      <p>Panels support three aspect ratios that map to AI model parameters:</p>
+
+      <pre><code><span class="comment">// Panel types map to generation dimensions</span>
+<span class="keyword">const</span> aspectRatios = {
+  <span class="string">'square'</span>: { ratio: <span class="string">'1:1'</span>,  openai: <span class="string">'1024x1024'</span>, google: <span class="string">'1:1'</span> },
+  <span class="string">'wide'</span>:   { ratio: <span class="string">'2:1'</span>,  openai: <span class="string">'1536x1024'</span>, google: <span class="string">'16:9'</span> },
+  <span class="string">'tall'</span>:   { ratio: <span class="string">'1:2'</span>,  openai: <span class="string">'1024x1536'</span>, google: <span class="string">'9:16'</span> }
+};</code></pre>
+    </section>
+
+    <!-- Comic Layout & PDF Export -->
+    <section id="comic-export" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-file-earmark-pdf-fill text-danger me-2"></i>Comic Layout & PDF Export</h2>
+
+      <p>The final comic view arranges panels in a grid layout, respecting aspect ratios:</p>
+
+      <pre><code><span class="keyword">function</span> <span class="function">getSlotsForDimensions</span>(dimensions) {
+  <span class="keyword">if</span> (dimensions.width > dimensions.height) <span class="keyword">return</span> <span class="number">2</span>; <span class="comment">// Wide: 2 slots</span>
+  <span class="keyword">if</span> (dimensions.height > dimensions.width) <span class="keyword">return</span> <span class="number">2</span>; <span class="comment">// Tall: 2 slots</span>
+  <span class="keyword">return</span> <span class="number">1</span>; <span class="comment">// Square: 1 slot</span>
+}
+
+<span class="comment">// CSS Grid handles the layout</span>
+.comic-page {
+  display: grid;
+  grid-template-columns: repeat(<span class="number">2</span>, <span class="number">1</span>fr);
+  gap: <span class="number">15</span>px;
+}
+.comic-panel.wide-panel {
+  grid-column: span <span class="number">2</span>;
+}</code></pre>
+
+      <h4>PDF Generation</h4>
+      <p>Export uses html2canvas to render pages, then jsPDF to create a downloadable PDF:</p>
+
+      <pre><code><span class="keyword">async function</span> <span class="function">exportToPDF</span>() {
+  <span class="keyword">const</span> { jsPDF } = window.jspdf;
+  <span class="keyword">const</span> pdf = <span class="keyword">new</span> jsPDF({
+    orientation: <span class="string">'portrait'</span>,
+    unit: <span class="string">'mm'</span>,
+    format: [<span class="number">210</span>, <span class="number">210</span>] <span class="comment">// Square format</span>
+  });
+
+  <span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">0</span>; i < pages.length; i++) {
+    <span class="keyword">const</span> canvas = <span class="keyword">await</span> html2canvas(pageContainer, {
+      scale: <span class="number">2</span>,
+      useCORS: <span class="keyword">true</span>,
+      backgroundColor: <span class="string">'white'</span>
+    });
+    
+    <span class="keyword">const</span> imgData = canvas.toDataURL(<span class="string">'image/jpeg'</span>, <span class="number">1.0</span>);
+    <span class="keyword">if</span> (i > <span class="number">0</span>) pdf.addPage();
+    pdf.addImage(imgData, <span class="string">'JPEG'</span>, <span class="number">10</span>, <span class="number">10</span>, pdfWidth, pdfHeight);
+  }
+  
+  <span class="keyword">const</span> studentId = localStorage.getItem(<span class="string">'studentId'</span>) || <span class="string">'anonymous'</span>;
+  pdf.save(<span class="string">`</span>${studentId}<span class="string">-comic.pdf`</span>);
+}</code></pre>
+    </section>
+
+    <!-- Lessons Learned -->
+    <section id="lessons-learned" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-mortarboard-fill text-primary me-2"></i>Lessons Learned</h2>
+
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-cloud-arrow-up me-2 text-info"></i>Pub/Sub > Long HTTP requests</h5>
+            <p class="mb-0 text-secondary">AI image generation is slow. Async processing with job polling provides better UX and avoids timeout issues.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-shield-check me-2 text-success"></i>LLM-based moderation is tunable</h5>
+            <p class="mb-0 text-secondary">Using GPT-4o-mini for moderation allows nuanced rules that built-in safety filters can't provide—like allowing "educational violence."</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-hdd me-2 text-warning"></i>IndexedDB handles images well</h5>
+            <p class="mb-0 text-secondary">With compression, storing base64 images locally is practical. Students keep their work without server storage costs.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-pencil-square me-2 text-danger"></i>Prompt engineering is product work</h5>
+            <p class="mb-0 text-secondary">The difference between "AI slop" and usable comic panels is entirely in the style prompts. Iterate relentlessly.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-boxes me-2 text-primary"></i>Multi-model flexibility matters</h5>
+            <p class="mb-0 text-secondary">Different AI models have different strengths and rate limits. Supporting multiple models provides fallbacks and options.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-person-badge me-2 text-secondary"></i>Simple auth is enough</h5>
+            <p class="mb-0 text-secondary">An 8-character student ID stored in localStorage with 30-day expiry—no passwords, no OAuth. Appropriate for the use case.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center text-secondary pt-4 border-top">
+      <p>Built with <i class="bi bi-heart-fill text-danger"></i> for educators and students</p>
+    </footer>
+
+  </article>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,3438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive learning path for mastering agentic AI systems, covering tool use, MCP, memory, multi-agent orchestration, and more.">
+  <meta name="tags" content="ai, education, agentic, learning">
+  <meta name="created" content="2025-01-06">
+  <title>Mastering the Agentic Layer</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .header .subtitle {
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    .progress-stats {
+      text-align: right;
+    }
+
+    .progress-percent {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .progress-label {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #22c55e);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    /* Main Layout */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      flex-shrink: 0;
+    }
+
+    .skill-list {
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+    }
+
+    .skill-list-header {
+      padding: 0.75rem 1rem;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #475569;
+    }
+
+    .skill-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border: none;
+      background: white;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+      transition: background 0.15s;
+    }
+
+    .skill-item:hover {
+      background: #f8fafc;
+    }
+
+    .skill-item.active {
+      background: #eff6ff;
+    }
+
+    .skill-number {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .skill-number.completed {
+      background: #22c55e;
+      color: white;
+    }
+
+    .skill-number.current {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .skill-number.locked {
+      background: #e2e8f0;
+      color: #64748b;
+    }
+
+    .skill-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .skill-name {
+      font-weight: 500;
+      font-size: 0.875rem;
+      color: #0f172a;
+      margin-bottom: 0.25rem;
+    }
+
+    .skill-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .skill-status {
+      font-size: 0.7rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .skill-status.completed {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .skill-status.current {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .skill-status.available {
+      background: #fef9c3;
+      color: #854d0e;
+    }
+
+    .skill-status.locked {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .skill-hours {
+      font-size: 0.7rem;
+      color: #94a3b8;
+    }
+
+    /* Content Area */
+    .content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Skill Header */
+    .skill-header {
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .skill-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .skill-category {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin-bottom: 0.25rem;
+    }
+
+    .category-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .category-dot.core { background: #3b82f6; }
+    .category-dot.orchestration { background: #ec4899; }
+    .category-dot.tooling { background: #f97316; }
+    .category-dot.advanced { background: #ef4444; }
+    .category-dot.human-centered { background: #8b5cf6; }
+
+    .skill-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .status-select {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: white;
+    }
+
+    .status-select.completed {
+      border-color: #22c55e;
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-select.current {
+      border-color: #3b82f6;
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .status-select.available {
+      border-color: #eab308;
+      background: #fef9c3;
+      color: #854d0e;
+    }
+
+    .status-select.locked {
+      border-color: #cbd5e1;
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .skill-header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    .skill-header-meta i {
+      margin-right: 0.25rem;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .tab {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: white;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.15s;
+    }
+
+    .tab:hover {
+      background: #f8fafc;
+    }
+
+    .tab.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      padding: 1.5rem;
+    }
+
+    .section {
+      margin-bottom: 2rem;
+    }
+
+    .section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-text {
+      color: #475569;
+      white-space: pre-line;
+    }
+
+    /* Concept Cards */
+    .concept-card {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .concept-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .concept-title {
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 0.25rem;
+    }
+
+    .concept-detail {
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    /* Lists */
+    .aha-list, .check-list, .resource-list {
+      list-style: none;
+    }
+
+    .aha-list li, .check-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      color: #475569;
+    }
+
+    .aha-list i {
+      color: #eab308;
+      margin-top: 0.25rem;
+    }
+
+    .check-list i {
+      color: #22c55e;
+      margin-top: 0.25rem;
+    }
+
+    .resource-list li {
+      margin-bottom: 0.5rem;
+    }
+
+    .resource-list a {
+      color: #3b82f6;
+      text-decoration: none;
+    }
+
+    .resource-list a:hover {
+      text-decoration: underline;
+    }
+
+    /* Build Card */
+    .build-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .build-card h4 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 0.5rem;
+    }
+
+    .build-card > p {
+      color: #475569;
+      margin-bottom: 1rem;
+    }
+
+    .build-why {
+      background: #eff6ff;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .build-why-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #1e40af;
+      margin-bottom: 0.25rem;
+    }
+
+    .build-why-text {
+      font-size: 0.875rem;
+      color: #3b82f6;
+    }
+
+    .build-stretch {
+      background: #faf5ff;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .build-stretch-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #7c3aed;
+      margin-bottom: 0.25rem;
+    }
+
+    .build-stretch-text {
+      font-size: 0.875rem;
+      color: #9333ea;
+    }
+
+    /* Notes */
+    .notes-section {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .notes-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .notes-header h3 {
+      margin-bottom: 0;
+    }
+
+    .notes-edit-btn {
+      background: none;
+      border: none;
+      color: #3b82f6;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+
+    .notes-edit-btn:hover {
+      color: #1d4ed8;
+    }
+
+    .notes-textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    .notes-display {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 1rem;
+      min-height: 120px;
+      font-size: 0.875rem;
+      color: #475569;
+      white-space: pre-line;
+    }
+
+    .notes-display.empty {
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    /* Code Block */
+    .code-block {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+    }
+
+    .code-block pre {
+      margin: 0;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: #e2e8f0;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .main {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+      }
+    }
+
+    /* Settings Button */
+    .settings-btn {
+      background: none;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      transition: all 0.15s;
+    }
+
+    .settings-btn:hover {
+      background: #f8fafc;
+      color: #0f172a;
+    }
+
+    .settings-btn.has-key {
+      color: #22c55e;
+      border-color: #22c55e;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+    }
+
+    .modal-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 450px;
+      transform: scale(0.95);
+      transition: transform 0.2s;
+    }
+
+    .modal-overlay.visible .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .modal-header h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.25rem;
+      color: #64748b;
+      cursor: pointer;
+    }
+
+    .modal-body p {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
+
+    .api-key-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-family: monospace;
+      margin-bottom: 1rem;
+    }
+
+    .api-key-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-secondary {
+      background: white;
+      border: 1px solid #e2e8f0;
+      color: #64748b;
+    }
+
+    .btn-secondary:hover {
+      background: #f8fafc;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      border: 1px solid #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      border: 1px solid #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    /* Chat Button */
+    .chat-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      z-index: 900;
+    }
+
+    .chat-fab:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(59,130,246,0.5);
+    }
+
+    .chat-fab.hidden {
+      display: none;
+    }
+
+    /* Chat Panel */
+    .chat-panel {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 400px;
+      height: 550px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      z-index: 950;
+      transform: scale(0.9) translateY(20px);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+    }
+
+    .chat-panel.visible {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+      visibility: visible;
+    }
+
+    @media (max-width: 500px) {
+      .chat-panel {
+        width: calc(100% - 32px);
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        height: calc(100vh - 100px);
+      }
+    }
+
+    .chat-header {
+      padding: 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .chat-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .chat-title {
+      font-weight: 600;
+      color: #0f172a;
+      font-size: 0.9rem;
+    }
+
+    .chat-subtitle {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    .chat-header-actions {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .chat-header-btn {
+      background: none;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+
+    .chat-header-btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .chat-message {
+      max-width: 85%;
+      padding: 0.75rem 1rem;
+      border-radius: 16px;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    .chat-message.user {
+      background: #3b82f6;
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-message.assistant {
+      background: #f1f5f9;
+      color: #0f172a;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-message.system {
+      background: #fef3c7;
+      color: #92400e;
+      align-self: center;
+      font-size: 0.8rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+    }
+
+    .chat-message pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 0.5rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      margin: 0.5rem 0;
+    }
+
+    .chat-message code {
+      background: rgba(0,0,0,0.1);
+      padding: 0.125rem 0.25rem;
+      border-radius: 3px;
+      font-size: 0.85em;
+    }
+
+    .chat-typing {
+      display: flex;
+      gap: 4px;
+      padding: 0.75rem 1rem;
+      background: #f1f5f9;
+      border-radius: 16px;
+      align-self: flex-start;
+      width: fit-content;
+    }
+
+    .chat-typing span {
+      width: 8px;
+      height: 8px;
+      background: #94a3b8;
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+
+    .chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+    .chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-4px); }
+    }
+
+    .chat-input-area {
+      padding: 1rem;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .chat-input-wrapper {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-end;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-family: inherit;
+      resize: none;
+      max-height: 120px;
+      line-height: 1.4;
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    .chat-send {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #3b82f6;
+      border: none;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .chat-send:hover:not(:disabled) {
+      background: #2563eb;
+    }
+
+    .chat-send:disabled {
+      background: #cbd5e1;
+      cursor: not-allowed;
+    }
+
+    .chat-context {
+      padding: 0.5rem 1rem;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.75rem;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .chat-context-tag {
+      background: #e0e7ff;
+      color: #4338ca;
+      padding: 0.125rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .no-key-message {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+      color: #64748b;
+    }
+
+    .no-key-message i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: #cbd5e1;
+    }
+
+    .no-key-message p {
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-content">
+      <div class="header-top">
+        <div>
+          <h1>Mastering the Agentic Layer</h1>
+          <p class="subtitle">Track 1: Engineering Mechanics</p>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 1rem;">
+          <button class="settings-btn" id="settings-btn" onclick="openSettings()">
+            <i class="bi bi-key"></i>
+            <span id="settings-btn-text">Add API Key</span>
+          </button>
+          <div class="progress-stats">
+            <div class="progress-percent" id="progress-percent">0%</div>
+            <div class="progress-label" id="progress-label">0/8 skills</div>
+          </div>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <aside class="sidebar">
+      <div class="skill-list">
+        <div class="skill-list-header">
+          <i class="bi bi-signpost-2"></i> Learning Path
+        </div>
+        <div id="skill-list-items"></div>
+      </div>
+
+    </aside>
+
+    <div class="content">
+      <div class="skill-header" id="skill-header"></div>
+      <div class="tabs" id="tabs"></div>
+      <div class="tab-content" id="tab-content"></div>
+    </div>
+  </main>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="bi bi-key"></i> Claude API Key</h3>
+        <button class="modal-close" onclick="closeSettings()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Enter your Claude API key to enable the AI tutor. Your key is stored locally in your browser and never sent to any server except Anthropic's API.</p>
+        <input type="password" class="api-key-input" id="api-key-input" placeholder="sk-ant-api03-...">
+        <div class="modal-actions">
+          <button class="btn btn-danger" id="remove-key-btn" onclick="removeApiKey()" style="display: none;">Remove Key</button>
+          <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveApiKey()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat FAB -->
+  <button class="chat-fab" id="chat-fab" onclick="openChat()">
+    <i class="bi bi-chat-dots-fill"></i>
+  </button>
+
+  <!-- Chat Panel -->
+  <div class="chat-panel" id="chat-panel">
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <div class="chat-avatar"><i class="bi bi-robot"></i></div>
+        <div>
+          <div class="chat-title">Agentic Tutor</div>
+          <div class="chat-subtitle" id="chat-subtitle">Ask about the current module</div>
+        </div>
+      </div>
+      <div class="chat-header-actions">
+        <button class="chat-header-btn" onclick="clearChat()" title="New conversation">
+          <i class="bi bi-plus-lg"></i>
+        </button>
+        <button class="chat-header-btn" onclick="closeChat()" title="Minimize">
+          <i class="bi bi-chevron-down"></i>
+        </button>
+      </div>
+    </div>
+    <div class="chat-context" id="chat-context">
+      <i class="bi bi-book"></i>
+      <span>Viewing:</span>
+      <span class="chat-context-tag" id="chat-context-skill">Tool Use</span>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-area" id="chat-input-area">
+      <div class="chat-input-wrapper">
+        <textarea class="chat-input" id="chat-input" placeholder="Ask about this module..." rows="1"></textarea>
+        <button class="chat-send" id="chat-send" onclick="sendMessage()">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Skills Data
+    const skillsData = {
+      'tool-use': {
+        id: 'tool-use',
+        name: 'Tool Use / Function Calling',
+        category: 'core',
+        categoryLabel: 'Core Mechanics',
+        estimatedHours: '4-6',
+        prerequisites: ['Prompts & System Instructions (you have this)'],
+        unlocks: ['MCP', 'Memory Systems', 'Multi-Agent Orchestration'],
+        
+        whatItIs: `When you send a message to Claude, normally it just returns text. With tool use, you also send descriptions of functions the model *could* call. Claude then decides:
+
+1. Should I call a function, or just respond with text?
+2. If yes, which function and with what arguments?
+
+The model doesn't actually execute anything—it returns a structured request saying "I want to call get_weather with airport_code='KHMT'". Your code catches that, runs the real function, and sends the result back. Claude then incorporates that result into its response.`,
+
+        whyItMatters: `This is the foundation of everything "agentic." Without tool use, an LLM is just a fancy text generator. With tool use, it can:
+
+• Take actions in the world (send emails, create files, query databases)
+• Access information it doesn't have (current weather, your calendar, live data)
+• Break complex tasks into steps, executing each one
+
+MCP, agents, workflows—they're all built on this primitive. If tool use doesn't click, nothing else will.`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'The tool definition schema',
+            detail: "You describe tools with a name, description, and JSON schema for parameters. The description matters a lot—it's how the model decides when to use the tool."
+          },
+          {
+            concept: 'The message loop',
+            detail: "Tool use isn't one request—it's a loop. You send a message, model requests tool call, you execute and return result, model continues. Sometimes multiple rounds."
+          },
+          {
+            concept: 'Tool choice control',
+            detail: 'You can force the model to use a specific tool, allow it to choose, or prevent tool use entirely. "auto" is the default—model decides.'
+          },
+          {
+            concept: 'Handling tool results',
+            detail: "Results go back as a special message type. The model sees them and incorporates them. Errors need to be handled gracefully—the model can often recover if you tell it what went wrong."
+          },
+          {
+            concept: 'When NOT to use tools',
+            detail: "Tools add latency and complexity. If the model can answer from its training data, don't make it call a tool. Good tool design = knowing when a tool is actually needed."
+          }
+        ],
+
+        ahaMovements: [
+          'The model is "thinking out loud" about what to do, not actually doing it',
+          "Tool descriptions are prompts—they guide the model's decision to use them",
+          'The loop can go multiple rounds—one tool result might trigger another tool call',
+          'You control the execution environment, so you control safety/permissions'
+        ],
+
+        youveGotItWhen: [
+          'You can build a multi-turn tool-using conversation without looking at docs',
+          "You can debug why a model isn't calling a tool (usually: bad description or wrong schema)",
+          'You have intuition for how many tools to offer (too many = confusion)',
+          'You can explain the flow to someone else with a whiteboard'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Flight Planning Assistant',
+            description: 'An assistant that can check weather (get_weather), get NOTAMs (get_notams), calculate weight and balance (calc_wb), and suggest go/no-go decisions.',
+            why: 'Domain you know deeply, so you can focus on mechanics not content. Multiple tools that need to work together.',
+            stretch: 'Add a tool that files a flight plan, requiring the model to gather all needed info first.'
+          }
+        ],
+
+        resources: [
+          { name: 'Anthropic Tool Use Docs', url: 'https://docs.anthropic.com/en/docs/build-with-claude/tool-use' },
+          { name: 'Ruby SDK Examples', url: 'https://github.com/anthropics/anthropic-sdk-ruby' }
+        ],
+
+        codeSnippet: `# The basic flow in Ruby
+require 'anthropic'
+
+client = Anthropic::Client.new
+
+# Define a tool
+tools = [{
+  name: "get_weather",
+  description: "Get current weather for an airport",
+  input_schema: {
+    type: "object",
+    properties: {
+      airport_code: {
+        type: "string", 
+        description: "ICAO airport code, e.g., KHMT"
+      }
+    },
+    required: ["airport_code"]
+  }
+}]
+
+# Send message with tools
+response = client.messages.create(
+  model: "claude-sonnet-4-20250514",
+  max_tokens: 1024,
+  tools: tools,
+  messages: [{ role: "user", content: "Can I fly from Hemet today?" }]
+)
+
+# Check if Claude wants to use a tool
+if response.stop_reason == "tool_use"
+  tool_block = response.content.find { |b| b["type"] == "tool_use" }
+  tool_name = tool_block["name"]
+  tool_input = tool_block["input"]
+  
+  # Execute the tool (your code!)
+  result = get_weather(tool_input["airport_code"])
+  
+  # Send result back to Claude and continue...
+end`
+      },
+
+      'mcp': {
+        id: 'mcp',
+        name: 'MCP (Model Context Protocol)',
+        category: 'core',
+        categoryLabel: 'Core Mechanics',
+        estimatedHours: '3-4',
+        prerequisites: ['Tool Use'],
+        unlocks: ['Claude Code Extensions', 'Multi-Agent Orchestration'],
+        
+        whatItIs: `MCP is a standardized protocol for exposing tools to LLMs. Think of it like USB for AI tools—a common interface so any tool can work with any LLM client.
+
+Instead of hardcoding tools into your app, you run an "MCP server" that advertises what tools it has. Claude Desktop, Claude Code, or any MCP-compatible client can discover and use those tools.
+
+The protocol handles:
+• Tool discovery ("what can you do?")
+• Tool invocation ("do this thing")
+• Result formatting ("here's what happened")`,
+
+        whyItMatters: `Without MCP, every integration is custom. You build tool use into App A, then rebuild it for App B. MCP means:
+
+• Build once, use everywhere—your flight planning tools work in Claude Desktop AND your custom app
+• Ecosystem—you can use tools others have built
+• Separation of concerns—the tool logic lives in the server, the AI logic lives in the client
+
+This is how Claude Code's file system access, git integration, etc. actually work under the hood.`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'Server vs. Client',
+            detail: 'The MCP server exposes tools. The client (Claude Desktop, your app) connects and uses them. One client can connect to multiple servers.'
+          },
+          {
+            concept: 'Transport layer',
+            detail: 'MCP can run over stdio (local processes) or HTTP/SSE (remote servers). Stdio is simpler for local tools.'
+          },
+          {
+            concept: 'Tool schemas',
+            detail: 'Same JSON schema format as raw tool use—MCP just wraps it in a discovery protocol.'
+          },
+          {
+            concept: 'Resources',
+            detail: 'MCP servers can also expose "resources"—data the model can read, like files or database contents.'
+          }
+        ],
+
+        ahaMovements: [
+          'MCP is just tool use with a discovery layer on top',
+          'The server is a separate process—it could be local or remote',
+          "Claude Desktop's \"tools\" are actually MCP servers",
+          'You can chain servers—connect multiple tool providers to one client'
+        ],
+
+        youveGotItWhen: [
+          'You can build a simple MCP server that exposes one tool',
+          'You can connect it to Claude Desktop and use it in conversation',
+          'You understand when to use MCP vs. direct tool use',
+          "You can read someone else's MCP server code and understand it"
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Flight Tools MCP Server',
+            description: 'Take your flight planning tools and wrap them as an MCP server. Connect to Claude Desktop.',
+            why: "You already have the tools—now you're learning the protocol layer.",
+            stretch: "Add a resource that exposes your aircraft's specs (N73898) as readable data."
+          }
+        ],
+
+        resources: [
+          { name: 'MCP Specification', url: 'https://modelcontextprotocol.io/' }
+        ],
+
+        codeSnippet: `# Conceptual MCP server structure
+class FlightToolsServer
+  def list_tools
+    [
+      {
+        name: "get_weather",
+        description: "Get weather for an airport",
+        input_schema: { ... }
+      },
+      {
+        name: "get_notams", 
+        description: "Get NOTAMs for an airport",
+        input_schema: { ... }
+      }
+    ]
+  end
+
+  def call_tool(name, arguments)
+    case name
+    when "get_weather"
+      get_weather(arguments["airport_code"])
+    when "get_notams"
+      get_notams(arguments["airport_code"])
+    end
+  end
+end`
+      },
+
+      'memory': {
+        id: 'memory',
+        name: 'Memory Systems',
+        category: 'core',
+        categoryLabel: 'Core Mechanics',
+        estimatedHours: '4-6',
+        prerequisites: ['Tool Use'],
+        unlocks: ['Multi-Agent Orchestration', 'Workflows', 'Context Engineering'],
+        
+        whatItIs: `LLMs are stateless—each request is independent. "Memory" is how we create continuity. There are several types:
+
+Short-term (Context Window): Just include previous messages. Limited by context length.
+
+Long-term (Retrieval): Store information in a database, retrieve relevant bits when needed. This is RAG.
+
+Persistent (State): Store user preferences, project state, facts learned.
+
+Memory isn't magic—it's deciding what to store, when to retrieve, and how to inject it into context.`,
+
+        whyItMatters: `Without memory, every conversation starts fresh. The user has to re-explain context.
+
+Memory enables:
+• Personalization ("you mentioned you prefer morning flights")
+• Project continuity ("we were working on the safety checklist")
+• Learning from feedback
+
+But memory also introduces hard design questions: What's worth remembering? Who decides? What about privacy?`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'Context window management',
+            detail: "You can't keep everything. Strategies: summarization, sliding window, importance ranking."
+          },
+          {
+            concept: 'RAG basics',
+            detail: 'Embed text as vectors, store in a vector database, query by similarity.'
+          },
+          {
+            concept: 'Memory as tools',
+            detail: 'You can give the model tools like "remember(fact)" and "recall(query)"—let it manage its own memory.'
+          },
+          {
+            concept: 'Memory architecture decisions',
+            detail: 'Per-user? Per-project? Per-conversation? How long does it persist?'
+          },
+          {
+            concept: 'Context as the differentiator',
+            detail: 'Context is often the difference between a $1M agent and a $0 agent. Three pillars: what the agent remembers, how information flows between stages, and what it knows about the domain.'
+          },
+          {
+            concept: 'Structured handoffs',
+            detail: 'When context moves between agents or stages, it needs clean structured input/output that is verifiable at each step. Sloppy handoffs break everything downstream.'
+          }
+        ],
+
+        ahaMovements: [
+          'Memory is just context injection with extra steps',
+          "The model doesn't \"remember\"—you remember for it and remind it",
+          'Retrieval quality matters more than storage',
+          'Memory decisions are design decisions, not just engineering',
+          'Bad context = agent calls the same tool repeatedly or contradicts its earlier decisions',
+          'Good context = agent connects dots across information without explicit instructions'
+        ],
+
+        youveGotItWhen: [
+          'You can implement conversation memory that persists across sessions',
+          'You understand the tradeoffs of different memory strategies',
+          'You can explain why RAG retrieval might return irrelevant results',
+          'You have opinions about what SHOULD be remembered'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Flight Planner with Memory',
+            description: 'Add memory to your flight assistant: remember aircraft details, pilot preferences, frequent routes.',
+            why: 'Small, controlled domain where you can evaluate if memory is helping.',
+            stretch: 'Let the model decide what to remember with a "remember" tool.'
+          }
+        ],
+
+        resources: [
+          { name: 'Anthropic Prompt Caching', url: 'https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching' }
+        ],
+
+        codeSnippet: `# Simple persistent memory pattern
+class ConversationMemory
+  def initialize(user_id)
+    @user_id = user_id
+    @store = load_or_create(user_id)
+  end
+
+  def add_fact(fact)
+    @store[:facts] << { fact: fact, timestamp: Time.now }
+    save
+  end
+
+  def relevant_facts(query, limit: 5)
+    # Simple: keyword matching
+    # Better: vector similarity search
+    @store[:facts]
+      .select { |f| relevant?(f[:fact], query) }
+      .last(limit)
+  end
+
+  def inject_into_prompt(base_prompt, query)
+    facts = relevant_facts(query)
+    return base_prompt if facts.empty?
+    
+    "#{base_prompt}\\n\\nRelevant context:\\n#{facts.join('\\n')}"
+  end
+end`
+      },
+
+      'multi-agent': {
+        id: 'multi-agent',
+        name: 'Multi-Agent Orchestration',
+        category: 'orchestration',
+        categoryLabel: 'Orchestration',
+        estimatedHours: '6-8',
+        prerequisites: ['Tool Use', 'MCP'],
+        unlocks: ['Workflows', 'Debugging Stochastic Systems', 'Designing for Multiplication'],
+        
+        whatItIs: `Instead of one LLM doing everything, you have multiple "agents" with different roles:
+
+Coordinator/Router: Decides which specialist to invoke
+Specialists: Focused on specific tasks (research, writing, coding, etc.)
+
+Agents can be:
+• Different prompts for the same model
+• Different models entirely
+• The same model with different tools available`,
+
+        whyItMatters: `Single-agent systems hit limits:
+• Context gets cluttered
+• One prompt can't optimize for all tasks
+• Hard to debug when everything's in one blob
+
+Multi-agent enables:
+• Separation of concerns
+• Appropriate capability per task
+• Easier debugging
+• Parallel execution
+
+But it also adds complexity—you need to manage handoffs, shared state, error propagation.`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'Orchestration patterns',
+            detail: 'Sequential (pipeline), hierarchical (coordinator + workers), peer-to-peer, blackboard (shared workspace).'
+          },
+          {
+            concept: 'Agent boundaries',
+            detail: 'What defines an agent? Own prompt? Own tools? Own memory?'
+          },
+          {
+            concept: 'Handoff protocols',
+            detail: 'How does one agent transfer work to another? What context gets passed?'
+          },
+          {
+            concept: 'Error handling',
+            detail: 'What happens when a specialist fails? Retry? Fallback? Escalate to human?'
+          },
+          {
+            concept: 'Architecture > Model Selection',
+            detail: 'Whether to use solo, parallel, or collaborative agents is a bigger decision than which model you use. Get the architecture right first—model choice is secondary.'
+          }
+        ],
+
+        ahaMovements: [
+          "An \"agent\" is just an LLM call with a specific prompt and tools—there's no magic",
+          'The coordinator is often the hardest to get right',
+          'Most "multi-agent" problems are actually single-agent with good tools',
+          'Human checkpoints often belong at agent boundaries',
+          "Getting architecture wrong means debugging failures that aren't bugs—they're mismatches between your design, problem, and solution"
+        ],
+
+        youveGotItWhen: [
+          'You can design a multi-agent system on a whiteboard',
+          'You have intuition for when multi-agent helps vs. adds complexity',
+          'You can implement a coordinator that routes to 2-3 specialists',
+          'You can debug a failure that spans multiple agents'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Flight Planning with Specialists',
+            description: 'Coordinator routes to: Weather Analyst, Route Planner, Safety Officer.',
+            why: 'You understand the domain well enough to evaluate if the routing makes sense.',
+            stretch: 'Add a Passenger Briefer that generates plain-English summaries for non-pilots.'
+          }
+        ],
+
+        resources: [
+          { name: 'Anthropic Multi-Agent Patterns', url: 'https://docs.anthropic.com/en/docs/build-with-claude/agentic-systems' }
+        ],
+
+        codeSnippet: `# Simple coordinator pattern
+class FlightPlanningCoordinator
+  def initialize
+    @weather_agent = WeatherAnalyst.new
+    @route_agent = RoutePlanner.new  
+    @safety_agent = SafetyOfficer.new
+  end
+
+  def plan_flight(request)
+    results = {}
+    
+    # Gather information
+    results[:weather] = @weather_agent.analyze(
+      request[:departure],
+      request[:destination]
+    )
+    
+    results[:route] = @route_agent.suggest(
+      request[:departure],
+      request[:destination],
+      results[:weather]
+    )
+    
+    # Safety agent runs last with full context
+    results[:decision] = @safety_agent.evaluate(results)
+    
+    synthesize_response(results)
+  end
+end`
+      },
+
+      'claude-code': {
+        id: 'claude-code',
+        name: 'Claude Code (Extending)',
+        category: 'tooling',
+        categoryLabel: 'Tooling',
+        estimatedHours: '3-4',
+        prerequisites: ['MCP'],
+        unlocks: ['Workflows', 'IDE Integrations', 'Codebase Design for Agents'],
+        
+        whatItIs: `Claude Code is the CLI tool you're already using. But it's extensible:
+
+Custom Skills: Packages of prompts, tools, and behaviors for specific domains
+Hooks: Code that runs at specific points
+MCP Integration: Connect additional tool servers
+
+You can customize Claude Code to be better at YOUR workflows.`,
+
+        whyItMatters: `Out of the box, Claude Code is general-purpose. But you have specialized needs:
+
+• You work in Ruby, not Python
+• You have specific code patterns you prefer
+• You work on education + aviation domains
+
+Extending Claude Code means it gets better at YOUR job.`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'Skill structure',
+            detail: 'A skill is a folder with a SKILL.md file describing capabilities.'
+          },
+          {
+            concept: 'Custom instructions',
+            detail: 'Project-level or global instructions that shape behavior.'
+          },
+          {
+            concept: 'MCP server configuration',
+            detail: 'Adding your own MCP servers to Claude Code.'
+          },
+          {
+            concept: 'Slash commands',
+            detail: 'Custom commands you can invoke for specific workflows.'
+          }
+        ],
+
+        ahaMovements: [
+          "Claude Code is itself an agentic system—you're learning by using",
+          'Skills are just structured prompts with tool access',
+          'Your MCP servers can plug directly into Claude Code',
+          "The /skill command shows what's available"
+        ],
+
+        youveGotItWhen: [
+          "You've created a custom skill for a domain you work in",
+          "You've connected your own MCP server to Claude Code",
+          "You've customized instructions for a specific project",
+          'You find yourself extending rather than working around limitations'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Aviation Ruby Skill',
+            description: 'A skill that knows about aviation APIs, understands Ruby conventions, and helps with flight-planning code.',
+            why: 'Directly useful for your projects.',
+            stretch: 'Add your flight tools MCP server so Claude Code can check weather while coding.'
+          }
+        ],
+
+        resources: [
+          { name: 'Claude Code Documentation', url: 'https://docs.anthropic.com/en/docs/claude-code' }
+        ],
+
+        codeSnippet: `# Example SKILL.md structure
+# /skills/aviation-ruby/SKILL.md
+
+name: Aviation Ruby Development
+description: Helps build aviation apps in Ruby
+
+# Aviation Ruby Skill
+
+You help develop aviation applications in Ruby.
+
+## Domain Knowledge
+- Familiar with ICAO/IATA airport codes  
+- Understands METARs, TAFs, NOTAMs
+- Knows FAA regulations basics
+- Weight & balance calculations
+
+## Ruby Conventions
+- Use Ruby 3.x features
+- Prefer composition over inheritance
+- RSpec for testing
+
+## When writing aviation code:
+1. Validate airport codes
+2. Handle API failures gracefully  
+3. Include units in variable names`
+      },
+
+      'workflows': {
+        id: 'workflows',
+        name: 'Workflows, Hooks, Skills',
+        category: 'tooling',
+        categoryLabel: 'Tooling',
+        estimatedHours: '4-6',
+        prerequisites: ['MCP', 'Multi-Agent Orchestration'],
+        unlocks: ['IDE Integrations', 'Debugging Stochastic Systems', 'Exception-Driven Design'],
+        
+        whatItIs: `Workflows are multi-step processes that combine agent capabilities:
+
+Hooks: Trigger agents at specific events (file save, git commit, schedule)
+Pipelines: Chain steps together—output of one becomes input of next
+Human Checkpoints: Points where the workflow pauses for review
+
+This is where "agent" becomes "automation."`,
+
+        whyItMatters: `Individual tool calls are useful. But real productivity comes from chaining them:
+
+• On every PR: run tests, analyze changes, draft release notes
+• Daily: check weather at home airport, summarize conditions
+• On document save: lint, format, commit
+
+Workflows are how you go from "AI assistant" to "AI coworker."`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'Trigger design',
+            detail: 'What kicks off the workflow? Manual? File change? Schedule? Webhook?'
+          },
+          {
+            concept: 'Step dependencies',
+            detail: 'Which steps can run in parallel? Which must be sequential?'
+          },
+          {
+            concept: 'Failure modes',
+            detail: 'What happens when step 3 of 5 fails? Retry? Rollback? Alert?'
+          },
+          {
+            concept: 'Human-in-the-loop',
+            detail: 'Where do you need approval? How do you pause/resume?'
+          },
+          {
+            concept: 'Exception-driven design',
+            detail: 'Catch problems when they happen and route them to whoever can fix them—with everything needed to fix them, right then. Don\'t surface to dashboards.'
+          },
+          {
+            concept: 'Force resolution, don\'t report',
+            detail: 'Make problems impossible to ignore and easy to resolve. Block the action until resolved rather than adding to a queue for later review.'
+          }
+        ],
+
+        ahaMovements: [
+          'Workflows are just loops with conditionals—the AI part is in the steps',
+          "The hard part isn't AI—it's state management and error handling",
+          'Most workflows need more human checkpoints than you initially think',
+          'Start simple, add steps only when needed',
+          'Dashboards are where problems go to die—force resolution instead',
+          'Block the action until resolved, don\'t add to a queue for later review'
+        ],
+
+        youveGotItWhen: [
+          'You can design a workflow identifying triggers, steps, and checkpoints',
+          "You've built a workflow that runs without you watching",
+          "You've handled a workflow failure gracefully",
+          'You have intuition for where humans need to stay in the loop'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Pre-Flight Workflow',
+            description: 'Triggered manually or by calendar. Checks weather, NOTAMs, TFRs, calculates W&B, generates briefing, sends to phone.',
+            why: "Real workflow you'd actually use.",
+            stretch: 'Add a checkpoint where you confirm go/no-go before sending.'
+          }
+        ],
+
+        resources: [],
+
+        codeSnippet: `# Conceptual workflow structure  
+class PreFlightWorkflow
+  def run
+    step :fetch_weather do
+      WeatherService.get(@departure, @destination)
+    end
+
+    step :fetch_notams do
+      NotamService.get(@departure, @destination)  
+    end
+
+    step :calculate_wb do
+      WeightBalance.calculate(aircraft: 'N73898')
+    end
+
+    # Human checkpoint
+    checkpoint :go_no_go do |results|
+      # Pauses, notifies human, waits for response
+    end
+
+    step :generate_briefing do
+      BriefingGenerator.create(@results)
+    end
+
+    step :send_notification do
+      Notifier.send_to_phone(@results[:briefing])
+    end
+  end
+end`
+      },
+
+      'ide-integration': {
+        id: 'ide-integration',
+        name: 'IDE Integrations',
+        category: 'tooling',
+        categoryLabel: 'Tooling',
+        estimatedHours: '3-4',
+        prerequisites: ['MCP', 'Workflows'],
+        unlocks: ['Debugging Stochastic Systems'],
+        
+        whatItIs: `Integrating AI directly into your development environment:
+
+LSP (Language Server Protocol): Standard for editor features. AI can participate.
+Editor Extensions: VS Code, Cursor plugins that invoke AI.
+Inline Assistance: AI suggestions as you type.
+
+This is about AI being present where you work, not in a separate window.`,
+
+        whyItMatters: `Context switching kills productivity. If AI help requires opening a new app and copy-pasting code, you'll use it less.
+
+IDE integration means AI understands your current file, your project structure, your cursor position.`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'LSP basics',
+            detail: 'A protocol that lets editors talk to language servers. You could build an AI-enhanced one.'
+          },
+          {
+            concept: 'Editor extension APIs',
+            detail: 'VS Code, Cursor have APIs for adding commands, UI, behaviors.'
+          },
+          {
+            concept: 'Context extraction',
+            detail: 'Getting the right context (file, selection, project) to send to AI.'
+          },
+          {
+            concept: 'Latency sensitivity',
+            detail: 'IDE features need to be fast. Caching, streaming, background processing.'
+          }
+        ],
+
+        ahaMovements: [
+          'LSP and MCP are philosophically similar—standardized protocols',
+          "Good IDE integration is invisible—it just works",
+          'Context is everything—same AI is more useful with better context',
+          "You probably don't need to build from scratch—extend existing tools"
+        ],
+
+        youveGotItWhen: [
+          'You understand how Claude Code gets context from your project',
+          'You could add a custom command to your editor that invokes AI',
+          "You can evaluate IDE AI features critically—what context are they using?",
+          'You know when to use IDE integration vs. CLI vs. chat'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Custom Editor Command',
+            description: 'Add a command to your editor that sends selected code to your flight tools.',
+            why: 'Small integration, learns the extension API.',
+            stretch: 'Build a VS Code extension that uses your MCP server.'
+          }
+        ],
+
+        resources: [
+          { name: 'VS Code Extension API', url: 'https://code.visualstudio.com/api' }
+        ],
+
+        codeSnippet: `// Conceptual VS Code extension
+// extension.js
+const vscode = require('vscode');
+
+function activate(context) {
+  let cmd = vscode.commands.registerCommand(
+    'aviation.analyzeCode',
+    async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) return;
+
+      const code = editor.document.getText(editor.selection);
+      const analysis = await analyzeWithClaude({ code });
+      
+      vscode.window.showInformationMessage(analysis.summary);
+    }
+  );
+
+  context.subscriptions.push(cmd);
+}`
+      },
+
+      'debugging': {
+        id: 'debugging',
+        name: 'Debugging Stochastic Systems',
+        category: 'advanced',
+        categoryLabel: 'Advanced',
+        estimatedHours: '6-8',
+        prerequisites: ['Multi-Agent Orchestration', 'Workflows'],
+        unlocks: ['Production Mindset'],
+        
+        whatItIs: `Traditional debugging: Run code, get error, read stack trace, fix bug.
+
+Agentic debugging: Run agent, get weird output, check transcript, unclear why, tweak prompt, different weird output...
+
+LLMs are stochastic, opaque, and context-sensitive. Debugging requires:
+
+Tracing: Recording every step
+Evaluation: Systematic testing across inputs
+Prompt analysis: Understanding why small changes cause big effects
+Failure taxonomy: Categorizing failure types`,
+
+        whyItMatters: `This is where Karpathy's "stochastic, fallible, unintelligible" warning bites hardest.
+
+You WILL have failures that:
+• Don't reproduce consistently
+• Look like success but are subtly wrong
+• Fail only with specific users or contexts
+
+Without debugging skills, you'll thrash.`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'Tracing infrastructure',
+            detail: 'Log every LLM call: prompt, response, tools used, time taken.'
+          },
+          {
+            concept: 'Evaluation frameworks',
+            detail: 'Test suites for prompts. Given input X, does output meet criteria Y?'
+          },
+          {
+            concept: 'Prompt sensitivity analysis',
+            detail: 'Small prompt changes cause big behavior changes. Understanding what matters.'
+          },
+          {
+            concept: 'Failure patterns',
+            detail: 'Common ways agents fail: loops, hallucinations, wrong tool choice, context overflow.'
+          },
+          {
+            concept: 'Ship in 3 months max',
+            detail: 'If your agent project has a year-long timeline, you\'ve already lost. The plan won\'t survive contact with reality. Get to production fast, then iterate.'
+          },
+          {
+            concept: 'Iterate constantly',
+            detail: 'The best agent is the one that\'s running in production and getting better, not the one that\'s still being designed. Handle common cases well, route the weird stuff to humans.'
+          }
+        ],
+
+        ahaMovements: [
+          '"Works on my machine" is even worse with LLMs',
+          'Most debugging is reading transcripts, not reading code',
+          'The best fix is often "change the prompt" not "change the code"',
+          'Evaluation is your test suite—invest early',
+          'Handle common cases well, route weird stuff to humans with full context',
+          'The AI space changes monthly—every week of delay has serious implications'
+        ],
+
+        youveGotItWhen: [
+          'You have tracing that captures every LLM interaction',
+          'You can diagnose bad decisions by reading the transcript',
+          'You have a mental taxonomy of failure modes',
+          'You can write an eval that catches a specific failure type'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Flight Planner Tracing + Eval',
+            description: 'Add comprehensive tracing. Build an eval suite: given these conditions, does it recommend the right action?',
+            why: 'You know the domain, so you can evaluate correctness.',
+            stretch: 'Build a dashboard showing traces and failure patterns over time.'
+          }
+        ],
+
+        resources: [
+          { name: 'Anthropic Evaluation Guide', url: 'https://docs.anthropic.com/en/docs/build-with-claude/evaluation' }
+        ],
+
+        codeSnippet: `# Simple tracing wrapper
+class TracedAgent
+  def initialize(agent, logger:)
+    @agent = agent
+    @logger = logger
+  end
+
+  def call(input)
+    trace_id = SecureRandom.uuid
+    start_time = Time.now
+
+    @logger.log_start(trace_id, input)
+
+    begin
+      result = @agent.call(input)
+      @logger.log_success(trace_id, result,
+        duration: Time.now - start_time)
+      result
+    rescue => e
+      @logger.log_failure(trace_id, e,
+        duration: Time.now - start_time)
+      raise
+    end
+  end
+end`
+      },
+
+      // ==========================================
+      // TRACK 2: Human-Centered Agentic Design
+      // ==========================================
+
+      'context-engineering': {
+        id: 'context-engineering',
+        name: 'Context Engineering',
+        category: 'human-centered',
+        categoryLabel: 'Human-Centered',
+        estimatedHours: '4-6',
+        prerequisites: ['Memory Systems'],
+        unlocks: ['Production Mindset'],
+
+        whatItIs: `Context engineering elevates context from an implementation detail to a strategic discipline. It's the difference between "my agent has memory" and "my agent operates like someone with deep domain knowledge."
+
+Three pillars define context engineering:
+
+What the agent remembers: Not just the current task, but the history of what led here. An invoice exception agent needs to know what triggered it, who submitted it, what policy applies, and what happened last time with this vendor.
+
+How information flows: When you have multiple agents or stages, information must move cleanly without getting lost or corrupted. The triage agent passes structured context to the resolution agent. Sloppy handoffs break everything downstream.
+
+What the agent knows about the domain: You can't point an agent at documents and expect it to figure out what's important. Domain knowledge must be curated and structured for injection.`,
+
+        whyItMatters: `Context is often the biggest difference between an agent worth $1M and an agent worth $0.
+
+Without good context, agents:
+• Call the same tool repeatedly because they forgot they already got the answer
+• Make decisions that contradict something learned two steps earlier
+• Treat every task as brand new even when there's a clear pattern from similar tasks
+
+With good context, agents operate like someone with domain knowledge—connecting dots across different pieces of information without explicit instructions on how they relate.
+
+This is the concept that separates agents that demo well from agents that deliver results in production.`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'The three pillars',
+            detail: 'Memory (what it remembers), flow (how info moves), domain (what it knows about the business). All three must work together.'
+          },
+          {
+            concept: 'Structured handoff formats',
+            detail: 'Define clear schemas for what gets passed between stages. Include: task state, decisions made, confidence levels, and what to do if stuck.'
+          },
+          {
+            concept: 'Domain knowledge curation',
+            detail: 'Interview subject matter experts, document edge cases, encode policies. The agent needs YOUR knowledge of what matters, not just access to documents.'
+          },
+          {
+            concept: 'Context window economics',
+            detail: 'Every token costs attention. Be strategic about what goes in. Summarize, prioritize, prune. The goal is signal, not volume.'
+          }
+        ],
+
+        ahaMovements: [
+          'Context is THE differentiator, not a feature checkbox',
+          'You\'re not building memory—you\'re encoding your expertise',
+          'Structured handoffs are contracts between agents',
+          'The agent with best context wins, not the agent with best model'
+        ],
+
+        youveGotItWhen: [
+          'You can audit an agent\'s context and identify what\'s missing',
+          'You\'ve designed handoff schemas that downstream agents love',
+          'You\'ve encoded domain knowledge that makes agents actually useful',
+          'You think about context budgets like you think about compute budgets'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Flight Planner Context Audit',
+            description: 'Map every piece of context in your flight planning agent. What does it remember? How does info flow between stages? What domain knowledge is it missing?',
+            why: 'You know this domain deeply, so you can evaluate what\'s missing.',
+            stretch: 'Design a structured handoff format for passing flight plans between planning and briefing stages.'
+          }
+        ],
+
+        resources: [],
+
+        codeSnippet: `# Structured handoff format
+class FlightPlanHandoff
+  def initialize
+    @data = {
+      task_id: SecureRandom.uuid,
+      created_at: Time.now,
+      stage: nil,
+      decisions: [],
+      context: {},
+      confidence: nil,
+      escalation_reason: nil
+    }
+  end
+
+  def add_decision(stage, decision, reasoning)
+    @data[:decisions] << {
+      stage: stage,
+      decision: decision,
+      reasoning: reasoning,
+      timestamp: Time.now
+    }
+  end
+
+  def set_context(key, value, source:)
+    @data[:context][key] = {
+      value: value,
+      source: source,
+      added_at: Time.now
+    }
+  end
+
+  def to_prompt_injection
+    <<~CONTEXT
+      ## Previous Decisions
+      #{@data[:decisions].map { |d| "- #{d[:stage]}: #{d[:decision]}" }.join("\\n")}
+
+      ## Relevant Context
+      #{@data[:context].map { |k,v| "- #{k}: #{v[:value]}" }.join("\\n")}
+    CONTEXT
+  end
+end`
+      },
+
+      'multiplication-design': {
+        id: 'multiplication-design',
+        name: 'Designing for Multiplication',
+        category: 'human-centered',
+        categoryLabel: 'Human-Centered',
+        estimatedHours: '3-4',
+        prerequisites: ['Multi-Agent Orchestration'],
+        unlocks: ['Production Mindset'],
+
+        whatItIs: `The wrong way to think about agents: "This will do the work so we don't have to hire someone."
+
+The right way: "This will let three people do what used to require fifteen."
+
+Agents don't eliminate the need for human judgment. They eliminate the friction around human judgment—the research, data gathering, cross-referencing, formatting, routing, and follow-up that consumes most of a knowledge worker's day.
+
+A finance team still needs to make decisions about exceptions. But instead of spending 70% of close week hunting for missing documentation, they spend 70% actually resolving issues. The agent did the overhead; the human approves the judgment.`,
+
+        whyItMatters: `Companies getting real value from agents aren't trying to remove humans from the loop. They realized that most of what humans were doing wasn't the valuable part of their job—it was overhead required to get to the valuable part.
+
+Build agents this way and accuracy stops being a concern: the agent handles what it's good at (gathering, formatting, routing), humans handle what they're good at (judgment, exceptions, relationships).
+
+This also means you can deploy faster. You don't need the agent to handle every edge case. You need it to handle common cases well and route the weird stuff to humans with enough context that resolution is fast.`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'Identify the overhead',
+            detail: 'What do your users spend 70% of their time on that isn\'t the actual valuable decision? That\'s what you automate.'
+          },
+          {
+            concept: 'Design the handoff',
+            detail: 'When the agent routes to a human, what context does the human need? Make resolution a 30-second decision, not a 30-minute investigation.'
+          },
+          {
+            concept: 'Handle common, route rare',
+            detail: 'Don\'t try to handle every edge case. Handle the 80% well, route the 20% with full context. Ship this week, not next quarter.'
+          },
+          {
+            concept: 'Preserve human agency',
+            detail: 'The human should feel empowered, not replaced. They\'re making better decisions faster, not being automated away.'
+          }
+        ],
+
+        ahaMovements: [
+          '3 people doing what required 15 is more valuable than 0 people doing what required 1',
+          'The valuable part of the job is usually 20-30% of the time spent',
+          'Edge cases are where humans shine—don\'t try to automate them',
+          'Fast handoffs with good context beat slow automation that handles everything'
+        ],
+
+        youveGotItWhen: [
+          'You can identify the "overhead" vs "value" split in any workflow',
+          'You\'ve designed handoffs where humans can resolve issues in seconds',
+          'You\'ve shipped an agent that handles 80% and routes 20% gracefully',
+          'Your users feel more capable, not more surveilled'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Flight Planner 80/20 Redesign',
+            description: 'Redesign your flight planner to handle 80% of flights automatically, route 20% (marginal weather, unfamiliar airports, maintenance issues) with rich context.',
+            why: 'Forces you to identify what\'s automatable vs what needs human judgment.',
+            stretch: 'Measure: how long does it take you to resolve a routed exception? Target: under 60 seconds.'
+          }
+        ],
+
+        resources: [],
+
+        codeSnippet: `# Multiplication pattern: handle common, route rare
+class FlightDecisionRouter
+  CONFIDENCE_THRESHOLD = 0.85
+
+  def process(flight_request)
+    analysis = analyze_flight(flight_request)
+
+    if analysis[:confidence] >= CONFIDENCE_THRESHOLD
+      # Common case: handle automatically
+      execute_flight_plan(analysis[:plan])
+    else
+      # Rare case: route with full context
+      route_to_pilot(
+        flight_request,
+        analysis: analysis,
+        concerns: analysis[:concerns],
+        recommendation: analysis[:plan],
+        context: build_decision_context(flight_request)
+      )
+    end
+  end
+
+  def build_decision_context(request)
+    {
+      weather_summary: summarize_weather(request),
+      similar_past_flights: find_similar_flights(request),
+      specific_concerns: identify_concerns(request),
+      recommended_action: generate_recommendation(request),
+      time_sensitivity: calculate_urgency(request)
+    }
+  end
+
+  def route_to_pilot(request, analysis:, concerns:, recommendation:, context:)
+    # The pilot gets everything needed to decide in 30 seconds
+    Notification.send(
+      to: request[:pilot],
+      type: :decision_needed,
+      summary: "Flight #{request[:route]} needs your review",
+      concerns: concerns,
+      recommendation: recommendation,
+      context: context,
+      actions: [:approve, :modify, :cancel]
+    )
+  end
+end`
+      },
+
+      'exception-design': {
+        id: 'exception-design',
+        name: 'Exception-Driven Design',
+        category: 'human-centered',
+        categoryLabel: 'Human-Centered',
+        estimatedHours: '3-4',
+        prerequisites: ['Workflows, Hooks, Skills'],
+        unlocks: ['Production Mindset'],
+
+        whatItIs: `The default instinct when building AI systems is to create dashboards. Surface information. Show people what's happening.
+
+Please do not create another dashboard.
+
+Dashboards are where problems go to die. Your finance team already knows there are missing receipts. Your sales team already knows deals are stuck in legal. Showing them a dashboard doesn't help—it just creates a place where problems are acknowledged but not resolved.
+
+Exception-driven design flips this: catch problems when they happen and route them to whoever can fix them, with everything needed to fix them, right then.`,
+
+        whyItMatters: `When an invoice hits without proper documentation:
+• Dashboard approach: Add it to a report. Someone will notice in the weekly review. Maybe.
+• Exception-driven: Flag immediately. Figure out who needs to provide what. Route to them with full context—vendor, amount, policy, specific missing docs. Block the transaction until resolved.
+
+The first approach creates visibility. The second forces resolution.
+
+Your agent's job is to make problems impossible to ignore and incredibly easy to resolve. Surface the issue directly, not through a dashboard.`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'Catch at the moment',
+            detail: 'Don\'t batch problems for later review. When something\'s wrong, flag it immediately. The context is freshest now.'
+          },
+          {
+            concept: 'Route with everything needed',
+            detail: 'The resolver should be able to act in 30 seconds. Include: what\'s wrong, why it matters, who\'s affected, what the options are, and how to choose.'
+          },
+          {
+            concept: 'Block until resolved',
+            detail: 'Don\'t let problematic items leak into the system. Block the action, force resolution, then proceed. Queues become graveyards.'
+          },
+          {
+            concept: 'Escalation ladders',
+            detail: '24 hours without resolution? Escalate automatically. Include context so the escalation target can act immediately.'
+          }
+        ],
+
+        ahaMovements: [
+          'Dashboards are where problems go to die',
+          'The best exception handling feels like the system is watching out for you',
+          'Blocking is a feature, not a bug—it forces resolution',
+          'If it takes more than 30 seconds to resolve, your context is insufficient'
+        ],
+
+        youveGotItWhen: [
+          'You\'ve replaced a dashboard with exception-driven routing',
+          'Your exception notifications include everything needed to resolve',
+          'You\'ve implemented blocking that actually improved outcomes',
+          'Users thank you for catching things they would have missed'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Flight Exception Handler',
+            description: 'Add exception handling to your flight planner: weather goes marginal mid-planning, NOTAM appears for destination, fuel price spikes. What happens? How is the pilot notified?',
+            why: 'Aviation has natural exceptions that demand immediate attention.',
+            stretch: 'Implement escalation: if pilot doesn\'t respond in 15 minutes, what happens?'
+          }
+        ],
+
+        resources: [],
+
+        codeSnippet: `# Exception-driven pattern
+class FlightExceptionHandler
+  ESCALATION_TIMEOUT = 15.minutes
+
+  def check_and_route(flight_plan)
+    exceptions = detect_exceptions(flight_plan)
+    return if exceptions.empty?
+
+    exceptions.each do |exception|
+      route_exception(
+        flight_plan: flight_plan,
+        exception: exception,
+        context: build_resolution_context(flight_plan, exception)
+      )
+    end
+
+    # Block the flight plan until exceptions resolved
+    flight_plan.update!(status: :blocked, blocked_reason: exceptions.first[:type])
+  end
+
+  def route_exception(flight_plan:, exception:, context:)
+    notification = Notification.create!(
+      recipient: flight_plan.pilot,
+      type: :exception,
+      severity: exception[:severity],
+      summary: exception[:summary],
+      context: context,
+      actions: exception[:available_actions],
+      escalates_at: Time.now + ESCALATION_TIMEOUT
+    )
+
+    schedule_escalation(notification)
+  end
+
+  def build_resolution_context(flight_plan, exception)
+    {
+      what_happened: exception[:description],
+      why_it_matters: exception[:impact],
+      your_options: exception[:available_actions].map { |a| describe_action(a) },
+      recommendation: generate_recommendation(flight_plan, exception),
+      time_sensitivity: exception[:urgency],
+      one_click_actions: exception[:available_actions]
+    }
+  end
+
+  def schedule_escalation(notification)
+    EscalationJob.perform_at(notification.escalates_at) do
+      unless notification.resolved?
+        escalate_to(
+          notification.recipient.supervisor,
+          original: notification,
+          reason: "No response in #{ESCALATION_TIMEOUT.in_minutes} minutes"
+        )
+      end
+    end
+  end
+end`
+      },
+
+      'codebase-design': {
+        id: 'codebase-design',
+        name: 'Codebase Design for Agents',
+        category: 'human-centered',
+        categoryLabel: 'Human-Centered',
+        estimatedHours: '4-6',
+        prerequisites: ['Claude Code (Extending)'],
+        unlocks: ['Practitioner Workflows'],
+
+        whatItIs: `"I don't design codebases to be easy to navigate for me. I engineer them so agents can work in them efficiently."
+
+This is a mindset shift: your codebase is now a collaboration surface for both humans and AI. Decisions that make sense for human navigation may not help agents, and vice versa.
+
+Key principles:
+• Start with CLI: Whatever you build, start with a command-line interface. Agents can call it directly and verify output.
+• docs/ folders: Maintain structured documentation that agents can read to understand subsystems.
+• Obvious structure: Align your code organization with what models are trained on. Fight the model less.
+• Cross-project references: Design for agents to look at sibling projects and learn patterns.`,
+
+        whyItMatters: `When agents can navigate your codebase efficiently:
+• Prompts get shorter (less explaining needed)
+• One-shot success rate goes up
+• You spend less time fixing agent mistakes
+• The agent can cross-reference other projects to infer patterns
+
+When they can't:
+• You spend tokens explaining structure
+• The agent misses relevant code
+• You get solutions that don't fit your patterns
+• Every task requires detailed hand-holding`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'CLI-first development',
+            detail: 'Build a CLI before building UI. Agents can call CLIs directly, verify output, and close the loop. CLIs are the API for agent collaboration.'
+          },
+          {
+            concept: 'docs/ as agent memory',
+            detail: 'Maintain docs for each subsystem. When you solve a hard problem, write it up. The agent reads these before working on related code.'
+          },
+          {
+            concept: 'Convention over configuration',
+            detail: 'Use obvious, standard patterns. The more your code looks like what the model was trained on, the better it performs.'
+          },
+          {
+            concept: 'Cross-project learning',
+            detail: 'Design projects to reference each other. "Look at ../other-project and do the same thing here" is a powerful prompt.'
+          }
+        ],
+
+        ahaMovements: [
+          'Your codebase is a collaboration surface, not just your workspace',
+          'CLIs are the API for agent collaboration',
+          'docs/ folders are agent memory across sessions',
+          'Fighting the model\'s expectations wastes tokens and time'
+        ],
+
+        youveGotItWhen: [
+          'New features start with CLI, not UI',
+          'You maintain docs/ that agents actually reference',
+          'Your agents can cross-reference sibling projects successfully',
+          'You think "how would an agent navigate this?" when designing'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Agent-Friendly Refactor',
+            description: 'Take an existing project and make it agent-friendly: add a CLI, create docs/ with subsystem docs, organize for obvious navigation.',
+            why: 'Forces you to see your code through agent eyes.',
+            stretch: 'Have an agent read ../project-a and apply patterns to project-b. Did it work?'
+          }
+        ],
+
+        resources: [],
+
+        codeSnippet: `# CLI-first pattern with docs integration
+# bin/flight-planner
+#!/usr/bin/env ruby
+require_relative '../lib/flight_planner'
+
+class FlightPlannerCLI
+  def self.run(args)
+    command = args.shift
+
+    case command
+    when 'plan'
+      plan_flight(args)
+    when 'weather'
+      check_weather(args)
+    when 'docs'
+      show_docs(args)
+    else
+      show_help
+    end
+  end
+
+  def self.plan_flight(args)
+    # Structured output agents can parse
+    result = FlightPlanner.plan(
+      from: args[0],
+      to: args[1],
+      date: args[2]
+    )
+
+    puts JSON.pretty_generate(result)
+  end
+
+  def self.show_docs(args)
+    # Agent can call this to understand subsystems
+    topic = args[0] || 'index'
+    doc_path = File.join(__dir__, '../docs', "#{topic}.md")
+
+    if File.exist?(doc_path)
+      puts File.read(doc_path)
+    else
+      puts "Available docs:"
+      Dir.glob('docs/*.md').each { |f| puts "  - #{File.basename(f, '.md')}" }
+    end
+  end
+end
+
+# docs/weather.md example:
+# # Weather Subsystem
+#
+# ## Overview
+# Fetches and interprets aviation weather.
+#
+# ## Key Files
+# - lib/weather/metar_parser.rb - METAR decoding
+# - lib/weather/taf_parser.rb - TAF decoding
+# - lib/weather/decision.rb - VFR/IFR/marginal logic
+#
+# ## Common Patterns
+# Always check both METAR and TAF. METARs are current,
+# TAFs are forecast. Decision logic is in decision.rb.`
+      },
+
+      'practitioner-workflows': {
+        id: 'practitioner-workflows',
+        name: 'Practitioner Workflows',
+        category: 'human-centered',
+        categoryLabel: 'Human-Centered',
+        estimatedHours: '3-4',
+        prerequisites: ['Codebase Design for Agents'],
+        unlocks: ['Production Mindset'],
+
+        whatItIs: `Real patterns from practitioners shipping at scale with AI agents. This isn't theory—it's what actually works when you're building fast.
+
+Key patterns:
+• Multiple projects simultaneously: Work on 3-8 projects at once. Queue prompts while one agent works, switch to another.
+• Commit to main: Don't overthink branching. Commit to main, iterate forward. If something's wrong, fix it—don't revert.
+• Shorter prompts over time: As you trust the model more, prompts get shorter. Show images, use fewer words.
+• Know by feel: When something's taking too long, you already know it's stuck. Develop intuition for agent timing.
+• Never revert: If something isn't how you like it, ask the model to change it. Travel forward, not backward.`,
+
+        whyItMatters: `The amount of software you can create is now limited by inference time and hard thinking. Most software doesn't require hard thinking—it's shuffling data from forms to storage to display.
+
+When you develop practitioner workflows:
+• You ship 5-10x more than before
+• Context switching becomes manageable
+• You stop waiting for agents and start orchestrating them
+• Your intuition for "agent is stuck" becomes reliable
+
+This is how you go from "using AI" to "building at inference speed."`,
+
+        keyConceptsToLearn: [
+          {
+            concept: 'Queue-based prompting',
+            detail: 'Don\'t wait for one task to finish. Queue the next prompt, switch to another project. Let agents work in parallel.'
+          },
+          {
+            concept: 'Linear history (commit to main)',
+            detail: 'Branches add cognitive load. Commit to main, iterate forward. If you need to change something, change it—don\'t revert.'
+          },
+          {
+            concept: 'Trust calibration',
+            detail: 'As you learn what the agent handles well, your prompts get shorter. "Fix padding" with a screenshot replaces paragraphs of description.'
+          },
+          {
+            concept: 'Timing intuition',
+            detail: 'You\'ll develop a feel for how long tasks should take. When an agent takes 2x as long, something\'s wrong—investigate.'
+          }
+        ],
+
+        ahaMovements: [
+          'Your limit is inference time, not coding speed',
+          'Most software is boring—agents handle boring well',
+          'Reverting is slower than fixing forward',
+          'When the agent takes too long, you already know it\'s stuck'
+        ],
+
+        youveGotItWhen: [
+          'You routinely work on 3+ projects simultaneously',
+          'You queue prompts instead of waiting',
+          'Your prompts have gotten shorter over time',
+          'You can feel when an agent is stuck before checking'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Multi-Project Workflow Setup',
+            description: 'Set up a workflow with 3 projects: one main focus, two satellite projects. Practice queueing prompts, switching contexts, developing timing intuition.',
+            why: 'Forces you to develop the mental models for parallel agent work.',
+            stretch: 'Track your shipping velocity before and after. How much more are you producing?'
+          }
+        ],
+
+        resources: [],
+
+        codeSnippet: `# Practitioner workflow patterns
+
+# Pattern 1: Cross-project reference
+# "Look at ../flight-planner and implement the same
+#  weather caching pattern in this project"
+
+# Pattern 2: Screenshot-driven iteration
+# [attach screenshot of UI]
+# "fix the padding on the header"
+
+# Pattern 3: docs-list for context
+# In your AGENTS.md or global config:
+#
+# When working on weather features, first run:
+#   bin/flight-planner docs weather
+# This ensures you have the weather subsystem context.
+
+# Pattern 4: Queue-based prompting workflow
+class WorkflowOrchestrator
+  def initialize
+    @projects = {}
+    @queue = Queue.new
+  end
+
+  def add_project(name, path)
+    @projects[name] = {
+      path: path,
+      current_task: nil,
+      pending: []
+    }
+  end
+
+  def queue_task(project_name, task)
+    @projects[project_name][:pending] << task
+    process_next(project_name) unless @projects[project_name][:current_task]
+  end
+
+  def process_next(project_name)
+    project = @projects[project_name]
+    return if project[:pending].empty?
+
+    task = project[:pending].shift
+    project[:current_task] = task
+
+    # Agent starts working, you switch to another project
+    puts "Started: #{project_name} - #{task[:summary]}"
+  end
+
+  # Your workflow:
+  # 1. Queue task for project A
+  # 2. Queue task for project B
+  # 3. Queue task for project C
+  # 4. Review completed tasks
+  # 5. Queue next tasks
+  # 6. Repeat
+end`
+      },
+
+      'production-mindset': {
+        id: 'production-mindset',
+        name: 'Production Mindset',
+        category: 'human-centered',
+        categoryLabel: 'Human-Centered',
+        estimatedHours: '4-6',
+        prerequisites: ['Debugging Stochastic Systems', 'Exception-Driven Design'],
+        unlocks: [],
+
+        whatItIs: `If your AI agent project has a year-long timeline before anything goes live, you've already lost.
+
+The plan won't survive contact with reality. The workflows you designed won't match how work actually happens. The edge cases you didn't anticipate will be the ones that matter most. And the entire AI space will look completely different in 12 months.
+
+Production mindset means:
+• Ship in 3 months max: Get to production handling real tasks with real audit trails.
+• Iterate constantly: The best agent is the one running and improving, not still being designed.
+• Architecture > model selection: Solo vs parallel vs collaborative is more important than GPT vs Claude.
+• Bespoke > SaaS: Custom agents built on your infrastructure compound capability. SaaS accumulates tech debt.`,
+
+        whyItMatters: `SaaS AI tools accumulate tech debt. Every tool you buy is another integration to maintain, another system that goes out of date, another vendor that might pivot or shut down.
+
+Agents built in-house accumulate capability. Every improvement makes the system smarter. Every new workflow extends what's possible. The investment compounds instead of depreciating.
+
+Companies that figure out agents early will have a structural advantage for years. They're building infrastructure that gets better over time. Everyone else is renting tools that will eventually need replacement.
+
+The AI space changes every month. Every week of delay has serious implications for your roadmap.`,
+
+        keyConceptsToLearn: [
+          {
+            concept: '3-month timebox',
+            detail: 'Whatever you\'re building, get it to production in 3 months. You\'ll learn more from 1 week in production than 3 months of design.'
+          },
+          {
+            concept: 'Architecture decisions compound',
+            detail: 'Get the architecture right—solo, parallel, or collaborative agents. Model choice is secondary and can be swapped.'
+          },
+          {
+            concept: 'Bespoke vs SaaS tradeoff',
+            detail: 'SaaS is easy to buy but accumulates debt. Custom agents are harder to build but accumulate capability. Choose capability.'
+          },
+          {
+            concept: 'Continuous improvement',
+            detail: 'Ship, observe, improve, repeat. The agent that\'s running and learning beats the perfect agent still being designed.'
+          }
+        ],
+
+        ahaMovements: [
+          'The plan won\'t survive contact with reality—ship fast to learn',
+          'Architecture compounds, model choice doesn\'t',
+          'Bespoke agents get better; SaaS agents get stale',
+          'Every week of delay is a week your competitor is shipping'
+        ],
+
+        youveGotItWhen: [
+          'You\'ve shipped an agent to production in under 3 months',
+          'You iterate based on production behavior, not hypothetical requirements',
+          'You chose architecture before choosing model',
+          'Your agents get better every week they run'
+        ],
+
+        practiceBuilds: [
+          {
+            name: 'Production-Ready Flight Planner',
+            description: 'Take your flight planner from "learning project" to "production-ready." What changes? Tracing, error handling, exception routing, audit trails, monitoring.',
+            why: 'Forces the shift from "it works in demo" to "it runs reliably."',
+            stretch: 'Run it for a week on real flight planning tasks. What did production teach you that design didn\'t?'
+          }
+        ],
+
+        resources: [],
+
+        codeSnippet: `# Production-ready agent wrapper
+class ProductionAgent
+  def initialize(agent, config:)
+    @agent = agent
+    @config = config
+    @tracer = Tracer.new(config[:tracing])
+    @monitor = Monitor.new(config[:monitoring])
+  end
+
+  def call(input)
+    trace = @tracer.start(input)
+
+    begin
+      result = with_timeout(@config[:timeout]) do
+        @agent.call(input)
+      end
+
+      trace.success(result)
+      @monitor.record_success(trace)
+      result
+
+    rescue => e
+      trace.failure(e)
+      @monitor.record_failure(trace)
+
+      # Exception-driven: route, don't just log
+      if recoverable?(e)
+        route_for_human_resolution(input, e, trace)
+      else
+        raise ProductionError.new(e, trace: trace)
+      end
+    end
+  end
+
+  def with_timeout(duration)
+    Timeout.timeout(duration) { yield }
+  rescue Timeout::Error
+    raise AgentTimeout, "Agent took longer than #{duration}s"
+  end
+
+  def route_for_human_resolution(input, error, trace)
+    Notification.send(
+      to: @config[:escalation_target],
+      type: :agent_needs_help,
+      context: {
+        original_input: input,
+        error: error.message,
+        trace_id: trace.id,
+        agent_reasoning: trace.reasoning_steps,
+        suggested_action: suggest_resolution(error)
+      }
+    )
+
+    { status: :routed_to_human, trace_id: trace.id }
+  end
+end`
+      }
+    };
+
+    const skillOrder = ['tool-use', 'mcp', 'memory', 'multi-agent', 'claude-code', 'workflows', 'ide-integration', 'debugging', 'context-engineering', 'multiplication-design', 'exception-design', 'codebase-design', 'practitioner-workflows', 'production-mindset'];
+
+    // State
+    let state = {
+      selectedSkill: 'tool-use',
+      activeTab: 'learn',
+      statuses: {},
+      notes: {},
+      editingNotes: false
+    };
+
+    // Load from localStorage
+    function loadState() {
+      try {
+        const saved = localStorage.getItem('agentic-mastery-state');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          state.statuses = parsed.statuses || {};
+          state.notes = parsed.notes || {};
+        }
+      } catch (e) {
+        console.error('Failed to load state:', e);
+      }
+
+      // Set defaults
+      skillOrder.forEach((id, index) => {
+        if (!state.statuses[id]) {
+          state.statuses[id] = index === 0 ? 'current' : 'locked';
+        }
+      });
+    }
+
+    // Save to localStorage
+    function saveState() {
+      try {
+        localStorage.setItem('agentic-mastery-state', JSON.stringify({
+          statuses: state.statuses,
+          notes: state.notes
+        }));
+      } catch (e) {
+        console.error('Failed to save state:', e);
+      }
+    }
+
+    // Get status for a skill
+    function getStatus(skillId) {
+      return state.statuses[skillId] || 'locked';
+    }
+
+    // Update progress display
+    function updateProgress() {
+      const completed = Object.values(state.statuses).filter(s => s === 'completed').length;
+      const total = skillOrder.length;
+      const percent = Math.round((completed / total) * 100);
+
+      document.getElementById('progress-percent').textContent = percent + '%';
+      document.getElementById('progress-label').textContent = `${completed}/${total} skills`;
+      document.getElementById('progress-fill').style.width = percent + '%';
+    }
+
+    // Render skill list
+    function renderSkillList() {
+      const container = document.getElementById('skill-list-items');
+      container.innerHTML = '';
+
+      skillOrder.forEach((skillId, index) => {
+        const skill = skillsData[skillId];
+        const status = getStatus(skillId);
+        const isActive = state.selectedSkill === skillId;
+
+        const item = document.createElement('button');
+        item.className = 'skill-item' + (isActive ? ' active' : '');
+        item.onclick = () => selectSkill(skillId);
+
+        const numberClass = status === 'completed' ? 'completed' : status === 'current' ? 'current' : 'locked';
+        const numberContent = status === 'completed' ? '<i class="bi bi-check"></i>' : (index + 1);
+
+        item.innerHTML = `
+          <div class="skill-number ${numberClass}">${numberContent}</div>
+          <div class="skill-info">
+            <div class="skill-name">${skill.name}</div>
+            <div class="skill-meta">
+              <span class="skill-status ${status}">${capitalize(status)}</span>
+              <span class="skill-hours">${skill.estimatedHours}h</span>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(item);
+      });
+    }
+
+    // Select a skill
+    function selectSkill(skillId) {
+      state.selectedSkill = skillId;
+      state.activeTab = 'learn';
+      state.editingNotes = false;
+      renderSkillList();
+      renderSkillHeader();
+      renderTabs();
+      renderTabContent();
+    }
+
+    // Render skill header
+    function renderSkillHeader() {
+      const skill = skillsData[state.selectedSkill];
+      const status = getStatus(state.selectedSkill);
+
+      const header = document.getElementById('skill-header');
+      header.innerHTML = `
+        <div class="skill-header-top">
+          <div>
+            <div class="skill-category">
+              <span class="category-dot ${skill.category}"></span>
+              ${skill.categoryLabel}
+            </div>
+            <h2 class="skill-title">${skill.name}</h2>
+          </div>
+          <select class="status-select ${status}" onchange="updateStatus(event.target.value)">
+            <option value="locked" ${status === 'locked' ? 'selected' : ''}>Locked</option>
+            <option value="available" ${status === 'available' ? 'selected' : ''}>Available</option>
+            <option value="current" ${status === 'current' ? 'selected' : ''}>Current Focus</option>
+            <option value="completed" ${status === 'completed' ? 'selected' : ''}>Completed</option>
+          </select>
+        </div>
+        <div class="skill-header-meta">
+          <span><i class="bi bi-clock"></i> ${skill.estimatedHours} hours</span>
+          ${skill.prerequisites.length ? `<span><i class="bi bi-arrow-left"></i> Requires: ${skill.prerequisites.join(', ')}</span>` : ''}
+          ${skill.unlocks.length ? `<span><i class="bi bi-arrow-right"></i> Unlocks: ${skill.unlocks.join(', ')}</span>` : ''}
+        </div>
+      `;
+    }
+
+    // Update status
+    function updateStatus(newStatus) {
+      state.statuses[state.selectedSkill] = newStatus;
+      saveState();
+      updateProgress();
+      renderSkillList();
+      renderSkillHeader();
+    }
+
+    // Render tabs
+    function renderTabs() {
+      const tabs = document.getElementById('tabs');
+      const tabData = [
+        { id: 'learn', label: 'Learn', icon: 'bi-book' },
+        { id: 'build', label: 'Build', icon: 'bi-hammer' },
+        { id: 'code', label: 'Code', icon: 'bi-code-slash' }
+      ];
+
+      tabs.innerHTML = tabData.map(tab => `
+        <button class="tab ${state.activeTab === tab.id ? 'active' : ''}" onclick="setTab('${tab.id}')">
+          <i class="bi ${tab.icon}"></i> ${tab.label}
+        </button>
+      `).join('');
+    }
+
+    // Set active tab
+    function setTab(tabId) {
+      state.activeTab = tabId;
+      state.editingNotes = false;
+      renderTabs();
+      renderTabContent();
+    }
+
+    // Render tab content
+    function renderTabContent() {
+      const skill = skillsData[state.selectedSkill];
+      const container = document.getElementById('tab-content');
+
+      if (state.activeTab === 'learn') {
+        container.innerHTML = `
+          <div class="section">
+            <h3><i class="bi bi-info-circle"></i> What It Is</h3>
+            <div class="section-text">${escapeHtml(skill.whatItIs)}</div>
+          </div>
+
+          <div class="section">
+            <h3><i class="bi bi-lightning"></i> Why It Matters</h3>
+            <div class="section-text">${escapeHtml(skill.whyItMatters)}</div>
+          </div>
+
+          <div class="section">
+            <h3><i class="bi bi-key"></i> Key Concepts</h3>
+            ${skill.keyConceptsToLearn.map(c => `
+              <div class="concept-card">
+                <div class="concept-title">${escapeHtml(c.concept)}</div>
+                <div class="concept-detail">${escapeHtml(c.detail)}</div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="section">
+            <h3><i class="bi bi-lightbulb"></i> Aha Moments</h3>
+            <ul class="aha-list">
+              ${skill.ahaMovements.map(a => `
+                <li><i class="bi bi-circle-fill"></i> ${escapeHtml(a)}</li>
+              `).join('')}
+            </ul>
+          </div>
+
+          <div class="section">
+            <h3><i class="bi bi-check2-circle"></i> You've Got It When...</h3>
+            <ul class="check-list">
+              ${skill.youveGotItWhen.map(c => `
+                <li><i class="bi bi-square"></i> ${escapeHtml(c)}</li>
+              `).join('')}
+            </ul>
+          </div>
+
+          ${skill.resources.length ? `
+            <div class="section">
+              <h3><i class="bi bi-bookmark"></i> Resources</h3>
+              <ul class="resource-list">
+                ${skill.resources.map(r => `
+                  <li><a href="${r.url}" target="_blank" rel="noopener">${escapeHtml(r.name)} <i class="bi bi-box-arrow-up-right"></i></a></li>
+                `).join('')}
+              </ul>
+            </div>
+          ` : ''}
+        `;
+      } else if (state.activeTab === 'build') {
+        const notes = state.notes[state.selectedSkill] || '';
+        
+        container.innerHTML = `
+          ${skill.practiceBuilds.map(build => `
+            <div class="build-card">
+              <h4>${escapeHtml(build.name)}</h4>
+              <p>${escapeHtml(build.description)}</p>
+              <div class="build-why">
+                <div class="build-why-label"><i class="bi bi-question-circle"></i> Why this build?</div>
+                <div class="build-why-text">${escapeHtml(build.why)}</div>
+              </div>
+              ${build.stretch ? `
+                <div class="build-stretch">
+                  <div class="build-stretch-label"><i class="bi bi-rocket"></i> Stretch goal</div>
+                  <div class="build-stretch-text">${escapeHtml(build.stretch)}</div>
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+
+          <div class="notes-section">
+            <div class="notes-header">
+              <h3><i class="bi bi-journal-text"></i> Your Notes</h3>
+              <button class="notes-edit-btn" onclick="toggleNotes()">
+                ${state.editingNotes ? '<i class="bi bi-check"></i> Save' : '<i class="bi bi-pencil"></i> Edit'}
+              </button>
+            </div>
+            ${state.editingNotes ? `
+              <textarea class="notes-textarea" id="notes-textarea" placeholder="What did you learn? What surprised you? Questions?">${escapeHtml(notes)}</textarea>
+            ` : `
+              <div class="notes-display ${notes ? '' : 'empty'}">${notes ? escapeHtml(notes) : 'No notes yet. Click Edit to add your learnings.'}</div>
+            `}
+          </div>
+        `;
+      } else if (state.activeTab === 'code') {
+        container.innerHTML = `
+          <div class="section">
+            <h3><i class="bi bi-file-code"></i> Reference Code (Ruby)</h3>
+            <div class="code-block">
+              <pre>${escapeHtml(skill.codeSnippet)}</pre>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Toggle notes editing
+    function toggleNotes() {
+      if (state.editingNotes) {
+        const textarea = document.getElementById('notes-textarea');
+        if (textarea) {
+          state.notes[state.selectedSkill] = textarea.value;
+          saveState();
+        }
+      }
+      state.editingNotes = !state.editingNotes;
+      renderTabContent();
+    }
+
+    // Helpers
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Initialize
+    function init() {
+      loadState();
+      updateProgress();
+      renderSkillList();
+      renderSkillHeader();
+      renderTabs();
+      renderTabContent();
+    }
+
+    // Run on page load
+    document.addEventListener('DOMContentLoaded', init);
+
+    // ==========================================
+    // API Key Management
+    // ==========================================
+    const API_KEY_STORAGE_KEY = 'agentic-mastery-api-key';
+
+    function getApiKey() {
+      return localStorage.getItem(API_KEY_STORAGE_KEY);
+    }
+
+    function updateSettingsButton() {
+      const btn = document.getElementById('settings-btn');
+      const text = document.getElementById('settings-btn-text');
+      const hasKey = !!getApiKey();
+
+      if (hasKey) {
+        btn.classList.add('has-key');
+        text.textContent = 'API Key Set';
+      } else {
+        btn.classList.remove('has-key');
+        text.textContent = 'Add API Key';
+      }
+    }
+
+    function openSettings() {
+      const modal = document.getElementById('settings-modal');
+      const input = document.getElementById('api-key-input');
+      const removeBtn = document.getElementById('remove-key-btn');
+      const existingKey = getApiKey();
+
+      if (existingKey) {
+        input.value = existingKey;
+        removeBtn.style.display = 'block';
+      } else {
+        input.value = '';
+        removeBtn.style.display = 'none';
+      }
+
+      modal.classList.add('visible');
+    }
+
+    function closeSettings() {
+      document.getElementById('settings-modal').classList.remove('visible');
+    }
+
+    function saveApiKey() {
+      const input = document.getElementById('api-key-input');
+      const key = input.value.trim();
+
+      if (key) {
+        localStorage.setItem(API_KEY_STORAGE_KEY, key);
+        updateSettingsButton();
+        renderChatContent();
+      }
+      closeSettings();
+    }
+
+    function removeApiKey() {
+      localStorage.removeItem(API_KEY_STORAGE_KEY);
+      updateSettingsButton();
+      renderChatContent();
+      closeSettings();
+    }
+
+    // Close modal on click outside
+    document.getElementById('settings-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'settings-modal') closeSettings();
+    });
+
+    // ==========================================
+    // IndexedDB for Chat History
+    // ==========================================
+    const DB_NAME = 'agentic-mastery-chat';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'conversations';
+    let db = null;
+
+    async function initDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          db = request.result;
+          resolve(db);
+        };
+
+        request.onupgradeneeded = (event) => {
+          const database = event.target.result;
+          if (!database.objectStoreNames.contains(STORE_NAME)) {
+            const store = database.createObjectStore(STORE_NAME, { keyPath: 'skillId' });
+            store.createIndex('updatedAt', 'updatedAt', { unique: false });
+          }
+        };
+      });
+    }
+
+    async function getConversation(skillId) {
+      if (!db) await initDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.get(skillId);
+
+        request.onsuccess = () => resolve(request.result || { skillId, messages: [], updatedAt: Date.now() });
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function saveConversation(skillId, messages) {
+      if (!db) await initDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.put({ skillId, messages, updatedAt: Date.now() });
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function clearConversation(skillId) {
+      if (!db) await initDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.delete(skillId);
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // ==========================================
+    // Chat UI
+    // ==========================================
+    let chatMessages = [];
+    let isLoading = false;
+
+    function openChat() {
+      document.getElementById('chat-fab').classList.add('hidden');
+      document.getElementById('chat-panel').classList.add('visible');
+      updateChatContext();
+      loadChatHistory();
+    }
+
+    function closeChat() {
+      document.getElementById('chat-panel').classList.remove('visible');
+      document.getElementById('chat-fab').classList.remove('hidden');
+    }
+
+    function updateChatContext() {
+      const skill = skillsData[state.selectedSkill];
+      document.getElementById('chat-context-skill').textContent = skill.name;
+    }
+
+    async function loadChatHistory() {
+      const conversation = await getConversation(state.selectedSkill);
+      chatMessages = conversation.messages || [];
+      renderChatMessages();
+    }
+
+    function renderChatContent() {
+      const messagesContainer = document.getElementById('chat-messages');
+      const inputArea = document.getElementById('chat-input-area');
+
+      if (!getApiKey()) {
+        messagesContainer.innerHTML = `
+          <div class="no-key-message">
+            <i class="bi bi-key"></i>
+            <p>Add your Claude API key to chat with the AI tutor about this module.</p>
+            <button class="btn btn-primary" onclick="openSettings()">Add API Key</button>
+          </div>
+        `;
+        inputArea.style.display = 'none';
+      } else {
+        inputArea.style.display = 'block';
+        renderChatMessages();
+      }
+    }
+
+    function renderChatMessages() {
+      const container = document.getElementById('chat-messages');
+
+      if (!getApiKey()) {
+        renderChatContent();
+        return;
+      }
+
+      if (chatMessages.length === 0) {
+        container.innerHTML = `
+          <div class="chat-message system">
+            Ask me anything about "${skillsData[state.selectedSkill].name}"!
+          </div>
+        `;
+      } else {
+        container.innerHTML = chatMessages.map(msg => `
+          <div class="chat-message ${msg.role}">
+            ${formatMessage(msg.content)}
+          </div>
+        `).join('');
+      }
+
+      // Scroll to bottom
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function formatMessage(content) {
+      // Basic markdown formatting
+      let formatted = escapeHtml(content);
+
+      // Code blocks
+      formatted = formatted.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+        return `<pre>${code.trim()}</pre>`;
+      });
+
+      // Inline code
+      formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+      // Bold
+      formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+      // Line breaks
+      formatted = formatted.replace(/\n/g, '<br>');
+
+      return formatted;
+    }
+
+    function showTypingIndicator() {
+      const container = document.getElementById('chat-messages');
+      const indicator = document.createElement('div');
+      indicator.className = 'chat-typing';
+      indicator.id = 'typing-indicator';
+      indicator.innerHTML = '<span></span><span></span><span></span>';
+      container.appendChild(indicator);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      const indicator = document.getElementById('typing-indicator');
+      if (indicator) indicator.remove();
+    }
+
+    async function clearChat() {
+      await clearConversation(state.selectedSkill);
+      chatMessages = [];
+      renderChatMessages();
+    }
+
+    // ==========================================
+    // Claude API Integration
+    // ==========================================
+    function buildSystemPrompt() {
+      const skill = skillsData[state.selectedSkill];
+      const tabContent = state.activeTab;
+
+      return `You are an expert AI tutor helping someone learn about agentic AI systems. You're assisting with the learning module: "${skill.name}".
+
+Current Module Context:
+- Category: ${skill.categoryLabel}
+- Prerequisites: ${skill.prerequisites.join(', ') || 'None'}
+- This skill unlocks: ${skill.unlocks.join(', ') || 'Nothing yet'}
+
+What This Topic Is About:
+${skill.whatItIs}
+
+Why It Matters:
+${skill.whyItMatters}
+
+Key Concepts to Cover:
+${skill.keyConceptsToLearn.map(c => `- ${c.concept}: ${c.detail}`).join('\n')}
+
+Aha Moments (insights to help convey):
+${skill.ahaMovements.map(a => `- ${a}`).join('\n')}
+
+The learner is currently viewing the "${tabContent}" tab.
+
+Your role:
+- Answer questions about this specific topic in depth
+- Provide practical examples, especially related to Ruby and aviation (the learner's domain interests)
+- Help clarify concepts that might be confusing
+- Suggest next steps or things to try
+- Be conversational and encouraging, but technically accurate
+- Keep responses focused and not too long unless depth is requested
+- If asked about other topics not in this module, briefly answer but guide back to the current learning focus`;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const sendBtn = document.getElementById('chat-send');
+      const message = input.value.trim();
+
+      if (!message || isLoading) return;
+
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        openSettings();
+        return;
+      }
+
+      // Add user message
+      chatMessages.push({ role: 'user', content: message });
+      renderChatMessages();
+      input.value = '';
+      input.style.height = 'auto';
+
+      // Show loading
+      isLoading = true;
+      sendBtn.disabled = true;
+      showTypingIndicator();
+
+      try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1024,
+            system: buildSystemPrompt(),
+            messages: chatMessages.map(m => ({
+              role: m.role,
+              content: m.content
+            }))
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error?.message || 'API request failed');
+        }
+
+        const data = await response.json();
+        const assistantMessage = data.content[0].text;
+
+        chatMessages.push({ role: 'assistant', content: assistantMessage });
+        await saveConversation(state.selectedSkill, chatMessages);
+
+      } catch (error) {
+        console.error('Chat error:', error);
+        chatMessages.push({
+          role: 'assistant',
+          content: `Sorry, I encountered an error: ${error.message}. Please check your API key and try again.`
+        });
+      } finally {
+        isLoading = false;
+        sendBtn.disabled = false;
+        hideTypingIndicator();
+        renderChatMessages();
+      }
+    }
+
+    // Handle Enter key in chat input
+    document.getElementById('chat-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Auto-resize textarea
+    document.getElementById('chat-input').addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    // Update chat context when skill changes
+    const originalSelectSkill = selectSkill;
+    selectSkill = function(skillId) {
+      originalSelectSkill(skillId);
+      if (document.getElementById('chat-panel').classList.contains('visible')) {
+        updateChatContext();
+        loadChatHistory();
+      }
+    };
+
+    // Initialize chat on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initDB();
+      updateSettingsButton();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Demo of autoencoder-based anomaly detection for aircraft engine data, identifying unusual patterns in sensor readings.">
+    <meta name="tags" content="ml, aviation, visualization">
+    <meta name="created" content="2025-01-06">
+    <title>Engine Anomaly Detection - Autoencoder Demo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        
+        .section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .section h2 {
+            margin: 0 0 15px 0;
+            font-size: 1rem;
+            color: #aaa;
+        }
+        
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn.primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn.primary:hover {
+            background: #5a67d8;
+        }
+        
+        .btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid #444;
+        }
+        
+        .btn.secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Stats */
+        .stats-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .stat-box {
+            background: rgba(0,0,0,0.2);
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 4px;
+        }
+        
+        /* Engine display */
+        .engine-display {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .cylinder {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .cylinder-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #aaa;
+        }
+        
+        .temp-display {
+            margin: 8px 0;
+        }
+        
+        .temp-label {
+            font-size: 0.75rem;
+            color: #888;
+        }
+        
+        .temp-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        
+        .temp-value.normal {
+            color: #48bb78;
+        }
+        
+        .temp-value.warning {
+            color: #ed8936;
+        }
+        
+        .temp-value.danger {
+            color: #f56565;
+        }
+        
+        .temp-bar {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .temp-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s, background 0.3s;
+        }
+        
+        /* Anomaly score */
+        .anomaly-display {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .anomaly-score {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .anomaly-score.normal {
+            color: #48bb78;
+        }
+        
+        .anomaly-score.warning {
+            color: #ed8936;
+        }
+        
+        .anomaly-score.danger {
+            color: #f56565;
+        }
+        
+        .anomaly-label {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        
+        .anomaly-bar {
+            height: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .anomaly-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s, background 0.3s;
+        }
+        
+        .threshold-markers {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* Reconstruction comparison */
+        .reconstruction-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .reconstruction-column h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        
+        .reconstruction-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-family: monospace;
+        }
+        
+        .reconstruction-row .label {
+            color: #888;
+        }
+        
+        .reconstruction-row .value {
+            font-weight: bold;
+        }
+        
+        .reconstruction-row .diff {
+            color: #ed8936;
+            font-size: 0.85rem;
+        }
+        
+        .reconstruction-row.big-diff {
+            background: rgba(237, 137, 54, 0.2);
+            border: 1px solid #ed8936;
+        }
+        
+        /* Flight log */
+        .flight-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .log-entry {
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .log-entry.normal {
+            background: rgba(72, 187, 120, 0.1);
+            border-left: 3px solid #48bb78;
+        }
+        
+        .log-entry.warning {
+            background: rgba(237, 137, 54, 0.1);
+            border-left: 3px solid #ed8936;
+        }
+        
+        .log-entry.danger {
+            background: rgba(245, 101, 101, 0.1);
+            border-left: 3px solid #f56565;
+        }
+        
+        /* Explanation */
+        .explanation {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 3px solid #667eea;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        /* Scenario buttons */
+        .scenario-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .scenario-btn {
+            padding: 10px 16px;
+            border: 2px solid #444;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        
+        .scenario-btn:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .scenario-btn.danger-scenario:hover {
+            border-color: #f56565;
+            background: rgba(245, 101, 101, 0.1);
+        }
+        
+        /* Training progress */
+        .training-progress {
+            margin-top: 15px;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #667eea;
+            border-radius: 5px;
+            transition: width 0.1s;
+        }
+        
+        .progress-text {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✈️ Engine Anomaly Detection</h1>
+        <p class="subtitle">Autoencoder neural network learns "normal" and flags unusual patterns</p>
+        
+        <!-- How it works -->
+        <div class="section">
+            <h2>How This Works</h2>
+            <div class="explanation">
+                <strong>The Autoencoder Approach:</strong><br><br>
+                1. <strong>Train on normal flights</strong> - The network learns to compress and reconstruct typical engine data<br>
+                2. <strong>Feed it new data</strong> - It tries to reconstruct what it sees<br>
+                3. <strong>Compare input vs reconstruction</strong> - If they're very different, the data doesn't match learned "normal" patterns<br>
+                4. <strong>Flag anomalies</strong> - High reconstruction error = "I haven't seen patterns like this before"<br><br>
+                No one labels "bad" data. It just learns what "normal" looks like and flags anything that doesn't fit.
+            </div>
+        </div>
+        
+        <!-- Training -->
+        <div class="section">
+            <h2>① Train the Model (on normal flight data)</h2>
+            <div class="controls">
+                <button class="btn primary" id="trainBtn" onclick="trainModel()">Train on 1000 Normal Flights</button>
+                <button class="btn secondary" onclick="resetModel()">Reset Model</button>
+            </div>
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="stat-value" id="trainedFlights">0</div>
+                    <div class="stat-label">Training Samples</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="trainingLoss">-</div>
+                    <div class="stat-label">Reconstruction Loss</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="modelStatus">Untrained</div>
+                    <div class="stat-label">Model Status</div>
+                </div>
+            </div>
+            <div class="training-progress" id="trainingProgress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="progress-text" id="progressText">Training...</div>
+            </div>
+        </div>
+        
+        <!-- Test scenarios -->
+        <div class="section">
+            <h2>② Test Different Scenarios</h2>
+            <div class="scenario-buttons">
+                <button class="scenario-btn" onclick="testScenario('normal_cruise')">Normal Cruise</button>
+                <button class="scenario-btn" onclick="testScenario('normal_climb')">Normal Climb</button>
+                <button class="scenario-btn" onclick="testScenario('normal_descent')">Normal Descent</button>
+                <button class="scenario-btn danger-scenario" onclick="testScenario('fouled_plug')">Fouled Plug (Cyl 2)</button>
+                <button class="scenario-btn danger-scenario" onclick="testScenario('hot_cylinder')">Hot CHT (Cyl 3)</button>
+                <button class="scenario-btn danger-scenario" onclick="testScenario('lean_misadjust')">Lean Misadjust</button>
+                <button class="scenario-btn danger-scenario" onclick="testScenario('developing_issue')">Subtle Developing Issue</button>
+                <button class="scenario-btn" onclick="testScenario('random_normal')">Random Normal</button>
+            </div>
+        </div>
+        
+        <!-- Current reading -->
+        <div class="section">
+            <h2>③ Current Engine Reading</h2>
+            <div class="engine-display" id="engineDisplay">
+                <div class="cylinder">
+                    <div class="cylinder-header">Cylinder 1</div>
+                    <div class="temp-display">
+                        <div class="temp-label">EGT</div>
+                        <div class="temp-value normal" id="egt1">--</div>
+                        <div class="temp-bar"><div class="temp-bar-fill" id="egt1bar" style="width: 0%"></div></div>
+                    </div>
+                    <div class="temp-display">
+                        <div class="temp-label">CHT</div>
+                        <div class="temp-value normal" id="cht1">--</div>
+                        <div class="temp-bar"><div class="temp-bar-fill" id="cht1bar" style="width: 0%"></div></div>
+                    </div>
+                </div>
+                <div class="cylinder">
+                    <div class="cylinder-header">Cylinder 2</div>
+                    <div class="temp-display">
+                        <div class="temp-label">EGT</div>
+                        <div class="temp-value normal" id="egt2">--</div>
+                        <div class="temp-bar"><div class="temp-bar-fill" id="egt2bar" style="width: 0%"></div></div>
+                    </div>
+                    <div class="temp-display">
+                        <div class="temp-label">CHT</div>
+                        <div class="temp-value normal" id="cht2">--</div>
+                        <div class="temp-bar"><div class="temp-bar-fill" id="cht2bar" style="width: 0%"></div></div>
+                    </div>
+                </div>
+                <div class="cylinder">
+                    <div class="cylinder-header">Cylinder 3</div>
+                    <div class="temp-display">
+                        <div class="temp-label">EGT</div>
+                        <div class="temp-value normal" id="egt3">--</div>
+                        <div class="temp-bar"><div class="temp-bar-fill" id="egt3bar" style="width: 0%"></div></div>
+                    </div>
+                    <div class="temp-display">
+                        <div class="temp-label">CHT</div>
+                        <div class="temp-value normal" id="cht3">--</div>
+                        <div class="temp-bar"><div class="temp-bar-fill" id="cht3bar" style="width: 0%"></div></div>
+                    </div>
+                </div>
+                <div class="cylinder">
+                    <div class="cylinder-header">Cylinder 4</div>
+                    <div class="temp-display">
+                        <div class="temp-label">EGT</div>
+                        <div class="temp-value normal" id="egt4">--</div>
+                        <div class="temp-bar"><div class="temp-bar-fill" id="egt4bar" style="width: 0%"></div></div>
+                    </div>
+                    <div class="temp-display">
+                        <div class="temp-label">CHT</div>
+                        <div class="temp-value normal" id="cht4">--</div>
+                        <div class="temp-bar"><div class="temp-bar-fill" id="cht4bar" style="width: 0%"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Anomaly score -->
+        <div class="section">
+            <h2>④ Anomaly Detection Result</h2>
+            <div class="anomaly-display">
+                <div class="anomaly-label">Reconstruction Error (Anomaly Score)</div>
+                <div class="anomaly-score normal" id="anomalyScore">-</div>
+                <div class="anomaly-bar">
+                    <div class="anomaly-bar-fill" id="anomalyBar" style="width: 0%; background: #48bb78;"></div>
+                </div>
+                <div class="threshold-markers">
+                    <span>0 (Normal)</span>
+                    <span>0.15 (Threshold)</span>
+                    <span>0.3+ (Anomaly)</span>
+                </div>
+                <div id="anomalyVerdict" style="margin-top: 15px; font-size: 1.1rem;"></div>
+            </div>
+        </div>
+        
+        <!-- Reconstruction comparison -->
+        <div class="section">
+            <h2>⑤ What the Network "Expected" vs What It Saw</h2>
+            <div class="explanation" style="margin-bottom: 15px;">
+                The autoencoder reconstructs what it thinks the data "should" look like based on patterns it learned. 
+                Large differences (highlighted) indicate the input doesn't match normal patterns.
+            </div>
+            <div class="reconstruction-grid">
+                <div class="reconstruction-column">
+                    <h3>Actual Input</h3>
+                    <div id="inputColumn"></div>
+                </div>
+                <div class="reconstruction-column">
+                    <h3>Network's Reconstruction</h3>
+                    <div id="reconstructionColumn"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detection log -->
+        <div class="section">
+            <h2>⑥ Detection Log</h2>
+            <div class="flight-log" id="flightLog">
+                <div style="color: #666; text-align: center; padding: 20px;">
+                    Train the model, then test scenarios to see results here
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // SIMPLE AUTOENCODER IMPLEMENTATION
+        // ============================================================
+        
+        // Network architecture: 8 inputs -> 4 hidden -> 2 latent -> 4 hidden -> 8 outputs
+        // The "bottleneck" of 2 forces it to learn compressed representations
+        
+        let weights = null;
+        let trained = false;
+        let trainingLoss = 0;
+        let trainedSamples = 0;
+        let logEntries = [];
+        
+        function initializeWeights() {
+            // Xavier initialization
+            const xavier = (fanIn, fanOut) => {
+                const std = Math.sqrt(2 / (fanIn + fanOut));
+                return () => (Math.random() - 0.5) * 2 * std;
+            };
+            
+            weights = {
+                // Encoder
+                enc1_w: Array(8).fill(0).map(() => Array(4).fill(0).map(xavier(8, 4))),
+                enc1_b: Array(4).fill(0).map(() => (Math.random() - 0.5) * 0.1),
+                enc2_w: Array(4).fill(0).map(() => Array(2).fill(0).map(xavier(4, 2))),
+                enc2_b: Array(2).fill(0).map(() => (Math.random() - 0.5) * 0.1),
+                // Decoder
+                dec1_w: Array(2).fill(0).map(() => Array(4).fill(0).map(xavier(2, 4))),
+                dec1_b: Array(4).fill(0).map(() => (Math.random() - 0.5) * 0.1),
+                dec2_w: Array(4).fill(0).map(() => Array(8).fill(0).map(xavier(4, 8))),
+                dec2_b: Array(8).fill(0).map(() => (Math.random() - 0.5) * 0.1),
+            };
+        }
+        
+        function relu(x) {
+            return Math.max(0, x);
+        }
+        
+        function reluDerivative(x) {
+            return x > 0 ? 1 : 0;
+        }
+        
+        function sigmoid(x) {
+            return 1 / (1 + Math.exp(-Math.max(-500, Math.min(500, x))));
+        }
+        
+        function matmul(input, weights, bias, activation = relu) {
+            const output = [];
+            for (let j = 0; j < weights[0].length; j++) {
+                let sum = bias[j];
+                for (let i = 0; i < input.length; i++) {
+                    sum += input[i] * weights[i][j];
+                }
+                output.push(activation(sum));
+            }
+            return output;
+        }
+        
+        function forward(input) {
+            // Encoder
+            const enc1 = matmul(input, weights.enc1_w, weights.enc1_b, relu);
+            const latent = matmul(enc1, weights.enc2_w, weights.enc2_b, relu);
+            // Decoder
+            const dec1 = matmul(latent, weights.dec1_w, weights.dec1_b, relu);
+            const output = matmul(dec1, weights.dec2_w, weights.dec2_b, sigmoid);
+            
+            return { enc1, latent, dec1, output };
+        }
+        
+        function computeLoss(input, output) {
+            let loss = 0;
+            for (let i = 0; i < input.length; i++) {
+                loss += Math.pow(input[i] - output[i], 2);
+            }
+            return loss / input.length;
+        }
+        
+        function trainStep(input, learningRate = 0.01) {
+            const { enc1, latent, dec1, output } = forward(input);
+            
+            // Compute gradients via backprop (simplified)
+            const outputError = output.map((o, i) => o - input[i]);
+            
+            // Decoder layer 2 gradients
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const grad = outputError[j] * output[j] * (1 - output[j]) * dec1[i];
+                    weights.dec2_w[i][j] -= learningRate * grad;
+                }
+            }
+            for (let j = 0; j < 8; j++) {
+                weights.dec2_b[j] -= learningRate * outputError[j] * output[j] * (1 - output[j]);
+            }
+            
+            // Propagate error back through decoder
+            const dec1Error = [];
+            for (let i = 0; i < 4; i++) {
+                let err = 0;
+                for (let j = 0; j < 8; j++) {
+                    err += outputError[j] * output[j] * (1 - output[j]) * weights.dec2_w[i][j];
+                }
+                dec1Error.push(err * reluDerivative(dec1[i]));
+            }
+            
+            // Decoder layer 1 gradients
+            for (let i = 0; i < 2; i++) {
+                for (let j = 0; j < 4; j++) {
+                    weights.dec1_w[i][j] -= learningRate * dec1Error[j] * latent[i];
+                }
+            }
+            for (let j = 0; j < 4; j++) {
+                weights.dec1_b[j] -= learningRate * dec1Error[j];
+            }
+            
+            // Propagate to latent
+            const latentError = [];
+            for (let i = 0; i < 2; i++) {
+                let err = 0;
+                for (let j = 0; j < 4; j++) {
+                    err += dec1Error[j] * weights.dec1_w[i][j];
+                }
+                latentError.push(err * reluDerivative(latent[i]));
+            }
+            
+            // Encoder layer 2 gradients
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 2; j++) {
+                    weights.enc2_w[i][j] -= learningRate * latentError[j] * enc1[i];
+                }
+            }
+            for (let j = 0; j < 2; j++) {
+                weights.enc2_b[j] -= learningRate * latentError[j];
+            }
+            
+            // Propagate to enc1
+            const enc1Error = [];
+            for (let i = 0; i < 4; i++) {
+                let err = 0;
+                for (let j = 0; j < 2; j++) {
+                    err += latentError[j] * weights.enc2_w[i][j];
+                }
+                enc1Error.push(err * reluDerivative(enc1[i]));
+            }
+            
+            // Encoder layer 1 gradients
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 4; j++) {
+                    weights.enc1_w[i][j] -= learningRate * enc1Error[j] * input[i];
+                }
+            }
+            for (let j = 0; j < 4; j++) {
+                weights.enc1_b[j] -= learningRate * enc1Error[j];
+            }
+            
+            return computeLoss(input, output);
+        }
+        
+        // ============================================================
+        // DATA GENERATION
+        // ============================================================
+        
+        // Normalize values to 0-1 range
+        const ranges = {
+            egt: { min: 1200, max: 1600 },
+            cht: { min: 280, max: 450 }
+        };
+        
+        function normalize(value, type) {
+            const range = ranges[type];
+            return (value - range.min) / (range.max - range.min);
+        }
+        
+        function denormalize(value, type) {
+            const range = ranges[type];
+            return value * (range.max - range.min) + range.min;
+        }
+        
+        function generateNormalFlight(phase = 'cruise') {
+            let baseEGT, baseCHT, spread;
+            
+            switch(phase) {
+                case 'climb':
+                    baseEGT = 1420 + Math.random() * 60;
+                    baseCHT = 370 + Math.random() * 30;
+                    spread = 30;
+                    break;
+                case 'descent':
+                    baseEGT = 1280 + Math.random() * 50;
+                    baseCHT = 310 + Math.random() * 25;
+                    spread = 25;
+                    break;
+                default: // cruise
+                    baseEGT = 1350 + Math.random() * 50;
+                    baseCHT = 340 + Math.random() * 25;
+                    spread = 35;
+            }
+            
+            // Generate correlated cylinder temps (they should be similar)
+            const egt = [
+                baseEGT + (Math.random() - 0.5) * spread,
+                baseEGT + (Math.random() - 0.5) * spread,
+                baseEGT + (Math.random() - 0.5) * spread,
+                baseEGT + (Math.random() - 0.5) * spread,
+            ];
+            
+            const cht = [
+                baseCHT + (Math.random() - 0.5) * spread * 0.4,
+                baseCHT + (Math.random() - 0.5) * spread * 0.4,
+                baseCHT + (Math.random() - 0.5) * spread * 0.4,
+                baseCHT + (Math.random() - 0.5) * spread * 0.4,
+            ];
+            
+            return {
+                raw: { egt, cht },
+                normalized: [
+                    normalize(egt[0], 'egt'),
+                    normalize(egt[1], 'egt'),
+                    normalize(egt[2], 'egt'),
+                    normalize(egt[3], 'egt'),
+                    normalize(cht[0], 'cht'),
+                    normalize(cht[1], 'cht'),
+                    normalize(cht[2], 'cht'),
+                    normalize(cht[3], 'cht'),
+                ]
+            };
+        }
+        
+        function generateAnomalousData(type) {
+            const normal = generateNormalFlight('cruise');
+            const data = { ...normal };
+            
+            switch(type) {
+                case 'fouled_plug':
+                    // Cylinder 2 EGT drops significantly (fouled plug = incomplete combustion)
+                    data.raw.egt[1] -= 150;
+                    break;
+                case 'hot_cylinder':
+                    // Cylinder 3 CHT spikes (cooling problem)
+                    data.raw.cht[2] += 60;
+                    break;
+                case 'lean_misadjust':
+                    // All EGTs high but uneven spread
+                    data.raw.egt = data.raw.egt.map((e, i) => e + 80 + i * 30);
+                    break;
+                case 'developing_issue':
+                    // Subtle: one cylinder slightly different trend
+                    data.raw.egt[3] += 45;
+                    data.raw.cht[3] += 20;
+                    break;
+            }
+            
+            // Re-normalize
+            data.normalized = [
+                normalize(data.raw.egt[0], 'egt'),
+                normalize(data.raw.egt[1], 'egt'),
+                normalize(data.raw.egt[2], 'egt'),
+                normalize(data.raw.egt[3], 'egt'),
+                normalize(data.raw.cht[0], 'cht'),
+                normalize(data.raw.cht[1], 'cht'),
+                normalize(data.raw.cht[2], 'cht'),
+                normalize(data.raw.cht[3], 'cht'),
+            ];
+            
+            return data;
+        }
+        
+        // ============================================================
+        // UI FUNCTIONS
+        // ============================================================
+        
+        async function trainModel() {
+            if (weights === null) initializeWeights();
+            
+            const btn = document.getElementById('trainBtn');
+            const progress = document.getElementById('trainingProgress');
+            btn.disabled = true;
+            progress.style.display = 'block';
+            
+            const totalSamples = 1000;
+            const epochs = 5;
+            
+            for (let epoch = 0; epoch < epochs; epoch++) {
+                let epochLoss = 0;
+                
+                for (let i = 0; i < totalSamples; i++) {
+                    // Generate random normal flight
+                    const phases = ['cruise', 'cruise', 'cruise', 'climb', 'descent'];
+                    const phase = phases[Math.floor(Math.random() * phases.length)];
+                    const flight = generateNormalFlight(phase);
+                    
+                    const loss = trainStep(flight.normalized, 0.05);
+                    epochLoss += loss;
+                    
+                    if (i % 50 === 0) {
+                        const overallProgress = ((epoch * totalSamples + i) / (epochs * totalSamples)) * 100;
+                        document.getElementById('progressFill').style.width = overallProgress + '%';
+                        document.getElementById('progressText').textContent = 
+                            `Epoch ${epoch + 1}/${epochs} - Sample ${i}/${totalSamples}`;
+                        await new Promise(r => setTimeout(r, 1));
+                    }
+                }
+                
+                trainingLoss = epochLoss / totalSamples;
+                trainedSamples = (epoch + 1) * totalSamples;
+                
+                document.getElementById('trainedFlights').textContent = trainedSamples;
+                document.getElementById('trainingLoss').textContent = trainingLoss.toFixed(4);
+            }
+            
+            trained = true;
+            document.getElementById('modelStatus').textContent = 'Trained ✓';
+            document.getElementById('modelStatus').style.color = '#48bb78';
+            
+            btn.disabled = false;
+            progress.style.display = 'none';
+        }
+        
+        function resetModel() {
+            weights = null;
+            trained = false;
+            trainedSamples = 0;
+            trainingLoss = 0;
+            logEntries = [];
+            
+            document.getElementById('trainedFlights').textContent = '0';
+            document.getElementById('trainingLoss').textContent = '-';
+            document.getElementById('modelStatus').textContent = 'Untrained';
+            document.getElementById('modelStatus').style.color = '#e0e0e0';
+            document.getElementById('anomalyScore').textContent = '-';
+            document.getElementById('anomalyScore').className = 'anomaly-score normal';
+            document.getElementById('anomalyBar').style.width = '0%';
+            document.getElementById('anomalyVerdict').textContent = '';
+            document.getElementById('inputColumn').innerHTML = '';
+            document.getElementById('reconstructionColumn').innerHTML = '';
+            document.getElementById('flightLog').innerHTML = 
+                '<div style="color: #666; text-align: center; padding: 20px;">Train the model, then test scenarios to see results here</div>';
+            
+            // Reset engine display
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('egt' + i).textContent = '--';
+                document.getElementById('cht' + i).textContent = '--';
+                document.getElementById('egt' + i + 'bar').style.width = '0%';
+                document.getElementById('cht' + i + 'bar').style.width = '0%';
+            }
+        }
+        
+        function testScenario(scenario) {
+            if (!trained) {
+                alert('Please train the model first!');
+                return;
+            }
+            
+            let data;
+            let scenarioName;
+            
+            switch(scenario) {
+                case 'normal_cruise':
+                    data = generateNormalFlight('cruise');
+                    scenarioName = 'Normal Cruise';
+                    break;
+                case 'normal_climb':
+                    data = generateNormalFlight('climb');
+                    scenarioName = 'Normal Climb';
+                    break;
+                case 'normal_descent':
+                    data = generateNormalFlight('descent');
+                    scenarioName = 'Normal Descent';
+                    break;
+                case 'fouled_plug':
+                    data = generateAnomalousData('fouled_plug');
+                    scenarioName = 'Fouled Plug (Cyl 2)';
+                    break;
+                case 'hot_cylinder':
+                    data = generateAnomalousData('hot_cylinder');
+                    scenarioName = 'Hot CHT (Cyl 3)';
+                    break;
+                case 'lean_misadjust':
+                    data = generateAnomalousData('lean_misadjust');
+                    scenarioName = 'Lean Misadjustment';
+                    break;
+                case 'developing_issue':
+                    data = generateAnomalousData('developing_issue');
+                    scenarioName = 'Subtle Developing Issue';
+                    break;
+                case 'random_normal':
+                    const phases = ['cruise', 'climb', 'descent'];
+                    data = generateNormalFlight(phases[Math.floor(Math.random() * 3)]);
+                    scenarioName = 'Random Normal Flight';
+                    break;
+            }
+            
+            analyzeData(data, scenarioName);
+        }
+        
+        function analyzeData(data, scenarioName) {
+            const { output } = forward(data.normalized);
+            const loss = computeLoss(data.normalized, output);
+            
+            // Update engine display
+            for (let i = 0; i < 4; i++) {
+                const egtEl = document.getElementById('egt' + (i + 1));
+                const chtEl = document.getElementById('cht' + (i + 1));
+                const egtBar = document.getElementById('egt' + (i + 1) + 'bar');
+                const chtBar = document.getElementById('cht' + (i + 1) + 'bar');
+                
+                const egtVal = Math.round(data.raw.egt[i]);
+                const chtVal = Math.round(data.raw.cht[i]);
+                
+                egtEl.textContent = egtVal + '°F';
+                chtEl.textContent = chtVal + '°F';
+                
+                // Color based on values
+                egtEl.className = 'temp-value ' + (egtVal > 1500 ? 'danger' : egtVal > 1450 ? 'warning' : 'normal');
+                chtEl.className = 'temp-value ' + (chtVal > 420 ? 'danger' : chtVal > 380 ? 'warning' : 'normal');
+                
+                // Bars
+                const egtPct = ((egtVal - 1200) / 400) * 100;
+                const chtPct = ((chtVal - 280) / 170) * 100;
+                egtBar.style.width = Math.min(100, Math.max(0, egtPct)) + '%';
+                chtBar.style.width = Math.min(100, Math.max(0, chtPct)) + '%';
+                egtBar.style.background = egtVal > 1500 ? '#f56565' : egtVal > 1450 ? '#ed8936' : '#48bb78';
+                chtBar.style.background = chtVal > 420 ? '#f56565' : chtVal > 380 ? '#ed8936' : '#48bb78';
+            }
+            
+            // Update anomaly score
+            const scoreEl = document.getElementById('anomalyScore');
+            const barEl = document.getElementById('anomalyBar');
+            const verdictEl = document.getElementById('anomalyVerdict');
+            
+            scoreEl.textContent = loss.toFixed(4);
+            
+            const barPct = Math.min(100, (loss / 0.3) * 100);
+            barEl.style.width = barPct + '%';
+            
+            let status, color, verdict;
+            if (loss < 0.08) {
+                status = 'normal';
+                color = '#48bb78';
+                verdict = '✅ Normal - Pattern matches learned baseline';
+            } else if (loss < 0.15) {
+                status = 'warning';
+                color = '#ed8936';
+                verdict = '⚠️ Unusual - Pattern deviates from normal, worth monitoring';
+            } else {
+                status = 'danger';
+                color = '#f56565';
+                verdict = '🚨 Anomaly Detected - Pattern significantly different from learned normal';
+            }
+            
+            scoreEl.className = 'anomaly-score ' + status;
+            barEl.style.background = color;
+            verdictEl.innerHTML = verdict;
+            
+            // Update reconstruction comparison
+            const labels = ['EGT 1', 'EGT 2', 'EGT 3', 'EGT 4', 'CHT 1', 'CHT 2', 'CHT 3', 'CHT 4'];
+            const types = ['egt', 'egt', 'egt', 'egt', 'cht', 'cht', 'cht', 'cht'];
+            
+            let inputHtml = '';
+            let reconHtml = '';
+            
+            for (let i = 0; i < 8; i++) {
+                const inputVal = i < 4 ? data.raw.egt[i] : data.raw.cht[i - 4];
+                const reconVal = denormalize(output[i], types[i]);
+                const diff = Math.abs(inputVal - reconVal);
+                const bigDiff = diff > (types[i] === 'egt' ? 50 : 25);
+                
+                inputHtml += `
+                    <div class="reconstruction-row ${bigDiff ? 'big-diff' : ''}">
+                        <span class="label">${labels[i]}</span>
+                        <span class="value">${Math.round(inputVal)}°F</span>
+                    </div>
+                `;
+                
+                reconHtml += `
+                    <div class="reconstruction-row ${bigDiff ? 'big-diff' : ''}">
+                        <span class="label">${labels[i]}</span>
+                        <span class="value">${Math.round(reconVal)}°F</span>
+                        <span class="diff">${bigDiff ? '(Δ' + Math.round(diff) + '°)' : ''}</span>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('inputColumn').innerHTML = inputHtml;
+            document.getElementById('reconstructionColumn').innerHTML = reconHtml;
+            
+            // Add to log
+            const logEntry = {
+                scenario: scenarioName,
+                score: loss,
+                status: status,
+                time: new Date().toLocaleTimeString()
+            };
+            logEntries.unshift(logEntry);
+            if (logEntries.length > 20) logEntries.pop();
+            
+            const logHtml = logEntries.map(entry => `
+                <div class="log-entry ${entry.status}">
+                    <span>${entry.time} - ${entry.scenario}</span>
+                    <span>Score: ${entry.score.toFixed(4)}</span>
+                </div>
+            `).join('');
+            
+            document.getElementById('flightLog').innerHTML = logHtml;
+        }
+        
+        // Initialize
+        initializeWeights();
+    </script>
+</body>
+</html>
