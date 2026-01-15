@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A demo artifact showcasing various JavaScript libraries for interactive web experiences.">
+    <meta name="tags" content="JavaScript, Libraries, Three.js, p5.js, Matter.js, Chart.js, Leaflet, Tone.js, Mermaid, MathJax, SheetJS, Marked.js, lil-gui">
+    <meta name="created" content="2026-01-14">
+    <title>Gemini Library Tour</title>
+
+    <!-- ========================================== -->
+    <!--          THE LIBRARY IMPORT SECTION        -->
+    <!-- ========================================== -->
+
+    <!-- 1. STYLE & LAYOUT -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+
+    <!-- 2. VISUALS & 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+
+    <!-- 3. SIMULATION & MAPS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- 4. DATA & MATH -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- 5. TEXT & DIAGRAMS -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+
+    <!-- 6. AUDIO & CONTROLS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.17"></script>
+
+    <style>
+        /* Custom scrollbar for cleanliness */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .canvas-container { margin: 0 auto; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        
+        /* Mermaid styling fix */
+        .mermaid { display: flex; justify-content: center; }
+        
+        /* MathJax Source Code Style */
+        .latex-source {
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #64748b;
+            font-size: 0.9em;
+        }
+
+        /* Marked.js Preview Styles */
+        .markdown-preview h1 { font-size: 2em; font-weight: bold; margin-bottom: 0.5em; border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+        .markdown-preview h2 { font-size: 1.5em; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em; }
+        .markdown-preview h3 { font-size: 1.25em; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em; }
+        .markdown-preview p { margin-bottom: 1em; line-height: 1.6; }
+        .markdown-preview ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
+        .markdown-preview ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
+        .markdown-preview blockquote { border-left: 4px solid #ddd; padding-left: 1em; color: #666; font-style: italic; margin-bottom: 1em; }
+        .markdown-preview pre { background: #1e293b; color: #f8fafc; padding: 1em; border-radius: 0.5em; overflow-x: auto; margin-bottom: 1em; }
+        .markdown-preview code { font-family: monospace; background: #f1f5f9; padding: 0.2em 0.4em; border-radius: 0.25em; font-size: 0.9em; }
+        .markdown-preview pre code { background: transparent; padding: 0; color: inherit; }
+        .markdown-preview a { color: #2563eb; text-decoration: underline; }
+        .markdown-preview table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
+        .markdown-preview th, .markdown-preview td { border: 1px solid #e2e8f0; padding: 0.5em; text-align: left; }
+        .markdown-preview th { background-color: #f8fafc; font-weight: bold; }
+
+        /* Links in headers */
+        header a { color: #4f46e5; text-decoration: none; font-weight: 600; }
+        header a:hover { text-decoration: underline; }
+
+        /* Prompt Box Style */
+        .prompt-box {
+            background-color: #f8fafc;
+            border-left: 4px solid #818cf8;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #475569;
+        }
+        .prompt-label {
+            font-weight: bold;
+            color: #4f46e5;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+    </style>
+
+    <!-- ========================================== -->
+    <!--                 LOGIC                      -->
+    <!-- ========================================== -->
+    <script>
+        window.libraryTour = function() {
+            // --- CLOSURE STATE ---
+            let chartInstance = null;
+            let matterWorld = null;
+            let lilGuiInstance = null;
+
+            return {
+                active: 'intro',
+                menu: [
+                    { id: 'three', label: '1. Three.js (3D)' },
+                    { id: 'p5', label: '2. p5.js (Art)' },
+                    { id: 'matter', label: '3. Matter.js (Physics)' },
+                    { id: 'chart', label: '4. Chart.js (Data)' },
+                    { id: 'leaflet', label: '5. Leaflet (Maps)' },
+                    { id: 'tone', label: '6. Tone.js (Audio)' },
+                    { id: 'mermaid', label: '7. Mermaid (Diagrams)' },
+                    { id: 'mathjax', label: '8. MathJax (Formula)' },
+                    { id: 'sheet', label: '9. SheetJS (Excel)' },
+                    { id: 'marked', label: '10. Marked (Text)' },
+                    { id: 'lilgui', label: '11. lil-gui (Controls)' },
+                ],
+                initialized: {},
+                markdownInput: `# Welcome to Marked.js!
+
+Marked handles **bold**, *italics*, and [links](https://marked.js.org/).
+
+### Lists
+- Milk
+- Eggs
+- JavaScript Libraries
+
+### Blockquotes
+> "Code is poetry."
+
+### Code Blocks
+\`\`\`javascript
+function hello() {
+  console.log("Hello World");
+}
+\`\`\`
+
+### Tables
+| Library | Type |
+| :--- | :--- |
+| Three.js | 3D |
+| Chart.js | Data |
+`,
+
+                init() {
+                   console.log("Tour initialized");
+                },
+
+                setActive(id) {
+                    this.active = id;
+                    
+                    // Initialize library if first time
+                    if (!this.initialized[id]) {
+                        this.initialized[id] = true;
+                        // Small timeout to allow DOM to render the x-show element before connecting canvas
+                        setTimeout(() => this.initLibrary(id), 50);
+                    } else {
+                        // RE-FOCUS / RE-CALCULATE LOGIC
+                        if (id === 'leaflet') {
+                             setTimeout(() => window.map?.invalidateSize(), 100);
+                        }
+                    }
+                },
+
+                initLibrary(id) {
+                    try {
+                        switch(id) {
+                            case 'three': this.startThree(); break;
+                            case 'p5': this.startP5(); break;
+                            case 'matter': this.startMatter(); break;
+                            case 'chart': this.startChart(); break;
+                            case 'leaflet': this.startLeaflet(); break;
+                            case 'mermaid': this.startMermaid(); break;
+                            case 'lilgui': this.startLilGui(); break;
+                        }
+                    } catch (e) {
+                        console.error("Error initializing library " + id, e);
+                    }
+                },
+
+                // --- 1. THREE.JS DEMO ---
+                startThree() {
+                    const container = document.getElementById('three-container');
+                    if(!container) return;
+                    
+                    const scene = new THREE.Scene();
+                    const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+                    const renderer = new THREE.WebGLRenderer({ antialias: true });
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                    container.appendChild(renderer.domElement);
+
+                    const geometry = new THREE.TorusKnotGeometry(10, 3, 100, 16);
+                    const material = new THREE.MeshNormalMaterial({ wireframe: true });
+                    const torus = new THREE.Mesh(geometry, material);
+                    scene.add(torus);
+                    camera.position.z = 30;
+
+                    // Manual Rotation Logic (Drag to Rotate)
+                    let isDragging = false;
+                    let previousMousePosition = { x: 0, y: 0 };
+
+                    renderer.domElement.addEventListener('mousedown', (e) => isDragging = true);
+                    renderer.domElement.addEventListener('mouseup', (e) => isDragging = false);
+                    renderer.domElement.addEventListener('mousemove', (e) => {
+                        const deltaMove = {
+                            x: e.offsetX - previousMousePosition.x,
+                            y: e.offsetY - previousMousePosition.y
+                        };
+
+                        if(isDragging) {
+                            const deltaRotationQuaternion = new THREE.Quaternion()
+                                .setFromEuler(new THREE.Euler(
+                                    toRadians(deltaMove.y * 1),
+                                    toRadians(deltaMove.x * 1),
+                                    0,
+                                    'XYZ'
+                                ));
+                            torus.quaternion.multiplyQuaternions(deltaRotationQuaternion, torus.quaternion);
+                        }
+                        previousMousePosition = { x: e.offsetX, y: e.offsetY };
+                    });
+
+                    function toRadians(angle) { return angle * (Math.PI / 180); }
+
+                    // Lil-gui integration for Three.js
+                    try {
+                        const gui = new lil.GUI({ container: container });
+                        gui.domElement.style.position = 'absolute';
+                        gui.domElement.style.top = '10px';
+                        gui.domElement.style.right = '10px';
+                        const params = { autoRotate: true };
+                        gui.add(params, 'autoRotate');
+                        
+                        const animate = () => {
+                            requestAnimationFrame(animate);
+                            if (params.autoRotate && !isDragging) {
+                                torus.rotation.x += 0.005;
+                                torus.rotation.y += 0.005;
+                            }
+                            renderer.render(scene, camera);
+                        };
+                        animate();
+                    } catch(e) {}
+                    
+                    window.addEventListener('resize', () => {
+                         if(this.active !== 'three') return;
+                         camera.aspect = container.clientWidth / container.clientHeight;
+                         camera.updateProjectionMatrix();
+                         renderer.setSize(container.clientWidth, container.clientHeight);
+                    });
+                },
+
+                // --- 2. P5.JS DEMO ---
+                startP5() {
+                    new p5((p) => {
+                        p.setup = () => {
+                            let c = p.createCanvas(400, 300);
+                            c.parent('p5-container');
+                            p.background(255);
+                            p.textAlign(p.CENTER);
+                            p.fill(150);
+                            p.noStroke();
+                            p.text("Click and drag to draw!", p.width/2, p.height/2);
+                        };
+                        p.draw = () => {
+                            if (p.mouseIsPressed) {
+                                p.stroke(0);
+                                p.strokeWeight(4);
+                                p.line(p.mouseX, p.mouseY, p.pmouseX, p.pmouseY);
+                            }
+                        };
+                    });
+                },
+
+                // --- 3. MATTER.JS DEMO ---
+                startMatter() {
+                    const container = document.getElementById('matter-container');
+                    if(!container) return;
+                    
+                    const Engine = Matter.Engine, Render = Matter.Render, Runner = Matter.Runner, 
+                          World = Matter.World, Bodies = Matter.Bodies, Mouse = Matter.Mouse, MouseConstraint = Matter.MouseConstraint;
+                    
+                    const engine = Engine.create();
+                    const render = Render.create({
+                        element: container,
+                        engine: engine,
+                        options: { 
+                            width: container.clientWidth, 
+                            height: container.clientHeight,
+                            wireframes: false,
+                            background: '#0f172a'
+                        }
+                    });
+                    
+                    const w = container.clientWidth; 
+                    const h = container.clientHeight;
+                    World.add(engine.world, [
+                        Bodies.rectangle(w/2, h+25, w, 50, { isStatic: true, render: {fillStyle: '#334155'} }), // Floor
+                        Bodies.rectangle(-25, h/2, 50, h, { isStatic: true }),
+                        Bodies.rectangle(w+25, h/2, 50, h, { isStatic: true })
+                    ]);
+
+                    // Mouse
+                    const mouse = Mouse.create(render.canvas);
+                    const mouseConstraint = MouseConstraint.create(engine, {
+                        mouse: mouse,
+                        constraint: { stiffness: 0.2, render: { visible: false } }
+                    });
+                    World.add(engine.world, mouseConstraint);
+
+                    // Spawn one initial box
+                    const initialBox = Bodies.rectangle(w/2, 50, 40, 40, {
+                        render: { fillStyle: '#eab308' }
+                    });
+                    World.add(engine.world, initialBox);
+
+                    // Click to spawn
+                    container.addEventListener('mousedown', (e) => {
+                         if(mouse.position.y < h - 50) {
+                            const size = 20 + Math.random() * 30;
+                            const box = Bodies.rectangle(mouse.position.x, mouse.position.y, size, size, {
+                                render: { fillStyle: ['#ef4444', '#3b82f6', '#22c55e', '#eab308'][Math.floor(Math.random()*4)] }
+                            });
+                            World.add(engine.world, box);
+                         }
+                    });
+
+                    Render.run(render);
+                    const runner = Runner.create();
+                    Runner.run(runner, engine);
+                    matterWorld = engine.world;
+                },
+                
+                resetMatter() {
+                    if(matterWorld) {
+                        Matter.Composite.clear(matterWorld, false, true);
+                    }
+                },
+
+                // --- 4. CHART.JS DEMO ---
+                startChart() {
+                    const ctx = document.getElementById('myChart');
+                    if(!ctx) return;
+                    if(chartInstance) chartInstance.destroy();
+
+                    chartInstance = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                            datasets: [{
+                                label: '# of Votes',
+                                data: [12, 19, 3, 5, 2, 3],
+                                borderWidth: 1,
+                                backgroundColor: 'rgba(79, 70, 229, 0.5)',
+                                borderColor: 'rgb(79, 70, 229)'
+                            }]
+                        },
+                        options: { scales: { y: { beginAtZero: true } } }
+                    });
+                },
+                randomizeChart() {
+                    if(chartInstance) {
+                        chartInstance.data.datasets[0].data = Array.from({length: 6}, () => Math.floor(Math.random() * 20));
+                        chartInstance.update();
+                    }
+                },
+
+                // --- 5. LEAFLET DEMO ---
+                startLeaflet() {
+                    if(window.map || !document.getElementById('map-container')) return;
+                    window.map = L.map('map-container').setView([51.505, -0.09], 13);
+                    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; OpenStreetMap'
+                    }).addTo(window.map);
+                    L.marker([51.505, -0.09]).addTo(window.map)
+                        .bindPopup('A pretty CSS3 popup.<br> Easily customizable.')
+                        .openPopup();
+                },
+
+                // --- 6. TONE.JS DEMO ---
+                async playTone() {
+                    await Tone.start();
+                    const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                    const now = Tone.now();
+                    synth.triggerAttack("D4", now);
+                    synth.triggerAttack("F4", now + 0.5);
+                    synth.triggerAttack("A4", now + 1);
+                    synth.triggerAttack("C5", now + 1.5);
+                    synth.triggerRelease(["D4", "F4", "A4", "C5"], now + 2.5);
+                },
+
+                 // --- 7. MERMAID DEMO ---
+                startMermaid() {
+                     if(typeof mermaid !== 'undefined') {
+                        // Reset content to clean state to avoid re-parsing errors
+                        const container = document.getElementById('mermaid-diagram');
+                        container.removeAttribute('data-processed'); // Clear mermaid flag
+                        container.innerHTML = `
+                            graph TD
+                            A[Start Workshop] --> B{Select Tool}
+                            B -->|Visuals| C[Three.js]
+                            B -->|Data| D[Chart.js]
+                            B -->|Logic| E[Alpine.js]
+                            C --> F[Result: Cool 3D]
+                            D --> G[Result: Nice Graph]
+                            E --> H[Result: Interactive UI]
+                        `;
+                        mermaid.init(undefined, container); 
+                     }
+                },
+
+                // --- 9. SHEETJS DEMO ---
+                downloadExcel() {
+                    const data = [
+                        { Name: "Alice", Role: "Warrior", XP: 1500 },
+                        { Name: "Bob", Role: "Mage", XP: 2300 },
+                        { Name: "Charlie", Role: "Rogue", XP: 1800 }
+                    ];
+                    const ws = XLSX.utils.json_to_sheet(data);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Characters");
+                    XLSX.writeFile(wb, "RPG_Data.xlsx");
+                },
+
+                // --- 11. LIL-GUI DEMO ---
+                startLilGui() {
+                    const container = document.getElementById('lilgui-container');
+                    const target = document.getElementById('gui-target');
+                    if(!container || !target) return;
+
+                    // Clean up existing GUI if re-initializing
+                    if(lilGuiInstance) {
+                        lilGuiInstance.destroy();
+                    }
+
+                    const GUI = lil.GUI;
+                    const gui = new GUI({ container: container, width: 250 });
+                    lilGuiInstance = gui; // Store in closure
+
+                    // Style the GUI
+                    gui.domElement.style.position = 'absolute';
+                    gui.domElement.style.top = '20px';
+                    gui.domElement.style.right = '20px';
+                    gui.domElement.style.zIndex = '1000';
+
+                    const params = {
+                        size: 150,
+                        radius: 12,
+                        color: '#6366f1',
+                        rotation: 0,
+                        text: 'Interactive Box',
+                        visible: true
+                    };
+
+                    const updateStyle = () => {
+                        target.style.width = params.size + 'px';
+                        target.style.height = params.size + 'px';
+                        target.style.borderRadius = params.radius + 'px';
+                        target.style.backgroundColor = params.color;
+                        target.style.transform = `rotate(${params.rotation}deg)`;
+                        target.innerText = params.text;
+                        target.style.display = params.visible ? 'flex' : 'none';
+                    };
+
+                    // Add Controls
+                    const folder = gui.addFolder('CSS Properties');
+                    folder.add(params, 'size', 50, 300).name('Size (px)').onChange(updateStyle);
+                    folder.add(params, 'radius', 0, 150).name('Radius (px)').onChange(updateStyle);
+                    folder.addColor(params, 'color').name('Color').onChange(updateStyle);
+                    folder.add(params, 'rotation', 0, 360).name('Rotation (deg)').onChange(updateStyle);
+                    
+                    const contentFolder = gui.addFolder('Content');
+                    contentFolder.add(params, 'text').name('Label').onChange(updateStyle);
+                    contentFolder.add(params, 'visible').name('Visible').onChange(updateStyle);
+
+                    updateStyle(); // Initial set
+                }
+            };
+        };
+    </script>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden flex"
+      x-data="libraryTour()">
+
+    <!-- ========================================== -->
+    <!--                 SIDEBAR                    -->
+    <!-- ========================================== -->
+    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shadow-lg z-10">
+        <div class="p-6 border-b border-slate-100">
+            <h1 class="font-bold text-xl text-indigo-600 flex items-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                Library Tour
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">Gemini Workshop Demo</p>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+            <template x-for="item in menu" :key="item.id">
+                <button 
+                    @click="setActive(item.id)"
+                    :class="active === item.id ? 'bg-indigo-50 text-indigo-600 border-indigo-600' : 'text-slate-600 hover:bg-slate-50 border-transparent'"
+                    class="w-full text-left px-4 py-3 rounded-md text-sm font-medium border-l-4 transition-colors flex items-center justify-between group">
+                    <span x-text="item.label"></span>
+                    <!-- Status dot to show if initialized -->
+                    <span x-show="initialized[item.id]" class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                </button>
+            </template>
+        </nav>
+        
+        <div class="p-4 bg-slate-50 text-xs text-slate-400 border-t border-slate-200">
+            Click a tab to load the demo.
+        </div>
+    </aside>
+
+    <!-- ========================================== -->
+    <!--               MAIN CONTENT                 -->
+    <!-- ========================================== -->
+    <main class="flex-1 overflow-y-auto p-8 relative">
+
+        <!-- WELCOME SCREEN -->
+        <div x-show="active === 'intro'" class="max-w-2xl mx-auto text-center mt-10">
+            <div class="bg-white p-10 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">Welcome to the Workshop!</h2>
+                <p class="text-lg text-slate-600 mb-8">This artifact demonstrates 10 different JavaScript libraries that you can use with Gemini.</p>
+                <div class="inline-block p-4 bg-indigo-50 text-indigo-700 rounded-lg">
+                    👈 Select a library from the sidebar to begin.
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. THREE.JS -->
+        <div x-show="active === 'three'" class="h-full flex flex-col">
+            <header class="mb-6 border-b border-slate-200 pb-4">
+                <div class="flex justify-between items-baseline">
+                    <h2 class="text-2xl font-bold text-slate-800">Three.js</h2>
+                    <a href="https://threejs.org/" target="_blank" class="text-sm">threejs.org ↗</a>
+                </div>
+                <p class="text-slate-500 mt-2">A lightweight, cross-browser, and general-purpose 3D library. It abstracts the complexities of raw WebGL. <strong>Click and drag</strong> to rotate the object.</p>
+                
+                <div class="prompt-box">
+                    <span class="prompt-label">✨ Try this prompt</span>
+                    "Create a 3D scene using <strong>Three.js</strong> with a rotating transparent cube and a wireframe sphere inside it. Add controls to rotate the camera."
+                </div>
+            </header>
+            <div id="three-container" class="flex-1 bg-black rounded-xl overflow-hidden shadow-inner relative cursor-move">
+                <!-- Canvas injected here -->
+                <div x-show="!initialized.three" class="absolute inset-0 flex items-center justify-center text-white/50">Loading 3D Engine...</div>
+            </div>
+        </div>
+
+        <!-- 2. P5.JS -->
+        <div x-show="active === 'p5'" class="h-full">
+            <header class="mb-6 border-b border-slate-200 pb-4">
+                 <div class="flex justify-between items-baseline">
+                    <h2 class="text-2xl font-bold text-slate-800">p5.js</h2>
+                    <a href="https://p5js.org/" target="_blank" class="text-sm">p5js.org ↗</a>
+                </div>
+                <p class="text-slate-500 mt-2">A JavaScript library for creative coding, with a focus on making coding accessible and inclusive. <strong>Draw</strong> on the canvas below!</p>
+                
+                <div class="prompt-box">
+                    <span class="prompt-label">✨ Try this prompt</span>
+                    "Create a generative art sketch using <strong>p5.js</strong> that draws concentric circles with random colors that slowly pulsate."
+                </div>
+            </header>
+            <div id="p5-container" class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm flex justify-center p-4 cursor-crosshair">
+                <!-- Canvas injected here -->
+            </div>
+        </div>
+
+        <!-- 3. MATTER.JS -->
+        <div x-show="active === 'matter'" class="h-full flex flex-col">
+            <header class="mb-6 border-b border-slate-200 pb-4 flex justify-between items-start">
+                <div class="flex-1">
+                     <div class="flex justify-between items-baseline pr-4">
+                        <h2 class="text-2xl font-bold text-slate-800">Matter.js</h2>
+                        <a href="https://brm.io/matter-js/" target="_blank" class="text-sm">brm.io/matter-js ↗</a>
+                    </div>
+                    <p class="text-slate-500 mt-2">A 2D rigid body physics engine for the web. Click to spawn more boxes.</p>
+                    
+                    <div class="prompt-box">
+                        <span class="prompt-label">✨ Try this prompt</span>
+                        "Create a physics simulation using <strong>Matter.js</strong> where balls fall into a bucket. Add obstacles they have to bounce off to get in."
+                    </div>
+                </div>
+                <button @click="resetMatter()" class="text-sm bg-slate-200 hover:bg-slate-300 px-3 py-1 rounded self-center ml-4">Reset World</button>
+            </header>
+            <div id="matter-container" class="flex-1 bg-slate-900 rounded-xl overflow-hidden shadow-inner relative cursor-crosshair"></div>
+        </div>
+
+        <!-- 4. CHART.JS -->
+        <div x-show="active === 'chart'" class="h-full max-w-3xl mx-auto">
+            <header class="mb-6 border-b border-slate-200 pb-4">
+                 <div class="flex justify-between items-baseline">
+                    <h2 class="text-2xl font-bold text-slate-800">Chart.js</h2>
+                    <a href="https://www.chartjs.org/" target="_blank" class="text-sm">chartjs.org ↗</a>
+                </div>
+                <p class="text-slate-500 mt-2">Simple yet flexible JavaScript charting for designers & developers. Updates live.</p>
+                
+                <div class="prompt-box">
+                    <span class="prompt-label">✨ Try this prompt</span>
+                    "Create a dashboard using <strong>Chart.js</strong> that visualizes a mock dataset of 'Monthly Sales' as a bar chart, with a button to randomize data."
+                </div>
+            </header>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <canvas id="myChart"></canvas>
+            </div>
+            <div class="mt-4 flex gap-2 justify-center">
+                <button @click="randomizeChart()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">Randomize Data</button>
+            </div>
+        </div>
+
+        <!-- 5. LEAFLET -->
+        <div x-show="active === 'leaflet'" class="h-full flex flex-col">
+            <header class="mb-6 border-b border-slate-200 pb-4">
+                <div class="flex justify-between items-baseline">
+                    <h2 class="text-2xl font-bold text-slate-800">Leaflet.js</h2>
+                    <a href="https://leafletjs.com/" target="_blank" class="text-sm">leafletjs.com ↗</a>
+                </div>
+                <p class="text-slate-500 mt-2">An open-source JavaScript library for mobile-friendly interactive maps. Works without an API key.</p>
+                
+                <div class="prompt-box">
+                    <span class="prompt-label">✨ Try this prompt</span>
+                    "Create a map using <strong>Leaflet.js</strong> centered on Tokyo. Add markers for Shibuya Crossing and Tokyo Tower with popup descriptions."
+                </div>
+            </header>
+            <div id="map-container" class="flex-1 rounded-xl overflow-hidden shadow-md border border-slate-300 z-0"></div>
+        </div>
+
+        <!-- 6. TONE.JS -->
+        <div x-show="active === 'tone'" class="max-w-2xl mx-auto mt-10">
+             <header class="mb-6 border-b border-slate-200 pb-4">
+                 <div class="flex justify-between items-baseline">
+                    <h2 class="text-2xl font-bold text-slate-800">Tone.js</h2>
+                    <a href="https://tonejs.github.io/" target="_blank" class="text-sm">tonejs.github.io ↗</a>
+                </div>
+                <p class="text-slate-500 mt-2">A Web Audio framework for creating interactive music in the browser.</p>
+                
+                <div class="prompt-box">
+                    <span class="prompt-label">✨ Try this prompt</span>
+                    "Create a step sequencer using <strong>Tone.js</strong> that plays a drum beat. Let me toggle steps for Kick, Snare, and HiHat."
+                </div>
+            </header>
+            <div class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-10 rounded-2xl shadow-lg text-center">
+                <h3 class="text-2xl font-bold mb-4">Try the Synth</h3>
+                <p class="opacity-80 mb-8">Click below to play a polyphonic chord.</p>
+                <button @click="playTone()" class="bg-white text-indigo-600 font-bold py-4 px-8 rounded-full shadow-lg hover:scale-105 transition-transform active:scale-95">
+                    🎵 Play Synth Chord
+                </button>
+            </div>
+        </div>
+
+        <!-- 7. MERMAID -->
+        <div x-show="active === 'mermaid'" class="h-full flex flex-col">
+            <header class="mb-6 border-b border-slate-200 pb-4">
+                <div class="flex justify-between items-baseline">
+                    <h2 class="text-2xl font-bold text-slate-800">Mermaid.js</h2>
+                    <a href="https://mermaid.js.org/" target="_blank" class="text-sm">mermaid.js.org ↗</a>
+                </div>
+                <p class="text-slate-500 mt-2">Renders Markdown-inspired text definitions into diagrams and visualizations.</p>
+                
+                <div class="prompt-box">
+                    <span class="prompt-label">✨ Try this prompt</span>
+                    "Create a flowchart using <strong>Mermaid.js</strong> that shows a 'User Login Flow' decision tree."
+                </div>
+            </header>
+            <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200 flex justify-center overflow-auto">
+                <div id="mermaid-diagram" class="mermaid">
+                    Loading diagram...
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. MATHJAX -->
+        <div x-show="active === 'mathjax'" class="max-w-2xl mx-auto">
+            <header class="mb-6 border-b border-slate-200 pb-4">
+                 <div class="flex justify-between items-baseline">
+                    <h2 class="text-2xl font-bold text-slate-800">MathJax</h2>
+                    <a href="https://www.mathjax.org/" target="_blank" class="text-sm">mathjax.org ↗</a>
+                </div>
+                <p class="text-slate-500 mt-2">A display engine for mathematics that works in all browsers. Uses LaTeX syntax.</p>
+                
+                <div class="prompt-box">
+                    <span class="prompt-label">✨ Try this prompt</span>
+                    "Create a cheat sheet for 'Calculus Integrals' using <strong>MathJax</strong> to render the formulas nicely."
+                </div>
+            </header>
+            <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200 space-y-6">
+                <div>
+                    <h3 class="font-bold text-slate-700">Quadratic Formula</h3>
+                    <div class="flex items-center gap-4 mt-2">
+                        <!-- Added hidden zero-width space here as well -->
+                        <span class="latex-source">&dollar;&#8203;&dollar;x = {-b \pm \sqrt{b^2-4ac} \over 2a}&dollar;&#8203;&dollar;</span>
+                        <span class="text-slate-300">→</span>
+                        <p class="text-xl">$$x = {-b \pm \sqrt{b^2-4ac} \over 2a}$$</p>
+                    </div>
+                </div>
+                <hr>
+                <div>
+                    <h3 class="font-bold text-slate-700">Maxwell's Equations</h3>
+                    <div class="mt-2 space-y-4">
+                        <div class="flex items-center gap-4">
+                            <span class="latex-source">&dollar;&#8203;&dollar; \nabla \cdot \mathbf{E} = \frac {\rho} {\varepsilon_0} &dollar;&#8203;&dollar;</span>
+                            <span class="text-slate-300">→</span>
+                            <span>$$ \nabla \cdot \mathbf{E} = \frac {\rho} {\varepsilon_0} $$</span>
+                        </div>
+                         <div class="flex items-center gap-4">
+                            <span class="latex-source">&dollar;&#8203;&dollar; \nabla \cdot \mathbf{B} = 0 &dollar;&#8203;&dollar;</span>
+                            <span class="text-slate-300">→</span>
+                            <span>$$ \nabla \cdot \mathbf{B} = 0 $$</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. SHEETJS -->
+        <div x-show="active === 'sheet'" class="max-w-3xl mx-auto">
+            <header class="mb-6 border-b border-slate-200 pb-4">
+                 <div class="flex justify-between items-baseline">
+                    <h2 class="text-2xl font-bold text-slate-800">SheetJS</h2>
+                    <a href="https://sheetjs.com/" target="_blank" class="text-sm">sheetjs.com ↗</a>
+                </div>
+                <p class="text-slate-500 mt-2">The standard library for reading and writing Excel and CSV files in JavaScript.</p>
+                
+                <div class="prompt-box">
+                    <span class="prompt-label">✨ Try this prompt</span>
+                    "Create a tool using <strong>SheetJS</strong> that allows me to upload a CSV file and converts it into a formatted JSON list on screen."
+                </div>
+            </header>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold">Generated Data Preview:</h3>
+                    <button @click="downloadExcel()" class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Download as .xlsx
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm text-left">
+                        <thead class="bg-slate-50 font-bold">
+                            <tr><th class="p-2">Name</th><th class="p-2">Role</th><th class="p-2">XP</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr><td class="p-2">Alice</td><td class="p-2">Warrior</td><td class="p-2">1500</td></tr>
+                            <tr><td class="p-2">Bob</td><td class="p-2">Mage</td><td class="p-2">2300</td></tr>
+                            <tr><td class="p-2">Charlie</td><td class="p-2">Rogue</td><td class="p-2">1800</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 10. MARKED -->
+        <div x-show="active === 'marked'" class="h-full flex flex-col max-w-4xl mx-auto">
+            <header class="mb-6 border-b border-slate-200 pb-4">
+                 <div class="flex justify-between items-baseline">
+                    <h2 class="text-2xl font-bold text-slate-800">Marked.js</h2>
+                    <a href="https://marked.js.org/" target="_blank" class="text-sm">marked.js.org ↗</a>
+                </div>
+                <p class="text-slate-500 mt-2">A low-level markdown compiler for parsing markdown without caching or blocking.</p>
+                
+                <div class="prompt-box">
+                    <span class="prompt-label">✨ Try this prompt</span>
+                    "Create a Markdown editor using <strong>Marked.js</strong> that splits the screen: raw text on the left, live HTML preview on the right."
+                </div>
+            </header>
+            <div class="flex-1 flex gap-4 h-96">
+                <textarea class="flex-1 p-4 border border-slate-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-indigo-500 outline-none" 
+                    x-model="markdownInput" placeholder="Type markdown..."></textarea>
+                <div class="flex-1 p-4 bg-white border border-slate-200 rounded-lg overflow-y-auto markdown-preview"
+                     x-html="marked.parse(markdownInput)"></div>
+            </div>
+        </div>
+
+        <!-- 11. LIL-GUI -->
+        <div x-show="active === 'lilgui'" class="h-full flex flex-col max-w-4xl mx-auto">
+            <header class="mb-6 border-b border-slate-200 pb-4">
+                 <div class="flex justify-between items-baseline">
+                    <h2 class="text-2xl font-bold text-slate-800">lil-gui</h2>
+                    <a href="https://lil-gui.georgealways.com/" target="_blank" class="text-sm">lil-gui.georgealways.com ↗</a>
+                </div>
+                <p class="text-slate-500 mt-2">A floating GUI for the web. Perfect for tweaking variables on the fly.</p>
+                
+                <div class="prompt-box">
+                    <span class="prompt-label">✨ Try this prompt</span>
+                    "Create a 3D cube in Three.js and use <strong>lil-gui</strong> to let me control its color, scale, and rotation speed."
+                </div>
+            </header>
+            
+            <div id="lilgui-container" class="relative flex-1 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden">
+                <!-- Target Element -->
+                <div id="gui-target" class="bg-indigo-500 text-white flex items-center justify-center shadow-xl rounded-lg font-bold">
+                    Interactive Element
+                </div>
+                <!-- GUI Container (absolute positioning is handled by the script) -->
+            </div>
+        </div>
+
+    </main>
+</body>
+</html>
