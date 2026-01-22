@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="Retro arcade space shooter game built with Phaser 3, featuring multiple ships, weapon upgrades, enemy formations, and Galaga-style swoop attacks.">
+    <meta name="tags" content="game, arcade, retro, phaser, space">
+    <meta name="created" content="2026-01-21">
+    <title>Space Shooter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a1a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Press Start 2P', monospace;
+            position: relative;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('space-shooter-assets/page_bg.webp') repeat;
+            opacity: 0.5;
+            z-index: -1;
+            pointer-events: none;
+        }
+        #game-container {
+            max-height: calc(100vh - 80px);
+            max-width: calc((100vh - 80px) * 0.857);
+        }
+        #game-container canvas {
+            border: 4px solid #00ffff;
+            box-shadow: 0 0 20px #00ffff40;
+        }
+        .instructions {
+            color: #00ffff;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 9px;
+        }
+        .credits {
+            color: #666666;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 7px;
+        }
+        .credits a {
+            color: #888888;
+            text-decoration: none;
+        }
+        .credits a:hover {
+            color: #00ffff;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div class="instructions">
+        ARROWS/WASD: MOVE | SPACE: SHOOT | P: PAUSE
+    </div>
+    <div class="credits">
+        Assets: <a href="https://joyofgaming.itch.io/retro-pixel-art-space-shooter-kit" target="_blank">Retro Pixel Art Space Shooter Kit</a> |
+        Sound Effects: <a href="https://enprimer.itch.io/spaceship-sound-effects-pack" target="_blank">Spaceship Sound Effects Pack</a>
+    </div>
+
+<script>
+// ===========================================
+// RETRO SPACE SHOOTER - Phaser 3 Game
+// ===========================================
+
+const ASSET_PATH = 'space-shooter-assets/art-assets/';
+
+// ===========================================
+// BOOT SCENE - Load all assets
+// ===========================================
+class BootScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'BootScene' });
+    }
+
+    preload() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        // Loading UI
+        const loadingText = this.add.text(width/2, height/2 - 50, 'LOADING...', {
+            fontSize: '16px',
+            fill: '#00ffff',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        const progressBar = this.add.graphics();
+        const progressBox = this.add.graphics();
+        progressBox.fillStyle(0x222222, 0.8);
+        progressBox.fillRect(width/2 - 160, height/2, 320, 30);
+
+        this.load.on('progress', (value) => {
+            progressBar.clear();
+            progressBar.fillStyle(0x00ffff, 1);
+            progressBar.fillRect(width/2 - 155, height/2 + 5, 310 * value, 20);
+        });
+
+        // ===========================================
+        // PLAYER SHIPS (3 choices, each with 5 tilt frames)
+        // ===========================================
+        // Beetle
+        for (let i = 1; i <= 5; i++) {
+            this.load.image(`beetle${i}`, ASSET_PATH + `Beetle-${i}.png`);
+        }
+        // Bullfrog
+        for (let i = 1; i <= 5; i++) {
+            this.load.image(`bullfrog${i}`, ASSET_PATH + `Bullfrog-${i}.png`);
+        }
+        // Hummingbird
+        for (let i = 1; i <= 5; i++) {
+            this.load.image(`hummingbird${i}`, ASSET_PATH + `Hummingbird-${i}.png`);
+        }
+
+        // ===========================================
+        // ENEMIES (6 types)
+        // ===========================================
+        for (let i = 1; i <= 6; i++) {
+            this.load.image(`enemy${i}`, ASSET_PATH + `Enemy${i}-1.png`);
+        }
+        // Enemy4 has 2 frames
+        this.load.image('enemy4_2', ASSET_PATH + 'Enemy4-2.png');
+
+        // ===========================================
+        // EXPLOSIONS (6 frames)
+        // ===========================================
+        for (let i = 1; i <= 6; i++) {
+            this.load.image(`explosion${i}`, ASSET_PATH + `Explosion-${i}.png`);
+        }
+
+        // ===========================================
+        // ENGINE FIRE (4 frames - shown below player ship)
+        // ===========================================
+        for (let i = 1; i <= 4; i++) {
+            this.load.image(`engine${i}`, ASSET_PATH + `Engine Fire-${i}.png`);
+        }
+
+        // ===========================================
+        // WEAPONS (5 types, each with 2 animated frames)
+        // ===========================================
+        // Wp1 - Blast
+        this.load.image('wp1_1', ASSET_PATH + 'Wp1-Blast-1.png');
+        this.load.image('wp1_2', ASSET_PATH + 'Wp1-Blast-2.png');
+        this.load.image('wp1_container', ASSET_PATH + 'Wp1-Container-1.png');
+
+        // Wp2 - Fire
+        this.load.image('wp2_1', ASSET_PATH + 'Wp2-Fire-1.png');
+        this.load.image('wp2_2', ASSET_PATH + 'Wp2-Fire-2.png');
+        this.load.image('wp2_container', ASSET_PATH + 'Wp2-Container-1.png');
+
+        // Wp3 - Long Blast
+        this.load.image('wp3_1', ASSET_PATH + 'Wp3-Long Blast-1.png');
+        this.load.image('wp3_2', ASSET_PATH + 'Wp3-Long Blast-2.png');
+        this.load.image('wp3_container', ASSET_PATH + 'Wp3-Container-1.png');
+
+        // Wp4 - Laser
+        this.load.image('wp4_1', ASSET_PATH + 'Wp4-Laser-1.png');
+        this.load.image('wp4_2', ASSET_PATH + 'Wp4-Laser-2.png');
+        this.load.image('wp4_container', ASSET_PATH + 'Wp4-Container-1.png');
+
+        // Wp5 - Rotating Blast (has 4 frames)
+        this.load.image('wp5_1', ASSET_PATH + 'Wp5-Rotating Blast-1.png');
+        this.load.image('wp5_2', ASSET_PATH + 'Wp5-Rotating Blast-2.png');
+        this.load.image('wp5_3', ASSET_PATH + 'Wp5-Rotating Blast-3.png');
+        this.load.image('wp5_4', ASSET_PATH + 'Wp5-Rotating Blast-4.png');
+        this.load.image('wp5_container', ASSET_PATH + 'Wp5-Container-1.png');
+
+        // ===========================================
+        // HEALTH - Energy Container (9 = full, 1 = dead)
+        // ===========================================
+        for (let i = 1; i <= 9; i++) {
+            this.load.image(`health${i}`, ASSET_PATH + `Energy-Container-${i}.png`);
+        }
+
+        // ===========================================
+        // BACKGROUND ELEMENTS
+        // ===========================================
+        // Moon - bottom parallax layer (slowest)
+        this.load.image('moon', ASSET_PATH + 'Moon-1.png');
+
+        // Star background - scrolling layer
+        this.load.image('starBg', ASSET_PATH + 'Star-Bg-1.png');
+
+        // Twinkling stars - 7 frames for animation
+        for (let i = 1; i <= 7; i++) {
+            this.load.image(`twinkle${i}`, ASSET_PATH + `Twinkling-Star-${i}.png`);
+        }
+
+        // ===========================================
+        // SOUND EFFECTS
+        // ===========================================
+        this.load.audio('sfxSelect', 'space-shooter-assets/sound-effects/utility/eff5.mp3');
+        this.load.audio('sfxCycle', 'space-shooter-assets/sound-effects/utility/eff9.mp3');
+        this.load.audio('sfxEngine', 'space-shooter-assets/sound-effects/engine/engine1.mp3');
+        this.load.audio('bgMusic', 'space-shooter-assets/sound-effects/bg-music.mp3');
+        this.load.audio('sfxWp1', 'space-shooter-assets/sound-effects/laser/shoot.mp3');
+        this.load.audio('sfxWp2', 'space-shooter-assets/sound-effects/laser/laser_shoot2.mp3');
+        this.load.audio('sfxWp3', 'space-shooter-assets/sound-effects/laser/laser_shoot4.mp3');
+        this.load.audio('sfxWp4', 'space-shooter-assets/sound-effects/laser/beam8.mp3');
+        this.load.audio('sfxWp5', 'space-shooter-assets/sound-effects/laser/laser_shoot7.mp3');
+        this.load.audio('sfxExplosion3', 'space-shooter-assets/sound-effects/explosion/explosion3.mp3');
+        this.load.audio('sfxExplosion4', 'space-shooter-assets/sound-effects/explosion/explosion4.mp3');
+
+        // ===========================================
+        // BASE TILES (for space stations)
+        // ===========================================
+        // Named tiles for proper station construction
+        this.load.image('stationTop', ASSET_PATH + 'Base Tiles-1-top.png');
+        this.load.image('stationCenter', ASSET_PATH + 'Base Tiles-2-center.png');
+        this.load.image('stationBottom', ASSET_PATH + 'Base Tiles-4-bottom.png');
+        this.load.image('stationTopLeft', ASSET_PATH + 'Base Tiles-5-top-left.png');
+        this.load.image('stationBottomLeft', ASSET_PATH + 'Base Tiles-6-bottom-left.png');
+        this.load.image('stationBottomRight', ASSET_PATH + 'Base Tiles-7-bottom-right.png');
+        this.load.image('stationTopRight', ASSET_PATH + 'Base Tiles-8-top-right.png');
+        this.load.image('stationLeft', ASSET_PATH + 'Base Tiles-left.png');
+        this.load.image('stationRight', ASSET_PATH + 'Base Tiles-right.png');
+        // Extra fill tiles
+        this.load.image('stationFill1', ASSET_PATH + 'Base Tiles-3.png');
+        this.load.image('stationFill2', ASSET_PATH + 'Base Tiles-9.png');
+        this.load.image('stationFill3', ASSET_PATH + 'Base Tiles-10.png');
+    }
+
+    create() {
+        // Log any loading errors
+        if (this.load.totalFailed > 0) {
+            console.warn('Some assets failed to load:', this.load.totalFailed);
+        }
+        this.scene.start('MenuScene');
+    }
+}
+
+// ===========================================
+// MENU SCENE - Ship Selection
+// ===========================================
+class MenuScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'MenuScene' });
+    }
+
+    create() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        // Background
+        this.add.tileSprite(width/2, height/2, width, height, 'starBg');
+
+        // Title
+        this.add.text(width/2, 80, 'SPACE\nSHOOTER', {
+            fontSize: '24px',
+            fill: '#00ffff',
+            align: 'center',
+            stroke: '#000066',
+            strokeThickness: 4,
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        // Ship selection prompt
+        this.add.text(width/2, 170, 'SELECT YOUR SHIP', {
+            fontSize: '10px',
+            fill: '#ffff00',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        // Ship options - spaced for wider screen
+        const ships = [
+            { key: 'beetle', name: 'BEETLE', x: 150, desc: 'Balanced' },
+            { key: 'bullfrog', name: 'BULLFROG', x: 300, desc: 'Tanky' },
+            { key: 'hummingbird', name: 'HUMMINGBIRD', x: 450, desc: 'Fast' }
+        ];
+
+        this.selectedShip = 'beetle';
+        this.shipSprites = [];
+        this.selectionBoxes = [];
+
+        ships.forEach((ship, index) => {
+            // Ship sprite
+            const sprite = this.add.image(ship.x, 280, `${ship.key}3`).setScale(0.6);
+            this.shipSprites.push({ sprite, key: ship.key });
+
+            // Ship name
+            this.add.text(ship.x, 340, ship.name, {
+                fontSize: '8px',
+                fill: '#ffffff',
+                fontFamily: '"Press Start 2P"'
+            }).setOrigin(0.5);
+
+            // Ship description
+            this.add.text(ship.x, 360, ship.desc, {
+                fontSize: '8px',
+                fill: '#888888',
+                fontFamily: '"Press Start 2P"'
+            }).setOrigin(0.5);
+
+            // Selection box
+            const box = this.add.graphics();
+            box.lineStyle(2, 0x00ffff, index === 0 ? 1 : 0.3);
+            box.strokeRect(ship.x - 50, 230, 100, 150);
+            this.selectionBoxes.push({ box, key: ship.key });
+
+            // Make clickable
+            const hitArea = this.add.rectangle(ship.x, 280, 100, 150, 0x000000, 0);
+            hitArea.setInteractive({ useHandCursor: true });
+            hitArea.on('pointerdown', () => this.selectShip(ship.key));
+        });
+
+        // Keyboard selection
+        this.input.keyboard.on('keydown-ONE', () => this.selectShip('beetle'));
+        this.input.keyboard.on('keydown-TWO', () => this.selectShip('bullfrog'));
+        this.input.keyboard.on('keydown-THREE', () => this.selectShip('hummingbird'));
+        this.input.keyboard.on('keydown-LEFT', () => this.cycleShip(-1));
+        this.input.keyboard.on('keydown-RIGHT', () => this.cycleShip(1));
+
+        // Start instruction
+        const startText = this.add.text(width/2, 480, 'PRESS SPACE TO START', {
+            fontSize: '10px',
+            fill: '#ffff00',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        this.tweens.add({
+            targets: startText,
+            alpha: 0.3,
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Start game
+        this.input.keyboard.on('keydown-SPACE', () => {
+            this.scene.start('GameScene', { shipType: this.selectedShip });
+        });
+
+        this.input.on('pointerdown', (pointer) => {
+            if (pointer.y > 450) {
+                this.scene.start('GameScene', { shipType: this.selectedShip });
+            }
+        });
+    }
+
+    selectShip(key) {
+        this.selectedShip = key;
+        this.updateSelection();
+        const sfxVolume = parseFloat(localStorage.getItem('sfxVolume') || '0.5');
+        this.sound.play('sfxSelect', { volume: sfxVolume });
+    }
+
+    cycleShip(direction) {
+        const ships = ['beetle', 'bullfrog', 'hummingbird'];
+        let index = ships.indexOf(this.selectedShip);
+        index = (index + direction + 3) % 3;
+        this.selectedShip = ships[index];
+        this.updateSelection();
+        const sfxVolume = parseFloat(localStorage.getItem('sfxVolume') || '0.5');
+        this.sound.play('sfxCycle', { volume: sfxVolume });
+    }
+
+    updateSelection() {
+        this.selectionBoxes.forEach(item => {
+            item.box.clear();
+            item.box.lineStyle(2, 0x00ffff, item.key === this.selectedShip ? 1 : 0.3);
+            const ships = { beetle: 150, bullfrog: 300, hummingbird: 450 };
+            item.box.strokeRect(ships[item.key] - 50, 230, 100, 150);
+        });
+    }
+}
+
+// ===========================================
+// GAME SCENE - Main gameplay
+// ===========================================
+class GameScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'GameScene' });
+    }
+
+    init(data) {
+        this.shipType = data.shipType || 'beetle';
+        this.score = 0;
+        this.wave = 1;
+        this.currentWeapon = 1; // 1-5, upgrades when picking up powerups
+        this.weaponDamage = [0, 1, 2, 3, 4, 5]; // Damage per weapon tier (index 0 unused)
+        this.enemiesKilled = 0;
+        this.enemiesSpawned = 0;
+        this.enemiesPerWave = 15;
+        this.maxEnemiesOnScreen = 6;
+        this.waveActive = false;
+        this.gameOver = false;
+        this.twinklingStars = [];
+        this.spaceStations = [];
+        this.totalKills = 0;
+        this.formationCount = 0; // Track spawns to alternate with swoop flights
+        // Volume settings (persisted)
+        this.sfxVolume = parseFloat(localStorage.getItem('sfxVolume') || '0.5');
+        this.musicVolume = parseFloat(localStorage.getItem('musicVolume') || '0.3');
+
+        // Ship-specific stats
+        const shipStats = {
+            beetle: { speed: 300, maxHealth: 8 },      // Balanced
+            bullfrog: { speed: 220, maxHealth: 12 },   // Tanky - slower but more health
+            hummingbird: { speed: 400, maxHealth: 5 }  // Fast - quicker but fragile
+        };
+        const stats = shipStats[this.shipType];
+        this.shipSpeed = stats.speed;
+        this.maxHealth = stats.maxHealth;
+        this.health = stats.maxHealth;
+    }
+
+    create() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        // ===========================================
+        // PARALLAX BACKGROUND LAYERS (low depth values)
+        // ===========================================
+
+        // Layer 0: Star background (scrolling tileSprite) - base layer
+        this.starBg = this.add.tileSprite(width/2, height/2, width, height, 'starBg');
+        this.starBg.setTileScale(0.5);
+        this.starBg.setDepth(0);
+
+        // Layer 1 (slowest parallax): Moon - behind stars conceptually but in front for visibility
+        this.moon = this.add.image(350, -100, 'moon').setScale(0.7);
+        this.moon.setDepth(1);
+        this.moonSpeed = 0.3;
+
+        // Layer 2: Twinkling stars (animated, on top of starBg)
+        this.createTwinklingStars();
+
+        // Space stations layer (depth 3) - spawn frequently
+        this.time.addEvent({
+            delay: 3000,
+            callback: () => this.spawnSpaceStation(),
+            loop: true
+        });
+        // Spawn one immediately
+        this.spawnSpaceStation();
+
+        // ===========================================
+        // PLAYER SHIP
+        // ===========================================
+        this.player = this.physics.add.sprite(width/2, height - 100, `${this.shipType}3`);
+        this.player.setCollideWorldBounds(true);
+        this.player.setScale(0.5);
+        this.player.setDepth(10);
+        // Shrink hitbox for fairer collision
+        this.player.body.setSize(this.player.width * 0.5, this.player.height * 0.5);
+        this.player.body.setOffset(this.player.width * 0.25, this.player.height * 0.25);
+
+        // Engine fire (below player ship)
+        this.engineFire = this.add.sprite(this.player.x, this.player.y + 22, 'engine1');
+        this.engineFire.setScale(0.5);
+        this.engineFire.setDepth(9);
+        this.engineFrame = 1;
+
+        // Engine fire animation
+        this.time.addEvent({
+            delay: 100,
+            callback: () => {
+                this.engineFrame = (this.engineFrame % 4) + 1;
+                if (this.engineFire && this.engineFire.active) {
+                    this.engineFire.setTexture(`engine${this.engineFrame}`);
+                }
+            },
+            loop: true
+        });
+
+        // ===========================================
+        // GROUPS
+        // ===========================================
+        this.bullets = this.physics.add.group();
+        this.enemies = this.physics.add.group();
+        this.enemyBullets = this.physics.add.group();
+        this.powerups = this.physics.add.group();
+
+        // ===========================================
+        // COLLISIONS
+        // ===========================================
+        this.physics.add.overlap(this.bullets, this.enemies, this.hitEnemy, null, this);
+        this.physics.add.overlap(this.player, this.enemies, this.playerHit, null, this);
+        this.physics.add.overlap(this.player, this.enemyBullets, this.playerHit, null, this);
+        this.physics.add.overlap(this.player, this.powerups, this.collectPowerup, null, this);
+
+        // ===========================================
+        // INPUT
+        // ===========================================
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.wasd = this.input.keyboard.addKeys('W,A,S,D');
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+        // Touch controls
+        this.input.on('pointermove', (pointer) => {
+            if (pointer.isDown) {
+                this.player.x = Phaser.Math.Clamp(pointer.x, 40, width - 40);
+                this.player.y = Phaser.Math.Clamp(pointer.y, 40, height - 40);
+            }
+        });
+
+        this.input.on('pointerdown', () => { this.touchFiring = true; });
+        this.input.on('pointerup', () => { this.touchFiring = false; });
+
+        // Pause key
+        this.pauseKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+        this.isPaused = false;
+
+        // Fire timer
+        this.lastFired = 0;
+        this.fireRate = 200;
+
+        // ===========================================
+        // UI
+        // ===========================================
+        this.createUI();
+
+        // Play engine start sound
+        this.sound.play('sfxEngine', { volume: this.sfxVolume * 0.8 });
+
+        // Start background music (looping)
+        this.bgMusic = this.sound.add('bgMusic', {
+            volume: this.musicVolume,
+            loop: true
+        });
+        this.bgMusic.play();
+
+        // Start first wave
+        this.time.delayedCall(1000, () => this.startWave());
+    }
+
+    createTwinklingStars() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        // Create several twinkling stars at random positions
+        for (let i = 0; i < 10; i++) {
+            const star = this.add.sprite(
+                Phaser.Math.Between(20, width - 20),
+                Phaser.Math.Between(-500, height),
+                'twinkle1'
+            );
+            star.setScale(0.4);
+            star.setDepth(2); // Just above moon and starBg
+            star.twinkleFrame = Phaser.Math.Between(1, 7);
+            star.twinkleSpeed = Phaser.Math.Between(100, 200);
+            star.lastTwinkle = 0;
+            this.twinklingStars.push(star);
+        }
+    }
+
+    spawnSpaceStation() {
+        if (this.gameOver) return;
+
+        const width = this.cameras.main.width;
+        const side = Phaser.Math.Between(0, 1); // 0 = left side, 1 = right side
+        const stationWidth = Phaser.Math.Between(2, 4); // tiles wide
+        const stationHeight = Phaser.Math.Between(2, 4); // tiles tall
+
+        const station = this.add.container(0, -200);
+        station.setDepth(4); // Above stars (0-2) but below enemies (8)
+
+        const tileSize = 32; // Tile size at 0.5 scale
+
+        // Position: partially visible from edge
+        const startX = side === 0 ? -(stationWidth - 1) * tileSize / 2 : width - tileSize / 2;
+
+        // Build rectangular station using proper tile arrangement
+        for (let row = 0; row < stationHeight; row++) {
+            for (let col = 0; col < stationWidth; col++) {
+                let tileKey;
+
+                // Determine which tile to use based on position
+                const isTop = row === 0;
+                const isBottom = row === stationHeight - 1;
+                const isLeft = col === 0;
+                const isRight = col === stationWidth - 1;
+
+                if (isTop && isLeft) {
+                    tileKey = 'stationTopLeft';
+                } else if (isTop && isRight) {
+                    tileKey = 'stationTopRight';
+                } else if (isBottom && isLeft) {
+                    tileKey = 'stationBottomLeft';
+                } else if (isBottom && isRight) {
+                    tileKey = 'stationBottomRight';
+                } else if (isTop) {
+                    tileKey = 'stationTop';
+                } else if (isBottom) {
+                    tileKey = 'stationBottom';
+                } else if (isLeft) {
+                    tileKey = 'stationLeft';
+                } else if (isRight) {
+                    tileKey = 'stationRight';
+                } else {
+                    tileKey = 'stationCenter';
+                }
+
+                const x = startX + col * tileSize;
+                const y = row * tileSize;
+                const tile = this.add.image(x, y, tileKey).setScale(0.5);
+                station.add(tile);
+            }
+        }
+
+        this.spaceStations.push(station);
+    }
+
+    createUI() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        // Score
+        this.scoreText = this.add.text(10, 10, 'SCORE: 0', {
+            fontSize: '10px',
+            fill: '#00ffff',
+            fontFamily: '"Press Start 2P"'
+        }).setDepth(100);
+
+        // Wave
+        this.waveText = this.add.text(width - 10, 10, 'WAVE: 1', {
+            fontSize: '10px',
+            fill: '#ffff00',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(1, 0).setDepth(100);
+
+        // Health indicator using Energy-Container
+        // Energy-Container-1 = full (8 health), Energy-Container-9 = dead (0 health)
+        this.healthDisplay = this.add.image(width/2, 25, 'health1').setScale(0.5).setDepth(100);
+
+        // Weapon indicator
+        this.weaponText = this.add.text(10, 28, 'WPN: 1', {
+            fontSize: '8px',
+            fill: '#ff8800',
+            fontFamily: '"Press Start 2P"'
+        }).setDepth(100);
+
+        // Pause overlay (hidden by default)
+        this.pauseOverlay = this.add.rectangle(width/2, height/2, width, height, 0x000000, 0.7);
+        this.pauseOverlay.setDepth(200);
+        this.pauseOverlay.setVisible(false);
+
+        this.pauseText = this.add.text(width/2, height/2 - 100, 'PAUSED', {
+            fontSize: '24px',
+            fill: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4,
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5).setDepth(201);
+        this.pauseText.setVisible(false);
+
+        // Volume controls
+        this.pauseElements = [];
+        this.selectedVolumeOption = 0; // 0 = SFX, 1 = Music
+
+        const sliderWidth = 200;
+        const sliderHeight = 12;
+        const sliderX = width/2 - sliderWidth/2;
+
+        // SFX Volume
+        const sfxLabel = this.add.text(width/2, height/2 - 50, 'SFX VOLUME', {
+            fontSize: '8px', fill: '#aaaaaa', fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5).setDepth(201).setVisible(false);
+        this.pauseElements.push(sfxLabel);
+
+        // SFX Slider background
+        this.sfxSliderBg = this.add.graphics().setDepth(201);
+        this.sfxSliderBg.setVisible(false);
+        this.pauseElements.push(this.sfxSliderBg);
+
+        // SFX Slider fill
+        this.sfxSliderFill = this.add.graphics().setDepth(202);
+        this.sfxSliderFill.setVisible(false);
+        this.pauseElements.push(this.sfxSliderFill);
+
+        // SFX percentage text
+        this.sfxVolumeText = this.add.text(width/2 + sliderWidth/2 + 45, height/2 - 20, `${Math.round(this.sfxVolume * 100)}%`, {
+            fontSize: '8px', fill: '#00ffff', fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5).setDepth(201).setVisible(false);
+        this.pauseElements.push(this.sfxVolumeText);
+
+        // SFX arrows
+        this.sfxLeftArrow = this.add.text(width/2 - sliderWidth/2 - 20, height/2 - 20, '<', {
+            fontSize: '12px', fill: '#00ffff', fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5).setDepth(201).setVisible(false);
+        this.pauseElements.push(this.sfxLeftArrow);
+
+        this.sfxRightArrow = this.add.text(width/2 + sliderWidth/2 + 12, height/2 - 20, '>', {
+            fontSize: '12px', fill: '#00ffff', fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5).setDepth(201).setVisible(false);
+        this.pauseElements.push(this.sfxRightArrow);
+
+        // Music Volume
+        const musicLabel = this.add.text(width/2, height/2 + 40, 'MUSIC VOLUME', {
+            fontSize: '8px', fill: '#aaaaaa', fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5).setDepth(201).setVisible(false);
+        this.pauseElements.push(musicLabel);
+
+        // Music Slider background
+        this.musicSliderBg = this.add.graphics().setDepth(201);
+        this.musicSliderBg.setVisible(false);
+        this.pauseElements.push(this.musicSliderBg);
+
+        // Music Slider fill
+        this.musicSliderFill = this.add.graphics().setDepth(202);
+        this.musicSliderFill.setVisible(false);
+        this.pauseElements.push(this.musicSliderFill);
+
+        // Music percentage text
+        this.musicVolumeText = this.add.text(width/2 + sliderWidth/2 + 45, height/2 + 70, `${Math.round(this.musicVolume * 100)}%`, {
+            fontSize: '8px', fill: '#00ffff', fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5).setDepth(201).setVisible(false);
+        this.pauseElements.push(this.musicVolumeText);
+
+        // Music arrows
+        this.musicLeftArrow = this.add.text(width/2 - sliderWidth/2 - 20, height/2 + 70, '<', {
+            fontSize: '12px', fill: '#00ffff', fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5).setDepth(201).setVisible(false);
+        this.pauseElements.push(this.musicLeftArrow);
+
+        this.musicRightArrow = this.add.text(width/2 + sliderWidth/2 + 12, height/2 + 70, '>', {
+            fontSize: '12px', fill: '#00ffff', fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5).setDepth(201).setVisible(false);
+        this.pauseElements.push(this.musicRightArrow);
+
+        // Store slider dimensions for drawing
+        this.sliderConfig = { width: sliderWidth, height: sliderHeight, x: sliderX };
+
+        this.pauseSubtext = this.add.text(width/2, height/2 + 130, 'ARROWS: Adjust  P: Resume', {
+            fontSize: '6px',
+            fill: '#888888',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5).setDepth(201);
+        this.pauseSubtext.setVisible(false);
+    }
+
+    startWave() {
+        const width = this.cameras.main.width;
+
+        this.waveActive = true;
+        this.enemiesKilled = 0;
+        this.enemiesSpawned = 0;
+        this.enemiesPerWave = 15 + Math.floor(this.wave * 5);
+        this.maxEnemiesOnScreen = Math.min(6 + Math.floor(this.wave / 2), 12);
+
+        // Wave announcement
+        const waveText = this.add.text(width/2, 300, `WAVE ${this.wave}`, {
+            fontSize: '20px',
+            fill: '#ffff00',
+            stroke: '#000',
+            strokeThickness: 3,
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5).setDepth(100);
+
+        this.tweens.add({
+            targets: waveText,
+            alpha: 0,
+            y: 250,
+            duration: 1500,
+            onComplete: () => waveText.destroy()
+        });
+
+        this.spawnEnemies();
+    }
+
+    spawnEnemies() {
+        // Spawn formations periodically
+        const formationDelay = Math.max(2500 - this.wave * 150, 1000);
+
+        this.enemySpawnEvent = this.time.addEvent({
+            delay: formationDelay,
+            callback: () => {
+                if (this.enemiesSpawned < this.enemiesPerWave) {
+                    this.formationCount++;
+                    // Every 3rd spawn is a swoop flight (starting wave 2)
+                    if (this.wave >= 2 && this.formationCount % 3 === 0) {
+                        this.spawnSwoopFlight();
+                    } else {
+                        this.spawnFormation();
+                    }
+                }
+            },
+            loop: true
+        });
+
+        // Spawn first formation immediately
+        this.spawnFormation();
+    }
+
+    spawnFormation() {
+        const width = this.cameras.main.width;
+        const formationType = Phaser.Math.Between(1, 5);
+        const enemyType = Phaser.Math.Between(1, Math.min(2 + Math.floor(this.wave / 2), 6));
+        const baseX = Phaser.Math.Between(150, width - 150);
+
+        let positions = [];
+
+        switch (formationType) {
+            case 1: // V formation
+                positions = [
+                    { x: baseX, y: -50, delay: 0 },
+                    { x: baseX - 40, y: -50, delay: 150 },
+                    { x: baseX + 40, y: -50, delay: 150 },
+                    { x: baseX - 80, y: -50, delay: 300 },
+                    { x: baseX + 80, y: -50, delay: 300 }
+                ];
+                break;
+            case 2: // Horizontal line
+                positions = [
+                    { x: baseX - 80, y: -50, delay: 0 },
+                    { x: baseX - 40, y: -50, delay: 0 },
+                    { x: baseX, y: -50, delay: 0 },
+                    { x: baseX + 40, y: -50, delay: 0 },
+                    { x: baseX + 80, y: -50, delay: 0 }
+                ];
+                break;
+            case 3: // Chain (single file)
+                positions = [
+                    { x: baseX, y: -50, delay: 0 },
+                    { x: baseX, y: -50, delay: 200 },
+                    { x: baseX, y: -50, delay: 400 },
+                    { x: baseX, y: -50, delay: 600 },
+                    { x: baseX, y: -50, delay: 800 }
+                ];
+                break;
+            case 4: // Diamond
+                positions = [
+                    { x: baseX, y: -50, delay: 0 },
+                    { x: baseX - 50, y: -50, delay: 200 },
+                    { x: baseX + 50, y: -50, delay: 200 },
+                    { x: baseX, y: -50, delay: 400 },
+                ];
+                break;
+            case 5: // Diagonal sweep
+                const dir = Phaser.Math.Between(0, 1) ? 1 : -1;
+                positions = [
+                    { x: baseX, y: -50, delay: 0 },
+                    { x: baseX + (30 * dir), y: -50, delay: 150 },
+                    { x: baseX + (60 * dir), y: -50, delay: 300 },
+                    { x: baseX + (90 * dir), y: -50, delay: 450 },
+                    { x: baseX + (120 * dir), y: -50, delay: 600 }
+                ];
+                break;
+        }
+
+        // Spawn enemies in formation
+        positions.forEach(pos => {
+            if (this.enemiesSpawned >= this.enemiesPerWave) return;
+
+            this.time.delayedCall(pos.delay, () => {
+                if (this.gameOver) return;
+                this.createEnemy(pos.x, pos.y, enemyType, formationType);
+                this.enemiesSpawned++;
+            });
+        });
+    }
+
+    createEnemy(x, y, enemyType, formationType) {
+        const width = this.cameras.main.width;
+        const enemy = this.enemies.create(x, y, `enemy${enemyType}`);
+        enemy.setScale(0.5);
+        enemy.setDepth(8);
+        enemy.body.setSize(enemy.width * 0.6, enemy.height * 0.6);
+        enemy.body.setOffset(enemy.width * 0.2, enemy.height * 0.2);
+        enemy.enemyType = enemyType;
+        enemy.health = enemyType + Math.floor(this.wave / 3);
+        enemy.scoreValue = enemyType * 100 + this.wave * 20;
+
+        const speed = 70 + this.wave * 8 + enemyType * 10;
+
+        // Movement patterns based on formation type
+        if (formationType === 2) {
+            // Horizontal line - move together side to side
+            enemy.setVelocityY(speed * 0.6);
+            this.tweens.add({
+                targets: enemy,
+                x: enemy.x + Phaser.Math.Between(-100, 100),
+                duration: 1500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        } else if (formationType === 5) {
+            // Diagonal - continue diagonal movement
+            const angle = Phaser.Math.Between(0, 1) ? 0.3 : -0.3;
+            enemy.setVelocity(Math.sin(angle) * speed, Math.cos(angle) * speed);
+        } else if (enemyType >= 5) {
+            // Tracking enemies
+            enemy.setVelocityY(speed * 0.5);
+            this.time.addEvent({
+                delay: 400,
+                callback: () => {
+                    if (enemy.active && this.player.active) {
+                        const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+                        enemy.setVelocityX(Math.cos(angle) * 60);
+                    }
+                },
+                repeat: 12
+            });
+        } else {
+            // Standard movement with slight weaving
+            enemy.setVelocityY(speed);
+            this.tweens.add({
+                targets: enemy,
+                x: enemy.x + Phaser.Math.Between(-60, 60),
+                duration: Phaser.Math.Between(1000, 2000),
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
+        // Enemy shooting (higher types more likely)
+        if (enemyType >= 3 && Phaser.Math.Between(1, 4) === 1) {
+            this.time.addEvent({
+                delay: Phaser.Math.Between(1200, 2500),
+                callback: () => {
+                    if (enemy.active) this.enemyShoot(enemy);
+                },
+                repeat: 1 + Math.floor(this.wave / 4)
+            });
+        }
+    }
+
+    // ===========================================
+    // SWOOP FLIGHT SYSTEM - Galaga-style curved paths
+    // ===========================================
+
+    getSwoopPatterns() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+        const centerX = width / 2;
+
+        return {
+            // Loop-de-loop: Enter top center, loop down and back up, exit top
+            loop: [
+                { x: centerX, y: -50 },           // Start above screen
+                { x: centerX - 100, y: 200 },     // Dive left
+                { x: centerX, y: 350 },           // Bottom of loop
+                { x: centerX + 100, y: 200 },     // Curve right and up
+                { x: centerX, y: -50 }            // Exit top
+            ],
+            // Side sweep: Enter from left, arc across screen, exit right
+            sideSweepLeft: [
+                { x: -50, y: 150 },               // Start left of screen
+                { x: 150, y: 300 },               // Curve down into play area
+                { x: centerX, y: 400 },           // Center dip
+                { x: width - 150, y: 300 },       // Curve up right side
+                { x: width + 50, y: 150 }         // Exit right
+            ],
+            // Side sweep from right
+            sideSweepRight: [
+                { x: width + 50, y: 150 },        // Start right of screen
+                { x: width - 150, y: 300 },       // Curve down into play area
+                { x: centerX, y: 400 },           // Center dip
+                { x: 150, y: 300 },               // Curve up left side
+                { x: -50, y: 150 }                // Exit left
+            ],
+            // Dive bomb: Enter top corner, diagonal dive toward center, exit opposite bottom
+            diveBombLeft: [
+                { x: -50, y: -50 },               // Start top-left corner
+                { x: 150, y: 150 },               // Enter screen
+                { x: centerX, y: 400 },           // Dive toward center-bottom
+                { x: width - 100, y: 550 },       // Continue diagonal
+                { x: width + 50, y: height + 50 } // Exit bottom-right
+            ],
+            diveBombRight: [
+                { x: width + 50, y: -50 },        // Start top-right corner
+                { x: width - 150, y: 150 },       // Enter screen
+                { x: centerX, y: 400 },           // Dive toward center-bottom
+                { x: 100, y: 550 },               // Continue diagonal
+                { x: -50, y: height + 50 }        // Exit bottom-left
+            ],
+            // Figure-8: Two loops creating an 8 pattern
+            figure8: [
+                { x: centerX, y: -50 },           // Start top center
+                { x: centerX + 120, y: 150 },     // Right side of top loop
+                { x: centerX, y: 250 },           // Center crossing
+                { x: centerX - 120, y: 350 },     // Left side of bottom loop
+                { x: centerX, y: 450 },           // Bottom of 8
+                { x: centerX + 120, y: 350 },     // Right side of bottom loop
+                { x: centerX, y: 250 },           // Center crossing again
+                { x: centerX - 120, y: 150 },     // Left side of top loop
+                { x: centerX, y: -50 }            // Exit top
+            ],
+            // Pincer half - left side (spawned with partner on right)
+            pincerLeft: [
+                { x: -50, y: 100 },               // Start left
+                { x: 150, y: 200 },               // Curve in
+                { x: centerX - 50, y: 350 },      // Converge toward center
+                { x: centerX + 100, y: 450 },     // Cross past center
+                { x: width + 50, y: 550 }         // Exit right
+            ],
+            // Pincer half - right side
+            pincerRight: [
+                { x: width + 50, y: 100 },        // Start right
+                { x: width - 150, y: 200 },       // Curve in
+                { x: centerX + 50, y: 350 },      // Converge toward center
+                { x: centerX - 100, y: 450 },     // Cross past center
+                { x: -50, y: 550 }                // Exit left
+            ]
+        };
+    }
+
+    spawnSwoopFlight() {
+        if (this.gameOver) return;
+
+        const patterns = this.getSwoopPatterns();
+        const patternNames = ['loop', 'sideSweepLeft', 'sideSweepRight', 'diveBombLeft', 'diveBombRight', 'figure8', 'pincerLeft'];
+
+        // Select pattern - higher waves unlock more patterns
+        const availablePatterns = Math.min(patternNames.length, 2 + Math.floor(this.wave / 2));
+        const patternIndex = Phaser.Math.Between(0, availablePatterns - 1);
+        let patternName = patternNames[patternIndex];
+
+        // Determine number of enemies in flight (4-6)
+        const flightSize = Phaser.Math.Between(4, 6);
+        const enemyType = Phaser.Math.Between(1, Math.min(2 + Math.floor(this.wave / 2), 6));
+
+        // Special handling for pincer - spawn both sides
+        if (patternName === 'pincerLeft') {
+            // Spawn left side
+            for (let i = 0; i < Math.floor(flightSize / 2); i++) {
+                if (this.enemiesSpawned >= this.enemiesPerWave) break;
+                this.time.delayedCall(i * 200, () => {
+                    if (!this.gameOver) {
+                        this.createSwoopEnemy(patterns.pincerLeft, enemyType);
+                        this.enemiesSpawned++;
+                    }
+                });
+            }
+            // Spawn right side with slight delay
+            this.time.delayedCall(100, () => {
+                for (let i = 0; i < Math.ceil(flightSize / 2); i++) {
+                    if (this.enemiesSpawned >= this.enemiesPerWave) break;
+                    this.time.delayedCall(i * 200, () => {
+                        if (!this.gameOver) {
+                            this.createSwoopEnemy(patterns.pincerRight, enemyType);
+                            this.enemiesSpawned++;
+                        }
+                    });
+                }
+            });
+        } else {
+            // Standard pattern - spawn enemies in sequence along the path
+            const pattern = patterns[patternName];
+            for (let i = 0; i < flightSize; i++) {
+                if (this.enemiesSpawned >= this.enemiesPerWave) break;
+                this.time.delayedCall(i * 180, () => {
+                    if (!this.gameOver) {
+                        this.createSwoopEnemy(pattern, enemyType);
+                        this.enemiesSpawned++;
+                    }
+                });
+            }
+        }
+    }
+
+    createSwoopEnemy(pathPoints, enemyType) {
+        const startPoint = pathPoints[0];
+        const enemy = this.enemies.create(startPoint.x, startPoint.y, `enemy${enemyType}`);
+        enemy.setScale(0.5);
+        enemy.setDepth(8);
+        enemy.body.setSize(enemy.width * 0.6, enemy.height * 0.6);
+        enemy.body.setOffset(enemy.width * 0.2, enemy.height * 0.2);
+        enemy.enemyType = enemyType;
+        enemy.health = enemyType + Math.floor(this.wave / 3);
+        enemy.scoreValue = enemyType * 100 + this.wave * 20;
+        enemy.isSwooping = true; // Mark as swoop enemy for cleanup
+
+        // Disable physics velocity - we'll use tweens for movement
+        enemy.body.setVelocity(0, 0);
+
+        // Build tween timeline from path points
+        const tweenConfigs = [];
+        const baseSpeed = 90 + this.wave * 5; // Pixels per 100ms base speed
+
+        for (let i = 1; i < pathPoints.length; i++) {
+            const prev = pathPoints[i - 1];
+            const curr = pathPoints[i];
+            const distance = Phaser.Math.Distance.Between(prev.x, prev.y, curr.x, curr.y);
+            const duration = Math.max(300, (distance / baseSpeed) * 1000);
+
+            tweenConfigs.push({
+                x: curr.x,
+                y: curr.y,
+                duration: duration,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
+        // Create the tween timeline
+        this.tweens.chain({
+            targets: enemy,
+            tweens: tweenConfigs,
+            onComplete: () => {
+                if (enemy.active) {
+                    enemy.destroy();
+                }
+            }
+        });
+
+        // Enemy shooting during swoop (higher types more likely)
+        if (enemyType >= 3 && Phaser.Math.Between(1, 3) === 1) {
+            this.time.addEvent({
+                delay: Phaser.Math.Between(800, 1500),
+                callback: () => {
+                    if (enemy.active) this.enemyShoot(enemy);
+                },
+                repeat: 1 + Math.floor(this.wave / 5)
+            });
+        }
+    }
+
+    enemyShoot(enemy) {
+        const bullet = this.enemyBullets.create(enemy.x, enemy.y + 30, 'wp2_1');
+        bullet.setScale(0.4);
+        bullet.setDepth(8);
+        // Shrink hitbox
+        bullet.body.setSize(bullet.width * 0.5, bullet.height * 0.5);
+        bullet.body.setOffset(bullet.width * 0.25, bullet.height * 0.25);
+        bullet.setVelocityY(150 + this.wave * 10);
+        bullet.bulletFrame = 1;
+
+        // Animate bullet
+        this.time.addEvent({
+            delay: 100,
+            callback: () => {
+                if (bullet.active) {
+                    bullet.bulletFrame = bullet.bulletFrame === 1 ? 2 : 1;
+                    bullet.setTexture(`wp2_${bullet.bulletFrame}`);
+                }
+            },
+            loop: true
+        });
+    }
+
+    update(time) {
+        if (this.gameOver) return;
+
+        // Toggle pause
+        if (Phaser.Input.Keyboard.JustDown(this.pauseKey)) {
+            this.togglePause();
+        }
+
+        if (this.isPaused) {
+            // Handle volume controls while paused
+            if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
+                this.selectedVolumeOption = 0;
+                this.updateVolumeDisplay();
+            }
+            if (Phaser.Input.Keyboard.JustDown(this.cursors.down)) {
+                this.selectedVolumeOption = 1;
+                this.updateVolumeDisplay();
+            }
+            if (Phaser.Input.Keyboard.JustDown(this.cursors.left)) {
+                this.adjustVolume(-0.1);
+                this.sound.play('sfxSelect', { volume: this.sfxVolume * 0.3 });
+            }
+            if (Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
+                this.adjustVolume(0.1);
+                this.sound.play('sfxSelect', { volume: this.sfxVolume * 0.3 });
+            }
+            return;
+        }
+
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        // ===========================================
+        // PARALLAX SCROLLING
+        // ===========================================
+
+        // Moon (slowest layer)
+        this.moon.y += this.moonSpeed;
+        if (this.moon.y > height + 100) {
+            this.moon.y = -150;
+            this.moon.x = Phaser.Math.Between(100, width - 100);
+        }
+
+        // Star background
+        this.starBg.tilePositionY -= 1.5;
+
+        // Twinkling stars (scroll and animate) - speed matches scaled background
+        this.twinklingStars.forEach(star => {
+            star.y += 0.75;
+            if (star.y > height + 20) {
+                star.y = -20;
+                star.x = Phaser.Math.Between(20, width - 20);
+            }
+
+            // Animate through 7 frames
+            if (time > star.lastTwinkle + star.twinkleSpeed) {
+                star.twinkleFrame = (star.twinkleFrame % 7) + 1;
+                star.setTexture(`twinkle${star.twinkleFrame}`);
+                star.lastTwinkle = time;
+            }
+        });
+
+        // Space stations
+        for (let i = this.spaceStations.length - 1; i >= 0; i--) {
+            const station = this.spaceStations[i];
+            station.y += 1;
+            if (station.y > height + 100) {
+                station.destroy();
+                this.spaceStations.splice(i, 1);
+            }
+        }
+
+        // ===========================================
+        // PLAYER MOVEMENT
+        // ===========================================
+        let velocityX = 0;
+        let velocityY = 0;
+
+        if (this.cursors.left.isDown || this.wasd.A.isDown) velocityX = -this.shipSpeed;
+        else if (this.cursors.right.isDown || this.wasd.D.isDown) velocityX = this.shipSpeed;
+
+        if (this.cursors.up.isDown || this.wasd.W.isDown) velocityY = -this.shipSpeed;
+        else if (this.cursors.down.isDown || this.wasd.S.isDown) velocityY = this.shipSpeed;
+
+        this.player.setVelocity(velocityX, velocityY);
+
+        // Ship tilt animation (frame 1 = tilted right, 3 = center, 5 = tilted left)
+        if (velocityX < 0) {
+            this.player.setTexture(`${this.shipType}5`); // Moving left, ship tilts left
+        } else if (velocityX > 0) {
+            this.player.setTexture(`${this.shipType}1`); // Moving right, ship tilts right
+        } else {
+            this.player.setTexture(`${this.shipType}3`); // Center/neutral
+        }
+
+        // Engine fire follows player
+        this.engineFire.setPosition(this.player.x, this.player.y + 22);
+
+        // ===========================================
+        // SHOOTING
+        // ===========================================
+        if ((this.spaceKey.isDown || this.touchFiring) && time > this.lastFired) {
+            this.fireBullet();
+            this.lastFired = time + this.fireRate;
+        }
+
+        // ===========================================
+        // CLEANUP OFF-SCREEN OBJECTS
+        // ===========================================
+        this.bullets.children.each(bullet => {
+            if (bullet.y < -20) bullet.destroy();
+        });
+        // Enemies can exit any edge (especially swooping enemies)
+        this.enemies.children.each(enemy => {
+            if (enemy.y > height + 50 || enemy.y < -100 ||
+                enemy.x < -100 || enemy.x > width + 100) {
+                enemy.destroy();
+            }
+        });
+        this.enemyBullets.children.each(bullet => {
+            if (bullet.y > height + 50) bullet.destroy();
+        });
+        this.powerups.children.each(powerup => {
+            if (powerup.y > height + 50) powerup.destroy();
+        });
+
+        // ===========================================
+        // WAVE COMPLETION
+        // ===========================================
+        if (this.waveActive && this.enemiesSpawned >= this.enemiesPerWave && this.enemies.countActive() === 0) {
+            this.waveComplete();
+        }
+    }
+
+    fireBullet() {
+        const wp = this.currentWeapon;
+        const maxFrames = wp === 5 ? 4 : 2;
+
+        // Play weapon sound
+        this.sound.play(`sfxWp${wp}`, { volume: this.sfxVolume * 0.6 });
+
+        // Bullet spread based on weapon tier
+        let bulletConfigs = [];
+
+        if (wp === 1) {
+            // Single shot
+            bulletConfigs = [{ offsetX: 0, velocityX: 0 }];
+        } else if (wp === 2) {
+            // Double shot
+            bulletConfigs = [
+                { offsetX: -12, velocityX: 0 },
+                { offsetX: 12, velocityX: 0 }
+            ];
+        } else if (wp === 3) {
+            // Triple spread
+            bulletConfigs = [
+                { offsetX: -15, velocityX: -40 },
+                { offsetX: 0, velocityX: 0 },
+                { offsetX: 15, velocityX: 40 }
+            ];
+        } else if (wp === 4) {
+            // Quad spread
+            bulletConfigs = [
+                { offsetX: -20, velocityX: -50 },
+                { offsetX: -8, velocityX: -15 },
+                { offsetX: 8, velocityX: 15 },
+                { offsetX: 20, velocityX: 50 }
+            ];
+        } else {
+            // Wp5 - Five shot wide spread
+            bulletConfigs = [
+                { offsetX: -24, velocityX: -70 },
+                { offsetX: -12, velocityX: -30 },
+                { offsetX: 0, velocityX: 0 },
+                { offsetX: 12, velocityX: 30 },
+                { offsetX: 24, velocityX: 70 }
+            ];
+        }
+
+        bulletConfigs.forEach(config => {
+            const bullet = this.bullets.create(
+                this.player.x + config.offsetX,
+                this.player.y - 30,
+                `wp${wp}_1`
+            );
+            bullet.setScale(0.5);
+            bullet.setDepth(8);
+            bullet.body.setSize(bullet.width * 0.5, bullet.height * 0.5);
+            bullet.body.setOffset(bullet.width * 0.25, bullet.height * 0.25);
+            bullet.setVelocity(config.velocityX, -400);
+            bullet.damage = this.weaponDamage[wp]; // Store damage on bullet
+            bullet.bulletFrame = 1;
+
+            // Animate bullet
+            this.time.addEvent({
+                delay: 100,
+                callback: () => {
+                    if (bullet.active) {
+                        bullet.bulletFrame = (bullet.bulletFrame % maxFrames) + 1;
+                        bullet.setTexture(`wp${wp}_${bullet.bulletFrame}`);
+                    }
+                },
+                loop: true
+            });
+        });
+    }
+
+    hitEnemy(bullet, enemy) {
+        const damage = bullet.damage || 1;
+        bullet.destroy();
+
+        enemy.health -= damage;
+        enemy.setTint(0xffffff);
+        this.time.delayedCall(50, () => {
+            if (enemy.active) enemy.clearTint();
+        });
+
+        if (enemy.health <= 0) {
+            this.createExplosion(enemy.x, enemy.y);
+            this.score += enemy.scoreValue;
+            this.scoreText.setText(`SCORE: ${this.score}`);
+            this.enemiesKilled++;
+            this.totalKills++;
+
+            // Drop powerup every 10th kill
+            if (this.totalKills % 10 === 0) {
+                this.spawnPowerup(enemy.x, enemy.y);
+            }
+
+            enemy.destroy();
+        }
+    }
+
+    createExplosion(x, y) {
+        // Play random explosion sound
+        const explosionSound = Phaser.Math.Between(3, 4);
+        this.sound.play(`sfxExplosion${explosionSound}`, { volume: this.sfxVolume * 0.8 });
+
+        const explosion = this.add.sprite(x, y, 'explosion1').setScale(0.6).setDepth(9);
+        let frame = 1;
+
+        this.time.addEvent({
+            delay: 80,
+            callback: () => {
+                frame++;
+                if (frame <= 6) {
+                    explosion.setTexture(`explosion${frame}`);
+                } else {
+                    explosion.destroy();
+                }
+            },
+            repeat: 5
+        });
+    }
+
+    spawnPowerup(x, y) {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        // Drop the next weapon tier (or current max if already at 5)
+        const nextWeapon = Math.min(this.currentWeapon + 1, 5);
+        const powerup = this.powerups.create(x, y, `wp${nextWeapon}_container`);
+        powerup.setScale(0.5);
+        powerup.setDepth(8);
+        powerup.weaponType = nextWeapon;
+
+        // Set up bouncing physics
+        powerup.setBounce(1, 1);
+        powerup.setCollideWorldBounds(true);
+        powerup.body.setSize(powerup.width * 0.8, powerup.height * 0.8);
+
+        // Random fast velocity
+        const speedX = Phaser.Math.Between(-150, 150);
+        const speedY = Phaser.Math.Between(100, 200);
+        powerup.setVelocity(speedX, speedY);
+
+        // Destroy after 8 seconds if not collected
+        this.time.delayedCall(8000, () => {
+            if (powerup.active) {
+                // Fade out before destroying
+                this.tweens.add({
+                    targets: powerup,
+                    alpha: 0,
+                    duration: 500,
+                    onComplete: () => powerup.destroy()
+                });
+            }
+        });
+    }
+
+    collectPowerup(player, powerup) {
+        // Upgrade to the powerup's weapon
+        if (powerup.weaponType > this.currentWeapon) {
+            this.currentWeapon = powerup.weaponType;
+            this.weaponText.setText(`WPN: ${this.currentWeapon}`);
+        }
+        this.sound.play('sfxSelect', { volume: this.sfxVolume });
+        this.cameras.main.flash(100, 0, 255, 255);
+        powerup.destroy();
+    }
+
+    playerHit(player, damager) {
+        damager.destroy();
+
+        this.health--;
+        this.updateHealthDisplay();
+
+        // Lose one weapon tier when hit (minimum 1)
+        if (this.currentWeapon > 1) {
+            this.currentWeapon--;
+            this.weaponText.setText(`WPN: ${this.currentWeapon}`);
+        }
+
+        this.cameras.main.shake(200, 0.01);
+        this.cameras.main.flash(100, 255, 0, 0);
+        player.setTint(0xff0000);
+        this.time.delayedCall(100, () => player.clearTint());
+
+        if (this.health <= 0) {
+            this.endGame();
+        }
+    }
+
+    updateHealthDisplay() {
+        // Energy-Container-1 = full, Energy-Container-9 = dead
+        // Scale health to 1-9 range based on maxHealth
+        const healthPercent = this.health / this.maxHealth;
+        const healthFrame = Math.max(1, Math.min(9, Math.round(9 - healthPercent * 8)));
+        this.healthDisplay.setTexture(`health${healthFrame}`);
+    }
+
+    togglePause() {
+        this.isPaused = !this.isPaused;
+
+        if (this.isPaused) {
+            this.physics.pause();
+            this.pauseOverlay.setVisible(true);
+            this.pauseText.setVisible(true);
+            this.pauseSubtext.setVisible(true);
+            this.pauseElements.forEach(el => el.setVisible(true));
+            this.updateVolumeDisplay();
+        } else {
+            this.physics.resume();
+            this.pauseOverlay.setVisible(false);
+            this.pauseText.setVisible(false);
+            this.pauseSubtext.setVisible(false);
+            this.pauseElements.forEach(el => el.setVisible(false));
+            // Save volume settings
+            localStorage.setItem('sfxVolume', this.sfxVolume.toString());
+            localStorage.setItem('musicVolume', this.musicVolume.toString());
+        }
+    }
+
+    updateVolumeDisplay() {
+        const height = this.cameras.main.height;
+        const { width: sliderWidth, height: sliderHeight, x: sliderX } = this.sliderConfig;
+        const sfxSelected = this.selectedVolumeOption === 0;
+        const musicSelected = this.selectedVolumeOption === 1;
+
+        // Update percentage texts
+        this.sfxVolumeText.setText(`${Math.round(this.sfxVolume * 100)}%`);
+        this.musicVolumeText.setText(`${Math.round(this.musicVolume * 100)}%`);
+
+        // Update colors based on selection
+        const activeColor = 0xffff00;
+        const inactiveColor = 0x00ffff;
+
+        this.sfxVolumeText.setFill(sfxSelected ? '#ffff00' : '#00ffff');
+        this.musicVolumeText.setFill(musicSelected ? '#ffff00' : '#00ffff');
+        this.sfxLeftArrow.setFill(sfxSelected ? '#ffff00' : '#00ffff');
+        this.sfxRightArrow.setFill(sfxSelected ? '#ffff00' : '#00ffff');
+        this.musicLeftArrow.setFill(musicSelected ? '#ffff00' : '#00ffff');
+        this.musicRightArrow.setFill(musicSelected ? '#ffff00' : '#00ffff');
+
+        // Draw SFX slider
+        this.sfxSliderBg.clear();
+        this.sfxSliderBg.fillStyle(0x333333, 1);
+        this.sfxSliderBg.lineStyle(2, sfxSelected ? activeColor : inactiveColor, 1);
+        this.sfxSliderBg.fillRoundedRect(sliderX, height/2 - 26, sliderWidth, sliderHeight, 4);
+        this.sfxSliderBg.strokeRoundedRect(sliderX, height/2 - 26, sliderWidth, sliderHeight, 4);
+
+        this.sfxSliderFill.clear();
+        const sfxFillWidth = Math.max(4, sliderWidth * this.sfxVolume);
+        this.sfxSliderFill.fillStyle(sfxSelected ? activeColor : inactiveColor, 1);
+        this.sfxSliderFill.fillRoundedRect(sliderX, height/2 - 26, sfxFillWidth, sliderHeight, 4);
+
+        // Draw Music slider
+        this.musicSliderBg.clear();
+        this.musicSliderBg.fillStyle(0x333333, 1);
+        this.musicSliderBg.lineStyle(2, musicSelected ? activeColor : inactiveColor, 1);
+        this.musicSliderBg.fillRoundedRect(sliderX, height/2 + 64, sliderWidth, sliderHeight, 4);
+        this.musicSliderBg.strokeRoundedRect(sliderX, height/2 + 64, sliderWidth, sliderHeight, 4);
+
+        this.musicSliderFill.clear();
+        const musicFillWidth = Math.max(4, sliderWidth * this.musicVolume);
+        this.musicSliderFill.fillStyle(musicSelected ? activeColor : inactiveColor, 1);
+        this.musicSliderFill.fillRoundedRect(sliderX, height/2 + 64, musicFillWidth, sliderHeight, 4);
+    }
+
+    adjustVolume(delta) {
+        if (this.selectedVolumeOption === 0) {
+            this.sfxVolume = Phaser.Math.Clamp(this.sfxVolume + delta, 0, 1);
+        } else {
+            this.musicVolume = Phaser.Math.Clamp(this.musicVolume + delta, 0, 1);
+            if (this.bgMusic) {
+                this.bgMusic.setVolume(this.musicVolume);
+            }
+        }
+        this.updateVolumeDisplay();
+    }
+
+    waveComplete() {
+        this.waveActive = false;
+        if (this.enemySpawnEvent) this.enemySpawnEvent.destroy();
+
+        this.wave++;
+        this.waveText.setText(`WAVE: ${this.wave}`);
+
+        this.time.delayedCall(2000, () => this.startWave());
+    }
+
+    endGame() {
+        this.gameOver = true;
+        this.physics.pause();
+
+        if (this.enemySpawnEvent) this.enemySpawnEvent.destroy();
+
+        // Stop background music
+        if (this.bgMusic) {
+            this.bgMusic.stop();
+        }
+
+        this.createExplosion(this.player.x, this.player.y);
+        this.player.setVisible(false);
+        this.engineFire.setVisible(false);
+
+        this.time.delayedCall(1500, () => {
+            this.scene.start('GameOverScene', { score: this.score, wave: this.wave });
+        });
+    }
+}
+
+// ===========================================
+// GAME OVER SCENE
+// ===========================================
+class GameOverScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'GameOverScene' });
+    }
+
+    init(data) {
+        this.finalScore = data.score || 0;
+        this.finalWave = data.wave || 1;
+        this.justSaved = data.justSaved || false;
+        this.enteringInitials = false;
+        this.initials = ['A', 'A', 'A'];
+        this.currentInitialIndex = 0;
+        this.sfxVolume = parseFloat(localStorage.getItem('sfxVolume') || '0.5');
+    }
+
+    create() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        this.add.tileSprite(width/2, height/2, width, height, 'starBg').setTileScale(0.5);
+
+        this.add.text(width/2, 60, 'GAME OVER', {
+            fontSize: '24px',
+            fill: '#ff0000',
+            stroke: '#000',
+            strokeThickness: 4,
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        this.add.text(width/2, 120, `SCORE: ${this.finalScore}`, {
+            fontSize: '12px',
+            fill: '#00ffff',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        this.add.text(width/2, 150, `WAVES: ${this.finalWave - 1}`, {
+            fontSize: '8px',
+            fill: '#ffff00',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        // Check if score qualifies for top 10
+        const highScores = this.getHighScores();
+        const rank = this.getScoreRank(this.finalScore, highScores);
+
+        if (!this.justSaved && rank <= 10 && this.finalScore > 0) {
+            this.enteringInitials = true;
+            this.showInitialEntry(rank);
+        } else {
+            this.showHighScoreTable(highScores);
+            this.showRestartPrompt();
+        }
+    }
+
+    getHighScores() {
+        const stored = localStorage.getItem('spaceShooterHighScores');
+        if (stored) {
+            return JSON.parse(stored);
+        }
+        // Pre-seed with default scores (easy to beat)
+        return [
+            { initials: 'ACE', score: 5000, wave: 3 },
+            { initials: 'BAD', score: 4000, wave: 2 },
+            { initials: 'CAT', score: 3500, wave: 2 },
+            { initials: 'DOG', score: 3000, wave: 2 },
+            { initials: 'ELF', score: 2500, wave: 1 },
+            { initials: 'FLY', score: 2000, wave: 1 },
+            { initials: 'GNU', score: 1500, wave: 1 },
+            { initials: 'HEN', score: 1000, wave: 1 },
+            { initials: 'ICE', score: 500, wave: 1 },
+            { initials: 'JAM', score: 100, wave: 1 }
+        ];
+    }
+
+    saveHighScores(scores) {
+        localStorage.setItem('spaceShooterHighScores', JSON.stringify(scores));
+    }
+
+    getScoreRank(score, highScores) {
+        if (highScores.length === 0) return 1;
+        for (let i = 0; i < highScores.length; i++) {
+            if (score > highScores[i].score) {
+                return i + 1;
+            }
+        }
+        return highScores.length + 1;
+    }
+
+    showInitialEntry(rank) {
+        const width = this.cameras.main.width;
+
+        this.add.text(width/2, 200, `RANK #${rank}! ENTER YOUR INITIALS`, {
+            fontSize: '8px',
+            fill: '#00ff00',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        // Initial letters display
+        this.initialTexts = [];
+        const startX = width/2 - 40;
+        for (let i = 0; i < 3; i++) {
+            const letterText = this.add.text(startX + i * 40, 260, this.initials[i], {
+                fontSize: '24px',
+                fill: i === 0 ? '#ffff00' : '#ffffff',
+                fontFamily: '"Press Start 2P"'
+            }).setOrigin(0.5);
+            this.initialTexts.push(letterText);
+        }
+
+        // Arrows for current selection
+        this.upArrow = this.add.text(startX, 230, '^', {
+            fontSize: '12px',
+            fill: '#ffff00',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        this.downArrow = this.add.text(startX, 290, 'v', {
+            fontSize: '12px',
+            fill: '#ffff00',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        // Blink current letter
+        this.tweens.add({
+            targets: this.initialTexts[0],
+            alpha: 0.3,
+            duration: 300,
+            yoyo: true,
+            repeat: -1
+        });
+
+        this.add.text(width/2, 330, 'UP/DOWN: CHANGE LETTER', {
+            fontSize: '6px',
+            fill: '#888888',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        this.add.text(width/2, 350, 'LEFT/RIGHT: SELECT LETTER', {
+            fontSize: '6px',
+            fill: '#888888',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        this.add.text(width/2, 370, 'SPACE: CONFIRM', {
+            fontSize: '6px',
+            fill: '#888888',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        // Show current high scores below
+        const highScores = this.getHighScores();
+        this.showHighScoreTable(highScores, 410);
+
+        // Input handling
+        this.input.keyboard.on('keydown-UP', () => this.changeInitial(1));
+        this.input.keyboard.on('keydown-DOWN', () => this.changeInitial(-1));
+        this.input.keyboard.on('keydown-LEFT', () => this.selectInitial(-1));
+        this.input.keyboard.on('keydown-RIGHT', () => this.selectInitial(1));
+        this.input.keyboard.on('keydown-SPACE', () => this.confirmInitials());
+    }
+
+    changeInitial(direction) {
+        if (!this.enteringInitials) return;
+
+        this.sound.play('sfxCycle', { volume: this.sfxVolume * 0.5 });
+
+        const currentChar = this.initials[this.currentInitialIndex].charCodeAt(0);
+        let newChar = currentChar + direction;
+
+        // Wrap around A-Z
+        if (newChar > 90) newChar = 65; // Z -> A
+        if (newChar < 65) newChar = 90; // A -> Z
+
+        this.initials[this.currentInitialIndex] = String.fromCharCode(newChar);
+        this.initialTexts[this.currentInitialIndex].setText(this.initials[this.currentInitialIndex]);
+    }
+
+    selectInitial(direction) {
+        if (!this.enteringInitials) return;
+
+        this.sound.play('sfxCycle', { volume: this.sfxVolume * 0.5 });
+
+        // Stop blinking on old letter
+        this.tweens.killTweensOf(this.initialTexts[this.currentInitialIndex]);
+        this.initialTexts[this.currentInitialIndex].setAlpha(1);
+        this.initialTexts[this.currentInitialIndex].setFill('#ffffff');
+
+        // Move selection
+        this.currentInitialIndex = Phaser.Math.Clamp(this.currentInitialIndex + direction, 0, 2);
+
+        // Update arrow positions
+        const startX = this.cameras.main.width/2 - 40;
+        this.upArrow.setX(startX + this.currentInitialIndex * 40);
+        this.downArrow.setX(startX + this.currentInitialIndex * 40);
+
+        // Highlight and blink new letter
+        this.initialTexts[this.currentInitialIndex].setFill('#ffff00');
+        this.tweens.add({
+            targets: this.initialTexts[this.currentInitialIndex],
+            alpha: 0.3,
+            duration: 300,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    confirmInitials() {
+        if (!this.enteringInitials) return;
+
+        this.enteringInitials = false;
+        this.sound.play('sfxSelect', { volume: this.sfxVolume });
+
+        // Save the score
+        const highScores = this.getHighScores();
+        const newEntry = {
+            initials: this.initials.join(''),
+            score: this.finalScore,
+            wave: this.finalWave - 1
+        };
+
+        // Insert at correct position
+        const rank = this.getScoreRank(this.finalScore, highScores);
+        highScores.splice(rank - 1, 0, newEntry);
+
+        // Keep only top 10
+        if (highScores.length > 10) {
+            highScores.length = 10;
+        }
+
+        this.saveHighScores(highScores);
+
+        // Clear the scene and show final leaderboard
+        this.scene.restart({ score: 0, wave: 1, justSaved: true });
+    }
+
+    showHighScoreTable(highScores, startY = 200) {
+        const width = this.cameras.main.width;
+
+        this.add.text(width/2, startY, '- HIGH SCORES -', {
+            fontSize: '10px',
+            fill: '#ff8800',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        if (highScores.length === 0) {
+            this.add.text(width/2, startY + 40, 'NO SCORES YET', {
+                fontSize: '8px',
+                fill: '#666666',
+                fontFamily: '"Press Start 2P"'
+            }).setOrigin(0.5);
+        } else {
+            for (let i = 0; i < Math.min(highScores.length, 10); i++) {
+                const entry = highScores[i];
+                const rank = `${i + 1}`.padStart(2, ' ');
+                const isCurrentScore = entry.score === this.finalScore && entry.initials === this.initials.join('');
+                const color = isCurrentScore ? '#00ff00' : '#00ffff';
+
+                this.add.text(width/2 - 120, startY + 30 + i * 22, `${rank}.`, {
+                    fontSize: '8px',
+                    fill: '#888888',
+                    fontFamily: '"Press Start 2P"'
+                });
+
+                this.add.text(width/2 - 90, startY + 30 + i * 22, entry.initials, {
+                    fontSize: '8px',
+                    fill: color,
+                    fontFamily: '"Press Start 2P"'
+                });
+
+                this.add.text(width/2 + 10, startY + 30 + i * 22, `${entry.score}`.padStart(7, ' '), {
+                    fontSize: '8px',
+                    fill: color,
+                    fontFamily: '"Press Start 2P"'
+                });
+
+                this.add.text(width/2 + 90, startY + 30 + i * 22, `W${entry.wave}`, {
+                    fontSize: '8px',
+                    fill: '#888888',
+                    fontFamily: '"Press Start 2P"'
+                });
+            }
+        }
+    }
+
+    showRestartPrompt() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        const restartText = this.add.text(width/2, height - 50, 'PRESS SPACE TO PLAY', {
+            fontSize: '8px',
+            fill: '#ffff00',
+            fontFamily: '"Press Start 2P"'
+        }).setOrigin(0.5);
+
+        this.tweens.add({
+            targets: restartText,
+            alpha: 0.3,
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+
+        this.input.keyboard.once('keydown-SPACE', () => {
+            this.scene.start('MenuScene');
+        });
+
+        this.input.once('pointerdown', () => {
+            this.scene.start('MenuScene');
+        });
+    }
+}
+
+// ===========================================
+// GAME CONFIGURATION
+// ===========================================
+const config = {
+    type: Phaser.AUTO,
+    width: 600,
+    height: 700,
+    parent: 'game-container',
+    pixelArt: true,
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        max: {
+            width: 600,
+            height: 700
+        }
+    },
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    },
+    scene: [BootScene, MenuScene, GameScene, GameOverScene]
+};
+
+const game = new Phaser.Game(config);
+</script>
+</body>
+</html>
