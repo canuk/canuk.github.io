@@ -603,6 +603,49 @@
             color: #fbbf24;
             margin-right: 0.5rem;
         }
+
+        .game-selector {
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .game-selector label {
+            color: white;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .game-selector select {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 0.5rem;
+            border: 2px solid #fbbf24;
+            background: white;
+            color: #1e3a8a;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .game-selector select:hover {
+            background: #fef3c7;
+        }
+
+        .setup-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .setup-grid-2 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
     </style>
 </head>
 <body>
@@ -610,6 +653,13 @@
         <div class="header">
             <div class="header-title">Mario Kart Match</div>
             <div class="header-subtitle">Find your perfect racing style!</div>
+            <div class="game-selector">
+                <label for="gameSelect">Game:</label>
+                <select id="gameSelect" onchange="switchGame(this.value)">
+                    <option value="world">Mario Kart World</option>
+                    <option value="mk8">Mario Kart 8 Deluxe</option>
+                </select>
+            </div>
         </div>
 
         <div class="tabs">
@@ -660,7 +710,7 @@
                 Created with ❤️ for Mario Kart fans everywhere
                 <span style="color: #fcd34d;">★</span>
             </div>
-            <p class="footer-small">Based on Mario Kart 8 Deluxe for Nintendo Switch</p>
+            <p class="footer-small">Based on Mario Kart World for Nintendo Switch 2</p>
         </div>
     </div>
 
@@ -670,6 +720,7 @@
         let selectedMood = null;
         let quizStep = 0;
         let quizAnswers = {};
+        let currentGame = 'world'; // Default to Mario Kart World
 
         // Data
         const moods = [
@@ -685,7 +736,52 @@
             { id: 'balanced', name: 'Balanced/Versatile', emoji: '⚖️' }
         ];
 
-        const recommendations = {
+        // Mario Kart World recommendations (no wheels/gliders - just character + vehicle)
+        const recommendationsWorld = {
+            competitive: {
+                character: 'Waluigi', vehicle: 'Junkyard Hog',
+                explanation: "You're all about winning! Waluigi paired with the Junkyard Hog gives you incredible top speed to leave opponents in the dust. This heavyweight combo is perfect for those who want to be first across the finish line, every time."
+            },
+            laidback: {
+                character: 'Toad', vehicle: 'Standard Kart',
+                explanation: "You're here for a good time, not a stressful one. Toad with the Standard Kart offers balanced stats and easy handling, perfect for just cruising and enjoying the race without overthinking your strategy."
+            },
+            chaotic: {
+                character: 'Piranha Plant', vehicle: 'Billdozer',
+                explanation: "You thrive in unpredictable situations! Piranha Plant with the Billdozer (themed after the Bullet Bill) is perfect for causing mayhem and embracing the unexpected. This wild combo lets you charge through the chaos!"
+            },
+            nostalgic: {
+                character: 'Mario', vehicle: 'Pipe Frame',
+                explanation: "You appreciate the classics! Mario with the Pipe Frame is a throwback to simpler times, offering that traditional Mario Kart experience that's kept players coming back since the beginning."
+            },
+            quirky: {
+                character: 'Cow', vehicle: 'Big Horn',
+                explanation: "You like to do things differently! The Cow with the Big Horn (complete with horns and a golden nose ring!) is an unconventional but hilarious combo that will raise eyebrows, perfect for those who never follow the crowd."
+            },
+            stylish: {
+                character: 'Rosalina', vehicle: 'Roadster Royale',
+                explanation: "You race with elegance and flair! Rosalina with the Roadster Royale is visually stunning with its sleek design that changes color based on the driver. This combo makes you look good while performing well."
+            },
+            edgy: {
+                character: 'Dry Bones', vehicle: 'Bowser Bruiser',
+                explanation: "You've got attitude to spare! Dry Bones with the Bowser Bruiser screams 'don't mess with me' and delivers with heavyweight power that can push opponents aside while maintaining intimidating speed."
+            },
+            cute: {
+                character: 'Baby Peach', vehicle: 'Plushbuggy',
+                explanation: "You bring the adorable factor to every race! Baby Peach with the Plushbuggy creates the cutest combo on the track, with excellent acceleration and handling that belies its charming appearance."
+            },
+            powerful: {
+                character: 'Bowser', vehicle: 'Chargin\' Truck',
+                explanation: "You're all about raw power! Bowser with the Chargin' Truck creates an unstoppable force with top-tier weight and speed that can bulldoze through obstacles and opponents alike. Perfect for those who want to dominate the track."
+            },
+            balanced: {
+                character: 'Luigi', vehicle: 'Rally Bike',
+                explanation: "You value versatility above all! Luigi with the Rally Bike gives you balanced stats across the board, making this combo adaptable to any track or racing situation. A solid choice for those who want to be prepared for anything."
+            }
+        };
+
+        // Mario Kart 8 Deluxe recommendations (original with wheels/gliders)
+        const recommendationsMK8 = {
             competitive: {
                 character: 'Funky Kong', kart: 'Wild Wiggler', wheels: 'Roller', glider: 'Super Glider',
                 explanation: "You're all about winning! Funky Kong with the Wild Wiggler, Roller wheels, and Super Glider gives you incredible speed, acceleration, and drift capabilities to leave opponents in the dust. This combo is perfect for those who want to be first across the finish line, every time."
@@ -728,6 +824,11 @@
             }
         };
 
+        // Getter for current game's recommendations
+        function getRecommendations() {
+            return currentGame === 'world' ? recommendationsWorld : recommendationsMK8;
+        }
+
         const questions = [
             { id: 'q1', text: 'I prefer taking shortcuts even if they are risky.', type: 'agreement' },
             { id: 'q2', text: 'When I play, winning is more important than having fun.', type: 'agreement' },
@@ -757,7 +858,60 @@
             { value: 5, label: 'Almost Always' }
         ];
 
-        const personalities = {
+        // Mario Kart World personalities (no wheels/gliders)
+        const personalitiesWorld = {
+            speedDemon: {
+                title: "Speed Demon",
+                description: "You live for the thrill of high-speed racing! You're all about going fast and taking risks, even if it means occasionally flying off the track. You prefer straightforward courses where you can really let loose and show off your speed.",
+                character: "Bowser", vehicle: "Junkyard Hog",
+                explanation: "This powerful combo maximizes speed! Bowser adds weight to prevent being pushed around, while the Junkyard Hog has the highest top speed in the game. Perfect for straightaway dominance!"
+            },
+            technicalMaster: {
+                title: "Technical Master",
+                description: "You approach Mario Kart like a science, mastering every technique from drift-boosting to item strategy. You excel on technical courses with lots of turns where your precision shines. While others might have raw speed, your technical prowess puts you ahead.",
+                character: "Yoshi", vehicle: "Mach Rocket",
+                explanation: "This setup is perfect for technical players who value handling and acceleration. Yoshi provides balanced stats, while the Mach Rocket bike gives you excellent handling for tight corners and precise drifting."
+            },
+            strategist: {
+                title: "The Strategist",
+                description: "You're always thinking two steps ahead. You know exactly when to use items, when to take shortcuts, and how to set traps for opponents. Every race is a chess match, and you're the grandmaster plotting the perfect path to victory.",
+                character: "Waluigi", vehicle: "Rally Kart",
+                explanation: "This combination gives you the versatility a strategic player needs. Waluigi has good speed without sacrificing handling, and the Rally Kart provides excellent all-around stats for adapting to any situation."
+            },
+            battleMaster: {
+                title: "Battle Master",
+                description: "You're all about the combat aspect of Mario Kart! You'd rather take down opponents with well-placed shells and bananas than worry about clean racing. For you, the best defense is a good offense, and you're always looking for the next opportunity to strike.",
+                character: "King Boo", vehicle: "Bowser Bruiser",
+                explanation: "This aggressive setup lets you focus on what you do best - causing chaos! King Boo gives you good weight, and the Bowser Bruiser ATV provides the heft to push opponents around while maintaining solid speed."
+            },
+            stylishCruiser: {
+                title: "Stylish Cruiser",
+                description: "For you, looking good is just as important as racing well. You choose your setup based on aesthetics and enjoy showcasing your personality through your character and kart choices. Racing isn't just about winning—it's about making a statement while doing it.",
+                character: "Rosalina", vehicle: "Roadster Royale",
+                explanation: "This elegant setup perfectly matches your desire for style and performance. Rosalina brings grace and poise, while the Roadster Royale's stunning design changes color based on your driver. A visually beautiful combination that performs admirably on the track."
+            },
+            partyRacer: {
+                title: "Party Racer",
+                description: "You're in it for the fun and laughs! You don't stress about winning or losing—you're all about creating memorable moments and enjoying the ride. You might not take the most optimal racing lines, but you're guaranteed to have the best time.",
+                character: "Penguin", vehicle: "Plushbuggy",
+                explanation: "This adorable combo is all about having fun! Penguin is one of the delightful new characters in Mario Kart World, while the Plushbuggy brings whimsy to your driving style. Perfect for creating memorable moments!"
+            },
+            adaptiveRacer: {
+                title: "Adaptive Racer",
+                description: "You're the ultimate all-rounder, able to adapt to any situation the race throws at you. Whether it's a technical course, a battle mode, or a straightaway speed challenge, you adjust your strategy on the fly and always remain competitive.",
+                character: "Luigi", vehicle: "Standard Bike",
+                explanation: "This balanced setup gives you versatility for any racing situation. Luigi provides well-rounded stats, while the Standard Bike offers a good mix of speed and handling that adapts to any terrain."
+            },
+            classicPurist: {
+                title: "Classic Purist",
+                description: "You appreciate the traditional Mario Kart experience and prefer to stick with the classics. You likely have been playing since the early games and value consistency and familiarity in your racing approach.",
+                character: "Mario", vehicle: "Pipe Frame",
+                explanation: "This nostalgic setup pays homage to the classic Mario Kart experience you love. Mario is the original racer with balanced stats, while the Pipe Frame kart evokes the classic go-kart feel from earlier games."
+            }
+        };
+
+        // Mario Kart 8 Deluxe personalities (original with wheels/gliders)
+        const personalitiesMK8 = {
             speedDemon: {
                 title: "Speed Demon",
                 description: "You live for the thrill of high-speed racing! You're all about going fast and taking risks, even if it means occasionally flying off the track. You prefer straightforward courses where you can really let loose and show off your speed.",
@@ -808,9 +962,15 @@
             }
         };
 
+        // Getter for current game's personalities
+        function getPersonalities() {
+            return currentGame === 'world' ? personalitiesWorld : personalitiesMK8;
+        }
+
         // Initialize
         function init() {
             renderMoodGrid();
+            updateFooter();
         }
 
         function switchTab(tab) {
@@ -865,19 +1025,32 @@
 
         function showRecommendation(moodId) {
             const mood = moods.find(m => m.id === moodId);
+            const recommendations = getRecommendations();
             const rec = recommendations[moodId];
-            
+
             const section = document.getElementById('recommendationSection');
             section.className = 'recommendation-section fade-in';
-            section.innerHTML = `
-                <h2 class="recommendation-title">
-                    <span class="recommendation-badge">${mood.emoji}</span>
-                    <span style="background: linear-gradient(to right, #2563eb, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                        ${mood.name} Mood
-                    </span>
-                </h2>
-                
-                <div style="background: linear-gradient(to bottom right, #eff6ff, #dbeafe); border: 2px solid #93c5fd; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 10px 15px rgba(0,0,0,0.1);">
+
+            let setupCardsHtml;
+            if (currentGame === 'world') {
+                // Mario Kart World: Character + Vehicle only (2 cards)
+                setupCardsHtml = `
+                    <div class="setup-grid-2">
+                        <div class="setup-card character">
+                            <div class="setup-header">Character</div>
+                            <div class="setup-icon">👤</div>
+                            <div class="setup-name">${rec.character}</div>
+                        </div>
+                        <div class="setup-card kart">
+                            <div class="setup-header">Vehicle</div>
+                            <div class="setup-icon">🏎️</div>
+                            <div class="setup-name">${rec.vehicle}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Mario Kart 8 Deluxe: Character + Kart + Wheels + Glider (4 cards)
+                setupCardsHtml = `
                     <div class="setup-grid">
                         <div class="setup-card character">
                             <div class="setup-header">Character</div>
@@ -900,7 +1073,20 @@
                             <div class="setup-name">${rec.glider}</div>
                         </div>
                     </div>
-                    
+                `;
+            }
+
+            section.innerHTML = `
+                <h2 class="recommendation-title">
+                    <span class="recommendation-badge">${mood.emoji}</span>
+                    <span style="background: linear-gradient(to right, #2563eb, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                        ${mood.name} Mood
+                    </span>
+                </h2>
+
+                <div style="background: linear-gradient(to bottom right, #eff6ff, #dbeafe); border: 2px solid #93c5fd; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 10px 15px rgba(0,0,0,0.1);">
+                    ${setupCardsHtml}
+
                     <div class="explanation-box">
                         <h3 class="explanation-title">
                             <span style="background: #fbbf24; padding: 0.25rem; border-radius: 9999px; margin-right: 0.5rem;">💡</span>
@@ -908,7 +1094,7 @@
                         </h3>
                         <p class="explanation-text">${rec.explanation}</p>
                         <div class="mood-quote">
-                            "If you're in a <strong style="color: #dc2626;">${mood.name.toLowerCase()}</strong> mood, this is the kart for you!"
+                            "If you're in a <strong style="color: #dc2626;">${mood.name.toLowerCase()}</strong> mood, this is the ${currentGame === 'world' ? 'vehicle' : 'kart'} for you!"
                         </div>
                     </div>
                 </div>
@@ -996,6 +1182,7 @@
                 experimental: quizAnswers.q10 || 3
             };
 
+            const personalities = getPersonalities();
             let personalityType;
             if (scores.riskTaking >= 4 && scores.competitive >= 4 && scores.simplicity >= 3) {
                 personalityType = personalities.speedDemon;
@@ -1014,8 +1201,35 @@
             } else {
                 personalityType = personalities.classicPurist;
             }
-            
+
             showQuizResults(personalityType);
+        }
+
+        function switchGame(game) {
+            currentGame = game;
+            // Reset UI state
+            selectedMood = null;
+            document.getElementById('recommendationSection').classList.add('hidden');
+            document.getElementById('recommendationSection').innerHTML = '';
+            // Reset mood button states
+            const buttons = document.querySelectorAll('.mood-button');
+            buttons.forEach(btn => btn.classList.remove('selected'));
+            // Update footer text
+            updateFooter();
+            // If on quiz tab and showing results, restart quiz
+            if (currentTab === 'personality') {
+                restartQuiz();
+            }
+        }
+
+        function updateFooter() {
+            const footerSmall = document.querySelector('.footer-small');
+            if (footerSmall) {
+                const gameText = currentGame === 'world'
+                    ? 'Based on Mario Kart World for Nintendo Switch 2'
+                    : 'Based on Mario Kart 8 Deluxe for Nintendo Switch';
+                footerSmall.textContent = gameText;
+            }
         }
 
         function showQuizResults(personality) {
@@ -1023,43 +1237,67 @@
             const resultsDiv = document.getElementById('quizResults');
             resultsDiv.classList.remove('hidden');
             resultsDiv.className = 'results-box fade-in';
-            
+
+            let setupCardsHtml;
+            if (currentGame === 'world') {
+                // Mario Kart World: Character + Vehicle only (2 cards)
+                setupCardsHtml = `
+                    <div class="setup-grid-2">
+                        <div class="setup-card character">
+                            <div class="setup-header">Character</div>
+                            <div class="setup-icon">👤</div>
+                            <div class="setup-name">${personality.character}</div>
+                        </div>
+                        <div class="setup-card kart">
+                            <div class="setup-header">Vehicle</div>
+                            <div class="setup-icon">🏎️</div>
+                            <div class="setup-name">${personality.vehicle}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Mario Kart 8 Deluxe: Character + Kart + Wheels + Glider (4 cards)
+                setupCardsHtml = `
+                    <div class="setup-grid">
+                        <div class="setup-card character">
+                            <div class="setup-header">Character</div>
+                            <div class="setup-icon">👤</div>
+                            <div class="setup-name">${personality.character}</div>
+                        </div>
+                        <div class="setup-card kart">
+                            <div class="setup-header">Kart</div>
+                            <div class="setup-icon">🏎️</div>
+                            <div class="setup-name">${personality.kart}</div>
+                        </div>
+                        <div class="setup-card wheels">
+                            <div class="setup-header">Wheels</div>
+                            <div class="setup-icon">🛞</div>
+                            <div class="setup-name">${personality.wheels}</div>
+                        </div>
+                        <div class="setup-card glider">
+                            <div class="setup-header">Glider</div>
+                            <div class="setup-icon">🪂</div>
+                            <div class="setup-name">${personality.glider}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
             resultsDiv.innerHTML = `
                 <div class="results-badge">Your Mario Kart Personality Is:</div>
                 <h2 class="results-title">${personality.title}</h2>
-                
+
                 <div class="personality-description">
                     <p>🏆 ${personality.description}</p>
                 </div>
-                
+
                 <h3 class="section-title">
                     <span class="title-icon">🏁</span>
                     Your Recommended Setup:
                 </h3>
-                
-                <div class="setup-grid">
-                    <div class="setup-card character">
-                        <div class="setup-header">Character</div>
-                        <div class="setup-icon">👤</div>
-                        <div class="setup-name">${personality.character}</div>
-                    </div>
-                    <div class="setup-card kart">
-                        <div class="setup-header">Kart</div>
-                        <div class="setup-icon">🏎️</div>
-                        <div class="setup-name">${personality.kart}</div>
-                    </div>
-                    <div class="setup-card wheels">
-                        <div class="setup-header">Wheels</div>
-                        <div class="setup-icon">🛞</div>
-                        <div class="setup-name">${personality.wheels}</div>
-                    </div>
-                    <div class="setup-card glider">
-                        <div class="setup-header">Glider</div>
-                        <div class="setup-icon">🪂</div>
-                        <div class="setup-name">${personality.glider}</div>
-                    </div>
-                </div>
-                
+
+                ${setupCardsHtml}
+
                 <div class="explanation-box">
                     <h3 class="explanation-title">
                         <span style="color: #fbbf24; margin-right: 0.5rem;">⚡</span>
@@ -1067,7 +1305,7 @@
                     </h3>
                     <p class="explanation-text">${personality.explanation}</p>
                 </div>
-                
+
                 <button class="restart-button" onclick="restartQuiz()">
                     ✓ Take The Quiz Again
                 </button>
