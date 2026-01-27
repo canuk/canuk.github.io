@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Comprehension Debt"
-date: 2025-01-27
+date: 2026-01-27
 description: "The phrase stuck with me. Comprehension debt. It's a perfect name for something I'd been feeling but hadn't articulated."
 reading_time: 4
 ---

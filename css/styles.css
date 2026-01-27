@@ -316,3 +316,31 @@ pre code {
 .blog-post-content a:hover {
   color: #1d4ed8;
 }
+
+.blog-post-content table {
+  width: 100%;
+  margin: 1.5rem 0;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+
+.blog-post-content th,
+.blog-post-content td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border: 1px solid var(--border-color);
+}
+
+.blog-post-content th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.blog-post-content tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.blog-post-content tr:hover {
+  background: #f1f5f9;
+}
