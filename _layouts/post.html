@@ -1,15 +1,28 @@
 ---
 layout: default
 ---
-<article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <article class="blog-post" itemscope itemtype="http://schema.org/BlogPosting">
 
-  <header class="post-header">
-    <h1 class="post-title" itemprop="name headline">{{ page.title }}</h1>
-    <p class="post-meta"><time datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">{{ page.date | date: "%b %-d, %Y" }}</time>{% if page.author %} • <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span itemprop="name">{{ page.author }}</span></span>{% endif %}</p>
-  </header>
+        <header class="mb-5">
+          <h1 class="display-5 mb-3" itemprop="name headline">{{ page.title }}</h1>
+          <p class="text-secondary">
+            <time datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">{{ page.date | date: "%B %-d, %Y" }}</time>
+            {% if page.reading_time %} · {{ page.reading_time }} min read{% endif %}
+          </p>
+        </header>
 
-  <div class="post-content" itemprop="articleBody">
-    {{ content }}
+        <div class="blog-post-content" itemprop="articleBody">
+          {{ content }}
+        </div>
+
+        <footer class="mt-5 pt-4 border-top">
+          <a href="{{ site.baseurl }}/blog/" class="btn btn-outline-secondary">← Back to Blog</a>
+        </footer>
+
+      </article>
+    </div>
   </div>
-
-</article>
+</div>

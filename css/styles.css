@@ -259,3 +259,60 @@ pre code {
 .min-vh-75 {
   min-height: 75vh;
 }
+
+/* Blog Styles */
+.blog-post-preview h2 a {
+  color: var(--text-primary);
+  transition: color 0.2s ease;
+}
+
+.blog-post-preview h2 a:hover {
+  color: var(--primary-color);
+}
+
+.blog-post-content {
+  font-size: 1.125rem;
+  line-height: 1.8;
+}
+
+.blog-post-content p {
+  margin-bottom: 1.5rem;
+}
+
+.blog-post-content h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.blog-post-content blockquote {
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1.5rem;
+  margin: 1.5rem 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.blog-post-content blockquote p {
+  margin-bottom: 0.5rem;
+}
+
+.blog-post-content hr {
+  margin: 2.5rem 0;
+  border: none;
+  border-top: 1px solid var(--border-color);
+}
+
+.blog-post-content strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.blog-post-content a {
+  color: var(--primary-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.blog-post-content a:hover {
+  color: #1d4ed8;
+}

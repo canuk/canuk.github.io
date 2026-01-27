@@ -1,0 +1,35 @@
+---
+layout: default
+title: Blog
+description: Thoughts on AI, education, building things, and the spaces in between.
+---
+
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <h1 class="display-5 mb-3">Blog</h1>
+      <p class="lead text-secondary mb-5">Thoughts on AI, education, building things, and the spaces in between.</p>
+
+      {% for post in site.posts %}
+        <article class="blog-post-preview mb-5">
+          <h2 class="h3 mb-2">
+            <a href="{{ post.url | prepend: site.baseurl }}" class="text-decoration-none">{{ post.title }}</a>
+          </h2>
+          <p class="text-secondary small mb-3">
+            <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%B %-d, %Y" }}</time>
+            {% if post.reading_time %} · {{ post.reading_time }} min read{% endif %}
+          </p>
+          {% if post.excerpt %}
+            <p class="text-secondary">{{ post.excerpt | strip_html | truncatewords: 50 }}</p>
+          {% endif %}
+          <a href="{{ post.url | prepend: site.baseurl }}" class="btn btn-sm btn-outline-primary">Read more →</a>
+        </article>
+        {% unless forloop.last %}<hr class="my-4">{% endunless %}
+      {% endfor %}
+
+      {% if site.posts.size == 0 %}
+        <p class="text-secondary">No posts yet. Check back soon!</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
