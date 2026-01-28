@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Is RAG Actually Dead? An Interactive Explainer</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #0f172a;
+      min-height: 100vh;
+    }
+    .progress-btn {
+      height: 8px;
+      border: none;
+      border-radius: 4px;
+      flex: 1;
+      padding: 0;
+      transition: background-color 0.2s;
+    }
+    .progress-btn.active { background-color: #6366f1; }
+    .progress-btn.completed { background-color: #059669; }
+    .progress-btn.pending { background-color: #334155; }
+    .content-card {
+      background-color: #1e293b;
+      border-radius: 12px;
+    }
+    .question-card {
+      background-color: rgba(30, 41, 59, 0.5);
+      border: 1px solid #334155;
+      border-radius: 12px;
+    }
+    .answer-btn {
+      background-color: #334155;
+      border: 1px solid transparent;
+      color: #cbd5e1;
+      text-align: left;
+      transition: background-color 0.2s;
+    }
+    .answer-btn:hover:not(:disabled) {
+      background-color: #475569;
+      color: #e2e8f0;
+    }
+    .answer-btn.correct {
+      background-color: #065f46;
+      border-color: #059669;
+      color: #d1fae5;
+    }
+    .answer-btn.incorrect {
+      background-color: rgba(127, 29, 29, 0.5);
+      border-color: #dc2626;
+      color: #fecaca;
+    }
+    .answer-btn.was-correct {
+      background-color: rgba(6, 95, 70, 0.3);
+      border-color: #065f46;
+      color: #a7f3d0;
+    }
+    .explanation-box {
+      background-color: rgba(51, 65, 85, 0.5);
+      border-left: 4px solid #6366f1;
+      border-radius: 0 8px 8px 0;
+    }
+    .completion-box {
+      background-color: rgba(6, 95, 70, 0.3);
+      border: 1px solid #065f46;
+      border-radius: 12px;
+    }
+    .text-indigo { color: #818cf8; }
+    .text-emerald { color: #34d399; }
+    .text-amber { color: #fbbf24; }
+    .bg-indigo { background-color: #6366f1; }
+    blockquote {
+      border-left: 4px solid #6366f1;
+      padding-left: 1rem;
+      background-color: rgba(30, 41, 59, 0.5);
+      border-radius: 0 8px 8px 0;
+      padding: 0.75rem 1rem;
+    }
+    .source-box {
+      background-color: #1e293b;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body class="text-light">
+  <div id="app" class="container py-4" style="max-width: 800px;"></div>
+
+  <script>
+    const sections = [
+      {
+        id: 'context',
+        title: 'What Prompted This?',
+        content: `<p class="mb-3">In October 2025, <strong>Nicolas Bustamante</strong> (@nicbstme), founder of Fintool, published an article that went viral on Hacker News:</p>
+        
+<blockquote class="mb-3">
+  <p class="text-secondary fst-italic mb-0">"The RAG Obituary: Killed by Agents, Buried by Context Windows"</p>
+</blockquote>
+
+<p class="mb-3">His core argument: after three years of building complex RAG pipelines, he believes we're witnessing "the twilight of traditional RAG-based architectures" as context windows explode and agentic approaches mature.</p>
+
+<p class="mb-3"><strong class="text-indigo">The question this raises:</strong> If you're learning about RAG or building knowledge-based applications, is this stuff already obsolete? Should you even bother?</p>
+
+<p class="mb-3">This interactive explainer breaks down:</p>
+<ul class="list-unstyled ms-3">
+  <li>• What the key concepts actually mean (BM25, hybrid search, reranking)</li>
+  <li>• What the author is really claiming</li>
+  <li>• What's valid vs. overstated</li>
+  <li>• Practical implications for building knowledge bots</li>
+</ul>
+
+<div class="source-box p-3 mt-4">
+  <p class="text-secondary small mb-0">
+    <strong class="text-light">Source:</strong> 
+    <a href="https://x.com/nicbstme/status/1973551051145154702" target="_blank" class="text-indigo">Original X post</a> · 
+    <a href="https://www.nicolasbustamante.com/p/the-rag-obituary-killed-by-agents" target="_blank" class="text-indigo">Full article</a>
+  </p>
+</div>`,
+        question: 'Why did this article get so much attention?',
+        options: [
+          'It announced a new product',
+          'It challenged widely-adopted infrastructure that many teams invested heavily in',
+          'It was the first article about RAG',
+          'It was written by a famous AI researcher'
+        ],
+        correct: 1,
+        explanation: `The article struck a nerve because so many teams have invested significant time and money into RAG infrastructure. Being told "this is all becoming obsolete" is provocative—and worth examining critically.`
+      },
+      {
+        id: 'bm25',
+        title: 'BM25: The Missing Piece',
+        content: `<p class="mb-3">You probably know embeddings turn text into vectors and find "similar" content. <strong>BM25</strong> is the other half of the story—and it's surprisingly old (1994).</p>
+
+<h5 class="text-indigo mt-4 mb-2">What BM25 Does:</h5>
+<p class="mb-3">It's a keyword matching algorithm, but smarter than simple "does this word appear?" It considers:</p>
+
+<ul class="list-unstyled ms-3 mb-3">
+  <li class="mb-2"><strong>• Term Frequency (TF):</strong> <span class="text-secondary">How often does the search term appear? But with diminishing returns—10 mentions isn't 10x better than 1 mention.</span></li>
+  <li class="mb-2"><strong>• Inverse Document Frequency (IDF):</strong> <span class="text-secondary">Rare words matter more. "EBITDA" appearing in a doc is more meaningful than "the" appearing.</span></li>
+  <li class="mb-2"><strong>• Document Length:</strong> <span class="text-secondary">Longer docs get normalized so they don't unfairly dominate.</span></li>
+</ul>
+
+<h5 class="text-indigo mt-4 mb-2">Why It Matters:</h5>
+<p class="mb-3">Embeddings are great at "what's this concept about?" but terrible at exact matches. Search for "ASC 606" (an accounting standard) and embeddings might return docs about "revenue recognition" generally—related, but not what you asked for.</p>
+
+<p>BM25 finds the exact term. That's why modern RAG uses <em>both</em>—called <strong>"hybrid search."</strong></p>`,
+        question: 'When you search for "Dr. Smith\'s framework for X," which approach finds docs that literally contain the name?',
+        options: ['Embeddings (semantic similarity)', 'BM25 (keyword matching)', 'Neither—you need both'],
+        correct: 1,
+        explanation: `BM25 handles the exact match for "Dr. Smith." Embeddings might find conceptually similar content about frameworks, but could miss docs that specifically mention the name. This is why hybrid search combines both.`
+      },
+      {
+        id: 'hybrid',
+        title: 'Hybrid Search & Reranking',
+        content: `<h5 class="text-indigo mb-3">The Modern RAG Stack:</h5>
+
+<ol class="list-unstyled ms-3 mb-4">
+  <li class="mb-2"><strong>1. Chunking</strong> <span class="text-secondary">— Split documents into pieces (this is where problems start)</span></li>
+  <li class="mb-2"><strong>2. Dual Search</strong> <span class="text-secondary">— Run embeddings AND BM25 in parallel</span></li>
+  <li class="mb-2"><strong>3. Fusion</strong> <span class="text-secondary">— Combine results (often using "Reciprocal Rank Fusion"—items that rank well in BOTH systems bubble up)</span></li>
+  <li class="mb-2"><strong>4. Reranking</strong> <span class="text-secondary">— A separate ML model re-scores the top results for your specific query</span></li>
+  <li class="mb-2"><strong>5. LLM Synthesis</strong> <span class="text-secondary">— Finally, the language model reads the top chunks and answers</span></li>
+</ol>
+
+<h5 class="text-indigo mb-3">The Author's Pain Point:</h5>
+<p class="mb-4">Each step can fail, and errors compound. Bad chunks → bad embeddings → bad retrieval → bad reranking → wrong answer. He calls this <strong>"cascading failure."</strong></p>
+
+<h5 class="text-indigo mb-3">The Infrastructure Burden:</h5>
+<p>Running this at scale means managing Elasticsearch clusters, embedding models, reranking APIs, and constant re-indexing when you update content. It's genuinely complex.</p>`,
+        question: 'What\'s the main argument against complex RAG pipelines?',
+        options: [
+          'They\'re too expensive to run',
+          'Each stage can fail, and errors compound through the pipeline',
+          'Embeddings don\'t work at all',
+          'BM25 is too old to be useful'
+        ],
+        correct: 1,
+        explanation: `The "cascading failure" problem: chunking can split important info, embeddings can miss exact terms, fusion weights might be wrong, reranking can prioritize the wrong things. By the time you get to the LLM, you might be feeding it garbage.`
+      },
+      {
+        id: 'agentic',
+        title: 'The "Agentic Search" Alternative',
+        content: `<h5 class="text-indigo mb-3">The Author's Big Claim:</h5>
+<p class="mb-3">Claude Code (Anthropic's coding agent) doesn't use RAG at all. It uses:</p>
+
+<ul class="list-unstyled ms-3 mb-4">
+  <li class="mb-2"><strong>• Grep/Ripgrep</strong> <span class="text-secondary">— Lightning-fast text search, invented in 1973. No indexing, just searches files directly.</span></li>
+  <li class="mb-2"><strong>• Glob</strong> <span class="text-secondary">— File pattern matching (find all *.py files)</span></li>
+  <li class="mb-2"><strong>• Agent Logic</strong> <span class="text-secondary">— The LLM decides what to search for, reads results, follows references, searches again</span></li>
+</ul>
+
+<h5 class="text-indigo mb-3">Why This Works Now:</h5>
+<p class="mb-4">Context windows exploded. GPT-3.5 had 4K tokens. Claude now has 200K. Gemini has 1M. You can just... load entire documents.</p>
+
+<h5 class="text-indigo mb-3">The Key Insight:</h5>
+<p class="mb-3">Instead of "retrieve fragments, hope they're the right ones," an agent can:</p>
+<ol class="list-unstyled ms-3 mb-3">
+  <li class="text-secondary mb-1"><span class="text-indigo">1.</span> Search broadly with grep</li>
+  <li class="text-secondary mb-1"><span class="text-indigo">2.</span> Load full files that look relevant</li>
+  <li class="text-secondary mb-1"><span class="text-indigo">3.</span> Follow cross-references ("See Note 12" → actually go read Note 12)</li>
+  <li class="text-secondary mb-1"><span class="text-indigo">4.</span> Iterate until it has what it needs</li>
+</ol>
+
+<p>It's <strong>navigation</strong> instead of <strong>retrieval</strong>.</p>`,
+        question: 'What makes agentic search possible that wasn\'t possible in 2022?',
+        options: [
+          'Better embedding models',
+          'Faster computers',
+          'Massive context windows (200K+ tokens)',
+          'More training data'
+        ],
+        correct: 2,
+        explanation: `The context window explosion is the key enabler. When you can fit 700+ pages in context, you don't need to carefully select the "right" 10 chunks—you can load entire documents and let the model reason over them directly.`
+      },
+      {
+        id: 'reality',
+        title: 'Reality Check: Is RAG Dead?',
+        content: `<h5 class="text-indigo mb-3">What the Author Gets Right:</h5>
+<ul class="list-unstyled ms-3 mb-4">
+  <li class="text-emerald mb-1">✓ <span class="text-secondary">RAG pipelines ARE complex and failure-prone</span></li>
+  <li class="text-emerald mb-1">✓ <span class="text-secondary">Context windows ARE exploding, changing the calculus</span></li>
+  <li class="text-emerald mb-1">✓ <span class="text-secondary">Agentic approaches ARE powerful for navigation-heavy tasks</span></li>
+  <li class="text-emerald mb-1">✓ <span class="text-secondary">For codebases and structured documents, grep + agent often beats RAG</span></li>
+</ul>
+
+<h5 class="text-indigo mb-3">What the Author Overstates:</h5>
+<ul class="list-unstyled ms-3 mb-4">
+  <li class="mb-2"><span class="text-amber">✗</span> <strong>His context is specific:</strong> <span class="text-secondary">SEC filings, financial analysis, code. Highly structured, cross-referenced documents where navigation matters.</span></li>
+  <li class="mb-2"><span class="text-amber">✗</span> <strong>Scale matters:</strong> <span class="text-secondary">"Load the whole document" works for one 10-K filing. It doesn't work for searching across 10,000 companies' filings over 20 years.</span></li>
+  <li class="mb-2"><span class="text-amber">✗</span> <strong>Cost matters:</strong> <span class="text-secondary">Stuffing 200K tokens into every query is expensive. RAG retrieves 2K tokens. That's 100x cost difference.</span></li>
+  <li class="mb-2"><span class="text-amber">✗</span> <strong>Latency matters:</strong> <span class="text-secondary">Grep is fast, but an agent doing 5-10 searches iteratively is slower than one RAG call.</span></li>
+</ul>
+
+<h5 class="text-indigo mb-3">The Nuanced Truth:</h5>
+<p>RAG isn't dead—it's being <strong>repositioned</strong>. For small-to-medium corpora where you can fit relevant docs in context, agentic approaches win. For massive scale search, RAG (or hybrid approaches) still makes sense.</p>`,
+        question: 'For an expert-bot with ~50 pages of interview transcripts, which approach likely makes more sense?',
+        options: [
+          'Complex RAG pipeline with embeddings, BM25, and reranking',
+          'Just load all the content into context',
+          'Agentic search with grep',
+          'It depends on the use case'
+        ],
+        correct: 3,
+        explanation: `Trick question! 50 pages (~25K tokens) fits comfortably in modern context windows. You could probably just load it all. But "it depends" is also valid—if users ask very specific questions, some retrieval might help focus the response. The key insight: you probably don't need the COMPLEX pipeline the author is critiquing.`
+      },
+      {
+        id: 'takeaway',
+        title: 'So What Does This Mean For You?',
+        content: `<h5 class="text-indigo mb-3">The Practical Takeaways:</h5>
+
+<ol class="list-unstyled ms-3 mb-4">
+  <li class="mb-2"><strong>1. Don't over-engineer early.</strong> <span class="text-secondary">If your corpus fits in context, start by just loading it. Add retrieval complexity only if you hit problems.</span></li>
+  <li class="mb-2"><strong>2. RAG isn't dead, but simple RAG might be enough.</strong> <span class="text-secondary">You probably don't need hybrid search + reranking + complex chunking for a knowledge bot with moderate content.</span></li>
+  <li class="mb-2"><strong>3. The "agentic" insight is real.</strong> <span class="text-secondary">Letting an LLM iteratively search and follow references often beats one-shot retrieval. This is more about interaction pattern than infrastructure.</span></li>
+  <li class="mb-2"><strong>4. Context windows are your friend.</strong> <span class="text-secondary">The constraint that birthed RAG (tiny context) is loosening fast. Design for abundance, not scarcity.</span></li>
+  <li class="mb-2"><strong>5. Watch this space.</strong> <span class="text-secondary">The author's predictions about 10M+ token windows and desktop agents are directionally plausible. The tools will keep changing.</span></li>
+</ol>
+
+<h5 class="text-indigo mb-3">For building an "expert knowledge bot":</h5>
+<p class="mb-4">You're likely in the sweet spot where you can experiment with both approaches cheaply. Try loading everything in context first. If that works, you're done. If responses are unfocused or miss specific knowledge, add simple retrieval.</p>
+
+<h5 class="text-indigo mb-3">The meta-lesson:</h5>
+<p>This article is a practitioner saying "we over-complicated this." That's valuable signal, even if "RAG is dead" is hyperbole for clicks.</p>`,
+        question: 'What\'s the author\'s deeper point beneath the "RAG is dead" headline?',
+        options: [
+          'Embeddings don\'t work',
+          'We over-engineered solutions for a constraint (small context) that\'s disappearing',
+          'Everyone should use grep',
+          'Financial documents are special'
+        ],
+        correct: 1,
+        explanation: `Exactly. RAG was a clever workaround for tiny context windows. As that constraint lifts, we can revisit whether all that complexity is necessary. The answer is often "no, especially for smaller-scale applications."`
+      },
+      {
+        id: 'sizing',
+        title: 'Sizing Your Approach to Your Corpus',
+        content: `<h5 class="text-indigo mb-3">The Key Question: How Much Content Do You Actually Have?</h5>
+<p class="mb-3">Let's get concrete about when you need retrieval vs. when you can just load everything:</p>
+
+<h5 class="text-indigo mt-4 mb-3">Rough Token Estimates:</h5>
+<ul class="list-unstyled ms-3 mb-3">
+  <li>• 1 page ≈ 500 tokens</li>
+  <li>• 1 book (80K words) ≈ 100K tokens</li>
+  <li>• 1 hour of video transcript ≈ 8-10K tokens</li>
+  <li>• 1 blog post ≈ 1-3K tokens</li>
+</ul>
+
+<h5 class="text-indigo mt-4 mb-3">Context Window Reality (2025):</h5>
+<ul class="list-unstyled ms-3 mb-3">
+  <li>• Claude: 200K tokens (~400 pages)</li>
+  <li>• GPT-4o: 128K tokens (~250 pages)</li>
+  <li>• Gemini 2.5: 1M tokens (~2,000 pages)</li>
+</ul>
+
+<h5 class="text-indigo mt-4 mb-3">The Decision Matrix:</h5>
+<ul class="list-unstyled ms-3 mb-4">
+  <li class="mb-2"><strong>• Under 100K tokens</strong> <span class="text-secondary">(< 1 book): Just load it all. No retrieval needed. Simple wins.</span></li>
+  <li class="mb-2"><strong>• 100K-500K tokens</strong> <span class="text-secondary">(1-5 books): You're in the "it depends" zone. Might fit in Gemini. Might need light retrieval for Claude/GPT. Test first.</span></li>
+  <li class="mb-2"><strong>• 500K-2M tokens</strong> <span class="text-secondary">(5-20 books): You need retrieval, but simple RAG probably works fine. Don't over-engineer.</span></li>
+  <li class="mb-2"><strong>• 2M+ tokens</strong> <span class="text-secondary">(20+ books, years of content): Now the infrastructure questions matter. Consider hybrid search, smart chunking, maybe agentic approaches.</span></li>
+</ul>
+
+<h5 class="text-indigo mt-4 mb-3">The Hidden Variable: Query Patterns</h5>
+<p>Corpus size isn't everything. If users ask broad questions ("What's the expert's philosophy on X?"), you need different chunks than specific questions ("What did they say about Y in their 2019 book?"). Consider your use case.</p>`,
+        question: 'You\'re building a knowledge bot with 3 books, 50 blog posts, and 20 hours of video transcripts. Roughly how many tokens is that?',
+        options: [
+          'About 50K tokens—fits easily in any context window',
+          'About 200-400K tokens—right at the edge of modern context limits',
+          'About 2M tokens—definitely need heavy retrieval infrastructure',
+          'Impossible to estimate without more details'
+        ],
+        correct: 1,
+        explanation: `Let's do the math: 3 books (~300K) + 50 posts (~100K) + 20 hours video (~180K) = roughly 500-600K tokens. That's at the edge—too big for Claude's 200K, might fit in Gemini's 1M. This is the "you need some retrieval, but don't over-engineer" zone.`
+      },
+      {
+        id: 'approaches',
+        title: 'Simple RAG vs. Agentic: What Would Each Look Like?',
+        content: `<p class="mb-3">Let's make this concrete. Imagine you're building an "expert knowledge bot" with several books, articles, and video transcripts. Here's how two approaches would work:</p>
+
+<h5 class="text-indigo mt-4 mb-3">Approach A: Simple RAG</h5>
+<ol class="list-unstyled ms-3 mb-3">
+  <li class="text-secondary mb-1"><span class="text-indigo">1.</span> <strong class="text-light">Chunk</strong> all content into ~500 token pieces</li>
+  <li class="text-secondary mb-1"><span class="text-indigo">2.</span> <strong class="text-light">Embed</strong> each chunk (using OpenAI, Cohere, or open-source models)</li>
+  <li class="text-secondary mb-1"><span class="text-indigo">3.</span> <strong class="text-light">Store</strong> in a vector database (Pinecone, Weaviate, or even local SQLite with extensions)</li>
+  <li class="text-secondary mb-1"><span class="text-indigo">4.</span> <strong class="text-light">At query time:</strong> Embed the question → find top 10 similar chunks → feed to LLM</li>
+</ol>
+
+<p class="mb-1"><span class="text-emerald">Pros:</span> <span class="text-secondary">Simple, fast, cheap per query, well-understood</span></p>
+<p class="mb-4"><span class="text-amber">Cons:</span> <span class="text-secondary">Might miss relevant info in chunks you didn't retrieve; no iteration</span></p>
+
+<h5 class="text-indigo mt-4 mb-3">Approach B: Agentic Search</h5>
+<ol class="list-unstyled ms-3 mb-3">
+  <li class="text-secondary mb-1"><span class="text-indigo">1.</span> <strong class="text-light">Organize</strong> content by source (books, articles, videos) with metadata</li>
+  <li class="text-secondary mb-1"><span class="text-indigo">2.</span> <strong class="text-light">Give the agent tools:</strong> search by keyword (grep/BM25), search by concept (embeddings), list sources, load full documents</li>
+  <li class="text-secondary mb-1"><span class="text-indigo">3.</span> <strong class="text-light">At query time:</strong> Agent decides what to search → reviews results → searches again if needed → loads full sources for deep questions</li>
+</ol>
+
+<p class="mb-1"><span class="text-emerald">Pros:</span> <span class="text-secondary">Handles complex questions better; can follow threads; more like how a human researcher works</span></p>
+<p class="mb-4"><span class="text-amber">Cons:</span> <span class="text-secondary">More complex to build; slower (multiple LLM calls); more expensive per query</span></p>
+
+<h5 class="text-indigo mt-4 mb-3">The Hybrid Reality:</h5>
+<p class="mb-3">Most production systems mix these. Start with simple RAG, add agentic capabilities for complex queries. The article author isn't saying "never use embeddings"—he's saying "don't make embeddings your only tool."</p>
+
+<h5 class="text-indigo mt-4 mb-3">What To Build First:</h5>
+<p>If you're starting out, build simple RAG. Get it working. See where it fails. THEN add agentic capabilities for the cases that need it. Premature optimization is the root of all evil.</p>`,
+        question: 'A user asks: "How did the expert\'s thinking on leadership evolve from their first book to their third?" Which approach handles this better?',
+        options: [
+          'Simple RAG—it will find chunks about leadership from each book',
+          'Agentic—it needs to deliberately compare across sources and synthesize',
+          'Neither—this question is too complex for any system',
+          'Full context—just load all three books'
+        ],
+        correct: 1,
+        explanation: `This is a synthesis question that requires comparing across time/sources. Simple RAG might return leadership-related chunks, but won't know to compare books 1 vs 3. An agent can: (1) search for leadership in book 1, (2) search in book 3, (3) identify the evolution, (4) synthesize. That said, if the books fit in context, loading them all works too—but that's not always feasible.`
+      }
+    ];
+
+    let currentSection = 0;
+    let selectedAnswer = null;
+    let showExplanation = false;
+    let completed = new Set();
+
+    function render() {
+      const section = sections[currentSection];
+      const app = document.getElementById('app');
+      
+      app.innerHTML = `
+        <!-- Header -->
+        <div class="mb-4">
+          <h1 class="h3 fw-bold text-white mb-2">
+            Is RAG Actually Dead?
+          </h1>
+          <p class="text-secondary">
+            Understanding the "agentic search" argument—and what it means for you
+          </p>
+        </div>
+
+        <!-- Progress -->
+        <div class="d-flex gap-2 mb-4">
+          ${sections.map((s, i) => `
+            <button
+              onclick="goToSection(${i})"
+              class="progress-btn ${
+                i === currentSection
+                  ? 'active'
+                  : completed.has(i)
+                  ? 'completed'
+                  : 'pending'
+              }"
+              title="${s.title}"
+            ></button>
+          `).join('')}
+        </div>
+
+        <!-- Section Title -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <span class="small text-secondary font-monospace">
+            ${currentSection + 1}/${sections.length}
+          </span>
+          <h2 class="h4 fw-semibold text-white mb-0">${section.title}</h2>
+        </div>
+
+        <!-- Content -->
+        <div class="content-card p-4 mb-4">
+          ${section.content}
+        </div>
+
+        <!-- Question -->
+        <div class="question-card p-4 mb-4">
+          <p class="text-light fw-medium mb-3">${section.question}</p>
+          <div class="d-grid gap-2">
+            ${section.options.map((option, i) => {
+              const isSelected = selectedAnswer === i;
+              const isCorrect = i === section.correct;
+              const showResult = showExplanation;
+              
+              let btnClass = 'answer-btn';
+              if (showResult && isSelected && isCorrect) {
+                btnClass = 'answer-btn correct';
+              } else if (showResult && isSelected && !isCorrect) {
+                btnClass = 'answer-btn incorrect';
+              } else if (showResult && isCorrect) {
+                btnClass = 'answer-btn was-correct';
+              }
+
+              return `
+                <button
+                  onclick="${showExplanation ? '' : `handleAnswer(${i})`}"
+                  class="btn ${btnClass} p-3 rounded"
+                  ${showExplanation ? 'disabled' : ''}
+                >
+                  ${option}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          ${showExplanation ? `
+            <div class="explanation-box mt-3 p-3">
+              <p class="text-secondary mb-0">${section.explanation}</p>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Navigation -->
+        <div class="d-flex justify-content-between">
+          <button
+            onclick="prevSection()"
+            ${currentSection === 0 ? 'disabled' : ''}
+            class="btn btn-link text-decoration-none ${
+              currentSection === 0 ? 'text-secondary' : 'text-light'
+            }"
+          >
+            ← Previous
+          </button>
+          <button
+            onclick="nextSection()"
+            ${currentSection === sections.length - 1 ? 'disabled' : ''}
+            class="btn ${
+              currentSection === sections.length - 1
+                ? 'btn-secondary disabled'
+                : 'bg-indigo text-white'
+            } px-4"
+          >
+            Next →
+          </button>
+        </div>
+
+        <!-- Completion -->
+        ${completed.size === sections.length ? `
+          <div class="completion-box mt-4 p-3 text-center">
+            <p class="text-emerald fw-medium mb-1">
+              Nice work! You've got the key concepts.
+            </p>
+            <p class="text-secondary small mb-0">
+              The TL;DR: RAG isn't dead, but it's being reconsidered as context windows grow. Start simple.
+            </p>
+          </div>
+        ` : ''}
+      `;
+    }
+
+    function handleAnswer(index) {
+      selectedAnswer = index;
+      showExplanation = true;
+      completed.add(currentSection);
+      render();
+    }
+
+    function nextSection() {
+      if (currentSection < sections.length - 1) {
+        currentSection++;
+        selectedAnswer = null;
+        showExplanation = false;
+        render();
+        window.scrollTo(0, 0);
+      }
+    }
+
+    function prevSection() {
+      if (currentSection > 0) {
+        currentSection--;
+        selectedAnswer = null;
+        showExplanation = false;
+        render();
+        window.scrollTo(0, 0);
+      }
+    }
+
+    function goToSection(index) {
+      currentSection = index;
+      selectedAnswer = null;
+      showExplanation = false;
+      render();
+      window.scrollTo(0, 0);
+    }
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>

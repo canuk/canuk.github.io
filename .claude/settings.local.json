@@ -12,7 +12,10 @@
       "WebSearch",
       "WebFetch(domain:www.nintendolife.com)",
       "WebFetch(domain:www.mariowiki.com)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_close"
     ]
   }
 }
