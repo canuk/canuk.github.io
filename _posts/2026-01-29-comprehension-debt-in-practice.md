@@ -42,29 +42,25 @@ This is vibe-coding territory. The whole point is that you *don't* need to under
 
 This is why I run these workshops in person when possible. I need to be there when the tool does something unexpected—not to prevent it, but to make sense of it with participants. My presence is part of how I pay down the debt.
 
-If I were to hand this tool off to other facilitators without being present, my debt tolerance would need to drop significantly. I'd need to understand the tool well enough to document its quirks, anticipate failure modes, and prepare facilitators for them.
-
 ---
 
-## Scenario 3: The Classroom Chatbot
+## Scenario 3: The Workshop Tool (Scaled)
 
-**Situation**: A teacher in one of my workshops builds a chatbot to help students brainstorm essay topics. She's excited. It works great in testing. She wants to deploy it with her 8th graders next week.
+**Situation**: Build-a-Bot has grown. It started with me facilitating every session. Now other people run it, and I'm rarely in the room.
 
 **Running the framework**:
-- Consequences: Higher. Students are minors. The chatbot could give inappropriate suggestions, reinforce biases, or say something harmful. Even small misfires can affect a student's confidence or sense of safety.
-- Role: Deployer, and the teacher is the authority figure. Students will take the chatbot's outputs more seriously because the teacher endorsed it.
-- Backup: Limited. The teacher is the only adult in the room. If the chatbot does something weird, she's the one who has to handle it in real-time, with 25 students watching.
-- Novelty: High. LLMs in K-12 classrooms are very new. We're still learning how students interact with them differently than adults do.
+- Consequences: Still medium. Same participants, same risks of misconceptions.
+- Role: Builder and trainer. I'm not the one deploying anymore—facilitators are. But they're deploying based on my training and my tool.
+- Backup: Low. I'm not there. Facilitators are on their own when something weird happens.
+- Novelty: Still medium-high.
 
-**Verdict**: Low debt tolerance. She needs to understand more before deploying.
+**Verdict**: Lower debt tolerance than when I was in the room myself.
 
-This doesn't mean she needs to become a prompt engineer. But she should:
-- Test it with inputs a mischievous 8th grader might try
-- Have a plan for what to do if it says something off
-- Be clear with students about what the tool is and isn't
-- Not leave students alone with it unsupervised at first
+This is the part I didn't fully anticipate. When I was facilitating every session, my presence was part of how I managed the debt. If the tool did something unexpected, I could explain it, contextualize it, turn it into a teaching moment.
 
-The goal isn't to eliminate risk. It's to be prepared to take responsibility for the risks that remain.
+Now that I've handed it off, I've transferred that responsibility to facilitators—but have I transferred the understanding they need? I've had to get much more intentional about documentation, facilitator training, and anticipating failure modes. The debt I could carry personally now lives with other people.
+
+Scenarios 2 and 3 are the same tool at different stages. The framework helped me see that scaling changed my debt tolerance, even though the tool itself didn't change.
 
 ---
 
