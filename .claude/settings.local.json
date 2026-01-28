@@ -15,7 +15,8 @@
       "Bash(git mv:*)",
       "mcp__plugin_playwright_playwright__browser_navigate",
       "mcp__plugin_playwright_playwright__browser_click",
-      "mcp__plugin_playwright_playwright__browser_close"
+      "mcp__plugin_playwright_playwright__browser_close",
+      "Bash(./scripts/update-artifacts-index.sh:*)"
     ]
   }
 }
