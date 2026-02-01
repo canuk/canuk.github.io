@@ -7,16 +7,10 @@
       "Bash(git push)",
       "Bash(pip install:*)",
       "Bash(shot-scraper install:*)",
+      "Bash(git pull:*)",
       "Bash(git stash:*)",
-      "Bash(git push:*)",
-      "WebSearch",
-      "WebFetch(domain:www.nintendolife.com)",
-      "WebFetch(domain:www.mariowiki.com)",
-      "Bash(git mv:*)",
-      "mcp__plugin_playwright_playwright__browser_navigate",
-      "mcp__plugin_playwright_playwright__browser_click",
-      "mcp__plugin_playwright_playwright__browser_close",
-      "Bash(./scripts/update-artifacts-index.sh:*)"
+      "Bash(git reset:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
