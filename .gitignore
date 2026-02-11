@@ -1,6 +1,7 @@
 _site
 .sass-cache
 .jekyll-metadata
+.DS_Store
 CLAUDE.md
 .claude-api-key
 .DS_Store
