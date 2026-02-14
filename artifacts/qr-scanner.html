@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>QR Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e0a;
+    --surface: #111a11;
+    --surface2: #172017;
+    --border: #1e2e1e;
+    --green: #00ff6a;
+    --green-dim: #00cc55;
+    --green-glow: rgba(0, 255, 106, 0.15);
+    --green-ghost: rgba(0, 255, 106, 0.05);
+    --text: #c8e6c8;
+    --text-dim: #6a8a6a;
+    --red: #ff4444;
+    --amber: #ffaa00;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --display: 'Space Mono', monospace;
+  }
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: var(–mono);
+min-height: 100dvh;
+overflow-x: hidden;
+}
+
+/* Scanline overlay on entire page */
+body::after {
+content: ‘’;
+position: fixed;
+inset: 0;
+pointer-events: none;
+background: repeating-linear-gradient(
+0deg,
+transparent,
+transparent 2px,
+rgba(0, 255, 106, 0.015) 2px,
+rgba(0, 255, 106, 0.015) 4px
+);
+z-index: 9999;
+}
+
+.app {
+max-width: 540px;
+margin: 0 auto;
+padding: 16px;
+min-height: 100dvh;
+}
+
+/* Header */
+.header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 12px 0 20px;
+border-bottom: 1px solid var(–border);
+margin-bottom: 20px;
+}
+
+.header h1 {
+font-family: var(–display);
+font-size: 18px;
+font-weight: 700;
+color: var(–green);
+letter-spacing: 2px;
+text-transform: uppercase;
+text-shadow: 0 0 20px var(–green-glow);
+}
+
+.header .status {
+font-size: 11px;
+color: var(–text-dim);
+display: flex;
+align-items: center;
+gap: 6px;
+}
+
+.status-dot {
+width: 6px;
+height: 6px;
+border-radius: 50%;
+background: var(–text-dim);
+transition: background 0.3s;
+}
+
+.status-dot.active {
+background: var(–green);
+box-shadow: 0 0 8px var(–green);
+animation: pulse-dot 2s infinite;
+}
+
+.status-dot.error {
+background: var(–red);
+box-shadow: 0 0 8px var(–red);
+}
+
+@keyframes pulse-dot {
+0%, 100% { opacity: 1; }
+50% { opacity: 0.4; }
+}
+
+/* Scanner area */
+.scanner-wrapper {
+position: relative;
+border-radius: 8px;
+overflow: hidden;
+border: 1px solid var(–border);
+background: #000;
+aspect-ratio: 1;
+margin-bottom: 20px;
+}
+
+#reader {
+width: 100%;
+height: 100%;
+}
+
+#reader video {
+object-fit: cover !important;
+border-radius: 8px;
+}
+
+/* Override library styles */
+#reader img[alt=“Info icon”] { display: none !important; }
+#reader > div:last-child { display: none !important; }
+#qr-shaded-region { border-color: var(–green) !important; }
+
+.scanner-overlay {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 10;
+}
+
+/* Corner brackets */
+.scanner-overlay::before,
+.scanner-overlay::after {
+content: ‘’;
+position: absolute;
+width: 40px;
+height: 40px;
+border-color: var(–green);
+border-style: solid;
+}
+
+.scanner-overlay::before {
+top: 20%;
+left: 20%;
+border-width: 2px 0 0 2px;
+}
+
+.scanner-overlay::after {
+bottom: 20%;
+right: 20%;
+border-width: 0 2px 2px 0;
+}
+
+.corner-tr, .corner-bl {
+position: absolute;
+width: 40px;
+height: 40px;
+border-color: var(–green);
+border-style: solid;
+}
+
+.corner-tr {
+top: 20%;
+right: 20%;
+border-width: 2px 2px 0 0;
+}
+
+.corner-bl {
+bottom: 20%;
+left: 20%;
+border-width: 0 0 2px 2px;
+}
+
+.scan-line {
+position: absolute;
+left: 20%;
+right: 20%;
+height: 2px;
+background: linear-gradient(90deg, transparent, var(–green), transparent);
+box-shadow: 0 0 12px var(–green), 0 0 30px var(–green-glow);
+animation: scan-sweep 2.5s ease-in-out infinite;
+opacity: 0.8;
+}
+
+@keyframes scan-sweep {
+0%, 100% { top: 20%; }
+50% { top: 78%; }
+}
+
+/* Permission / error states */
+.scanner-placeholder {
+position: absolute;
+inset: 0;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 16px;
+background: var(–surface);
+z-index: 5;
+}
+
+.scanner-placeholder svg {
+opacity: 0.3;
+}
+
+.scanner-placeholder p {
+font-size: 13px;
+color: var(–text-dim);
+text-align: center;
+max-width: 260px;
+line-height: 1.6;
+}
+
+.btn {
+font-family: var(–mono);
+font-size: 12px;
+font-weight: 500;
+padding: 10px 20px;
+border-radius: 4px;
+cursor: pointer;
+transition: all 0.2s;
+border: 1px solid var(–border);
+background: var(–surface2);
+color: var(–text);
+}
+
+.btn:hover {
+border-color: var(–green);
+color: var(–green);
+box-shadow: 0 0 12px var(–green-glow);
+}
+
+.btn-primary {
+background: var(–green);
+color: var(–bg);
+border-color: var(–green);
+font-weight: 600;
+}
+
+.btn-primary:hover {
+background: var(–green-dim);
+box-shadow: 0 0 20px var(–green-glow);
+color: var(–bg);
+}
+
+.btn-small {
+padding: 5px 10px;
+font-size: 11px;
+}
+
+/* Flash on scan */
+.scan-flash {
+position: absolute;
+inset: 0;
+background: var(–green);
+opacity: 0;
+z-index: 20;
+pointer-events: none;
+transition: opacity 0.1s;
+}
+
+.scan-flash.active {
+opacity: 0.15;
+transition: opacity 0s;
+}
+
+/* Log section */
+.log-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 12px;
+padding-bottom: 10px;
+border-bottom: 1px solid var(–border);
+}
+
+.log-header h2 {
+font-family: var(–display);
+font-size: 13px;
+font-weight: 700;
+color: var(–text-dim);
+letter-spacing: 3px;
+text-transform: uppercase;
+}
+
+.log-count {
+font-size: 11px;
+color: var(–text-dim);
+background: var(–surface2);
+padding: 3px 8px;
+border-radius: 3px;
+border: 1px solid var(–border);
+}
+
+.log-actions {
+display: flex;
+gap: 8px;
+}
+
+.log-empty {
+text-align: center;
+padding: 40px 20px;
+color: var(–text-dim);
+font-size: 12px;
+border: 1px dashed var(–border);
+border-radius: 6px;
+}
+
+.log-empty span {
+display: block;
+font-size: 24px;
+margin-bottom: 8px;
+opacity: 0.3;
+}
+
+/* Log entries */
+.log-entry {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 12px 14px;
+margin-bottom: 8px;
+animation: entry-in 0.3s ease-out;
+transition: border-color 0.2s;
+}
+
+.log-entry:hover {
+border-color: rgba(0, 255, 106, 0.2);
+}
+
+.log-entry.fresh {
+border-color: var(–green);
+box-shadow: 0 0 12px var(–green-glow);
+}
+
+@keyframes entry-in {
+from {
+opacity: 0;
+transform: translateY(-8px);
+}
+to {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+.entry-top {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 6px;
+}
+
+.entry-meta {
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+.entry-index {
+font-size: 10px;
+color: var(–text-dim);
+font-weight: 600;
+}
+
+.entry-type {
+font-size: 10px;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: 1px;
+padding: 2px 6px;
+border-radius: 3px;
+background: var(–green-ghost);
+color: var(–green-dim);
+border: 1px solid rgba(0, 255, 106, 0.1);
+}
+
+.entry-type.url { color: #44aaff; background: rgba(68,170,255,0.08); border-color: rgba(68,170,255,0.15); }
+.entry-type.email { color: #ff88cc; background: rgba(255,136,204,0.08); border-color: rgba(255,136,204,0.15); }
+.entry-type.phone { color: var(–amber); background: rgba(255,170,0,0.08); border-color: rgba(255,170,0,0.15); }
+.entry-type.wifi { color: #aa88ff; background: rgba(170,136,255,0.08); border-color: rgba(170,136,255,0.15); }
+
+.entry-time {
+font-size: 10px;
+color: var(–text-dim);
+}
+
+.entry-content {
+font-size: 13px;
+line-height: 1.5;
+word-break: break-all;
+color: var(–text);
+margin-bottom: 8px;
+}
+
+.entry-content a {
+color: #44aaff;
+text-decoration: none;
+border-bottom: 1px solid rgba(68,170,255,0.3);
+}
+
+.entry-content a:hover {
+border-bottom-color: #44aaff;
+}
+
+.entry-actions {
+display: flex;
+gap: 6px;
+}
+
+.btn-icon {
+background: transparent;
+border: 1px solid var(–border);
+border-radius: 3px;
+padding: 4px 8px;
+font-family: var(–mono);
+font-size: 10px;
+color: var(–text-dim);
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.btn-icon:hover {
+color: var(–green);
+border-color: var(–green);
+}
+
+.btn-icon.copied {
+color: var(–green);
+border-color: var(–green);
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+.app { padding: 12px; }
+.header h1 { font-size: 15px; }
+}
+</style>
+
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>⬡ QR SCAN</h1>
+    <div class="status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Initializing...</span>
+    </div>
+  </div>
+
+  <div class="scanner-wrapper" id="scannerWrapper">
+    <div id="reader"></div>
+    <div class="scanner-overlay" id="scannerOverlay" style="display:none;">
+      <div class="corner-tr"></div>
+      <div class="corner-bl"></div>
+      <div class="scan-line"></div>
+    </div>
+    <div class="scan-flash" id="scanFlash"></div>
+    <div class="scanner-placeholder" id="placeholder">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/>
+        <line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/>
+      </svg>
+      <p id="placeholderText">Requesting camera access to scan QR codes...</p>
+      <button class="btn btn-primary" id="startBtn" style="display:none;" onclick="startScanner()">Start Scanner</button>
+    </div>
+  </div>
+
+  <div class="log-header">
+    <h2>Scan Log</h2>
+    <div class="log-actions">
+      <span class="log-count" id="logCount">0 scans</span>
+      <button class="btn btn-small" onclick="exportCSV()" id="exportBtn" style="display:none;">Export CSV</button>
+      <button class="btn btn-small" onclick="clearLog()" id="clearBtn" style="display:none;">Clear</button>
+    </div>
+  </div>
+
+  <div id="logContainer">
+    <div class="log-empty">
+      <span>◎</span>
+      Point camera at a QR code to begin
+    </div>
+  </div>
+</div>
+
+<script>
+  const scanLog = [];
+  const recentScans = new Map(); // content -> timestamp for dedup
+  const DEDUP_COOLDOWN = 5000; // 5 seconds
+  let scanner = null;
+  let scanIndex = 0;
+
+  function detectType(text) {
+    if (/^https?:\/\//i.test(text) || /^www\./i.test(text)) return 'url';
+    if (/^mailto:/i.test(text) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) return 'email';
+    if (/^tel:/i.test(text) || /^\+?\d[\d\s\-()]{7,}$/.test(text)) return 'phone';
+    if (/^WIFI:/i.test(text)) return 'wifi';
+    if (/^BEGIN:VCARD/i.test(text)) return 'vcard';
+    if (/^BEGIN:VEVENT/i.test(text)) return 'event';
+    if (/^geo:/i.test(text)) return 'geo';
+    return 'text';
+  }
+
+  function formatContent(text, type) {
+    switch (type) {
+      case 'url':
+        const url = text.startsWith('http') ? text : 'https://' + text;
+        return `<a href="${url}" target="_blank" rel="noopener">${text}</a>`;
+      case 'email':
+        const email = text.replace(/^mailto:/i, '');
+        return `<a href="mailto:${email}">${email}</a>`;
+      case 'phone':
+        const phone = text.replace(/^tel:/i, '');
+        return `<a href="tel:${phone}">${phone}</a>`;
+      default:
+        return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  }
+
+  function setStatus(text, state = 'idle') {
+    document.getElementById('statusText').textContent = text;
+    const dot = document.getElementById('statusDot');
+    dot.className = 'status-dot';
+    if (state === 'active') dot.classList.add('active');
+    if (state === 'error') dot.classList.add('error');
+  }
+
+  function flash() {
+    const el = document.getElementById('scanFlash');
+    el.classList.add('active');
+    setTimeout(() => el.classList.remove('active'), 150);
+  }
+
+  function vibrate() {
+    if (navigator.vibrate) navigator.vibrate(50);
+  }
+
+  function onScanSuccess(decodedText) {
+    // Dedup check
+    const now = Date.now();
+    const lastScan = recentScans.get(decodedText);
+    if (lastScan && (now - lastScan) < DEDUP_COOLDOWN) return;
+    recentScans.set(decodedText, now);
+
+    scanIndex++;
+    const type = detectType(decodedText);
+    const timestamp = new Date();
+    const entry = {
+      index: scanIndex,
+      content: decodedText,
+      type,
+      timestamp,
+    };
+    scanLog.unshift(entry);
+
+    flash();
+    vibrate();
+    renderLog();
+    updateCount();
+
+    // Remove 'fresh' from previous entries after delay
+    setTimeout(() => {
+      const fresh = document.querySelector('.log-entry.fresh');
+      if (fresh) fresh.classList.remove('fresh');
+    }, 1500);
+  }
+
+  function renderLog() {
+    const container = document.getElementById('logContainer');
+    if (scanLog.length === 0) {
+      container.innerHTML = `<div class="log-empty"><span>◎</span>Point camera at a QR code to begin</div>`;
+      return;
+    }
+
+    container.innerHTML = scanLog.map((e, i) => {
+      const timeStr = e.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const dateStr = e.timestamp.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `
+        <div class="log-entry ${i === 0 ? 'fresh' : ''}" data-index="${e.index}">
+          <div class="entry-top">
+            <div class="entry-meta">
+              <span class="entry-index">#${String(e.index).padStart(3, '0')}</span>
+              <span class="entry-type ${e.type}">${e.type}</span>
+            </div>
+            <span class="entry-time">${dateStr} ${timeStr}</span>
+          </div>
+          <div class="entry-content">${formatContent(e.content, e.type)}</div>
+          <div class="entry-actions">
+            <button class="btn-icon" onclick="copyContent('${e.content.replace(/'/g, "\\'")}', this)">Copy</button>
+            <button class="btn-icon" onclick="removeEntry(${e.index})">Remove</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function updateCount() {
+    document.getElementById('logCount').textContent = `${scanLog.length} scan${scanLog.length !== 1 ? 's' : ''}`;
+    document.getElementById('exportBtn').style.display = scanLog.length ? '' : 'none';
+    document.getElementById('clearBtn').style.display = scanLog.length ? '' : 'none';
+  }
+
+  function copyContent(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  }
+
+  function removeEntry(index) {
+    const i = scanLog.findIndex(e => e.index === index);
+    if (i > -1) scanLog.splice(i, 1);
+    renderLog();
+    updateCount();
+  }
+
+  function clearLog() {
+    if (!confirm('Clear all scan entries?')) return;
+    scanLog.length = 0;
+    scanIndex = 0;
+    recentScans.clear();
+    renderLog();
+    updateCount();
+  }
+
+  function exportCSV() {
+    const header = 'Index,Type,Content,Timestamp\n';
+    const rows = scanLog.map(e =>
+      `${e.index},"${e.type}","${e.content.replace(/"/g, '""')}","${e.timestamp.toISOString()}"`
+    ).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `qr-scan-log-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function startScanner() {
+    const placeholder = document.getElementById('placeholder');
+    const overlay = document.getElementById('scannerOverlay');
+
+    try {
+      setStatus('Starting camera...', 'idle');
+      placeholder.querySelector('#placeholderText').textContent = 'Accessing camera...';
+
+      scanner = new Html5Qrcode('reader');
+      await scanner.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: (w, h) => {
+            const size = Math.min(w, h) * 0.6;
+            return { width: size, height: size };
+          },
+          aspectRatio: 1,
+        },
+        onScanSuccess,
+        () => {} // ignore errors (no QR found)
+      );
+
+      placeholder.style.display = 'none';
+      overlay.style.display = '';
+      setStatus('Scanning', 'active');
+
+    } catch (err) {
+      console.error(err);
+      const msg = err.toString();
+      if (msg.includes('NotAllowedError') || msg.includes('Permission')) {
+        placeholder.querySelector('#placeholderText').textContent =
+          'Camera access denied. Please allow camera permissions and try again.';
+        setStatus('Permission denied', 'error');
+      } else if (msg.includes('NotFoundError') || msg.includes('device')) {
+        placeholder.querySelector('#placeholderText').textContent =
+          'No camera found. Please connect a camera and try again.';
+        setStatus('No camera', 'error');
+      } else {
+        placeholder.querySelector('#placeholderText').textContent =
+          'Could not start scanner: ' + msg;
+        setStatus('Error', 'error');
+      }
+      document.getElementById('startBtn').style.display = '';
+    }
+  }
+
+  // Auto-start
+  startScanner();
+</script>
+
+</body>
+</html>
