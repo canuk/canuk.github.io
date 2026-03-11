@@ -1,0 +1,374 @@
+---
+layout: default
+title: Building Efface
+description: "How I built Efface — a native macOS face anonymization app. From a slow Python script to a hardware-accelerated SwiftUI app running face detection on the Apple Neural Engine."
+---
+
+<div class="container py-5">
+  <article class="article-content mx-auto">
+
+    <!-- Hero Section -->
+    <header class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3">Building Efface</h1>
+      <p class="lead text-secondary">From a Slow Python Script to a Native macOS Face Anonymization App</p>
+      <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+        <span class="badge" style="background-color: #F05138;"><i class="bi bi-swift me-1"></i>Swift</span>
+        <span class="badge" style="background-color: #000000;"><i class="bi bi-cpu me-1"></i>Core ML</span>
+        <span class="badge" style="background-color: #007AFF;"><i class="bi bi-app me-1"></i>SwiftUI</span>
+        <span class="badge" style="background-color: #5C2D91;"><i class="bi bi-speedometer2 me-1"></i>Accelerate</span>
+      </div>
+    </header>
+
+    <!-- Table of Contents -->
+    <nav class="toc card card-modern p-4 mb-5">
+      <h5 class="fw-bold mb-3"><i class="bi bi-list-ol me-2"></i>Contents</h5>
+      <ol class="mb-0">
+        <li><a href="#the-problem">The Problem</a></li>
+        <li><a href="#starting-with-deface">Phase 1: Starting with Deface</a></li>
+        <li><a href="#extracting-the-brain">Phase 2: Extracting the Brain</a></li>
+        <li><a href="#going-native">Phase 3: Going Native</a></li>
+        <li><a href="#getting-details-right">Phase 4: Getting the Details Right</a></li>
+        <li><a href="#float16-crash">Technical Deep Dive: The Float16 Crash</a></li>
+        <li><a href="#distribution">Distribution: Signing, Notarizing, and Shipping</a></li>
+        <li><a href="#lessons-learned">Lessons Learned</a></li>
+        <li><a href="#links">Links & Resources</a></li>
+      </ol>
+    </nav>
+
+    <!-- The Problem -->
+    <section id="the-problem" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-exclamation-circle-fill text-warning me-2"></i>The Problem</h2>
+
+      <p>Sometimes you need to share a photo or video but there are faces in it that shouldn't be there—bystanders in a street scene, students in a classroom recording, children at a public event. The responsible thing is to blur those faces before sharing.</p>
+
+      <p>The existing open-source solution is <strong>deface</strong>, a Python command-line tool that detects faces using ONNX Runtime and anonymizes them with OpenCV. It works. But running it on a 30-second 1080p video on my M1 MacBook Pro took several minutes. Every frame gets decoded by Python, pushed through ONNX, processed by OpenCV, and re-encoded. The pipeline is impressive in its generality—it runs on any platform—but it completely ignores the hardware sitting right there in every modern Mac: the <strong>Neural Engine</strong>.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-cpu me-2"></i>The Opportunity</h6>
+        <p class="mb-0">Apple Silicon chips have a dedicated 16-core Neural Engine capable of 15+ trillion operations per second. My M1 was doing face detection through a Python → ONNX → CPU pipeline while a purpose-built ML accelerator sat idle. That felt like a problem worth solving.</p>
+      </div>
+    </section>
+
+    <!-- Phase 1: Starting with Deface -->
+    <section id="starting-with-deface" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-terminal-fill text-primary me-2"></i>Phase 1: Starting with Deface</h2>
+
+      <p>I started by using deface directly. Install with <code>pip</code>, point it at a file, wait:</p>
+
+      <pre><code class="language-bash">pip install deface
+deface input.mp4 --output output.mp4 --threshold 0.2</code></pre>
+
+      <p>It detected faces reliably. The underlying model is <strong>CenterFace</strong>—a single-shot anchor-free face detector published by Xu et al. in 2019. CenterFace is elegant: one forward pass through a small neural network produces a heatmap of face centers, bounding box dimensions, offsets for sub-pixel accuracy, and 5-point facial landmarks (eyes, nose, mouth corners). No proposal stages, no anchors, no NMS on thousands of candidates. Just direct regression.</p>
+
+      <p>The model itself is fast. The Python overhead around it is not. Deface pulls in ONNX Runtime, OpenCV, NumPy, and their transitive dependencies. On macOS, ONNX Runtime defaults to CPU execution. Video decode and encode go through OpenCV's Python bindings. Every frame crosses the Python-C boundary multiple times.</p>
+
+      <p>I wanted to keep CenterFace but ditch everything around it.</p>
+    </section>
+
+    <!-- Phase 2: Extracting the Brain -->
+    <section id="extracting-the-brain" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-motherboard-fill text-success me-2"></i>Phase 2: Extracting the Brain</h2>
+
+      <p>CenterFace ships as an ONNX model—a portable neural network format. Apple's <code>coremltools</code> can convert ONNX models to Core ML format, which runs natively on the Neural Engine:</p>
+
+      <pre><code class="language-python">import coremltools as ct
+
+model = ct.converters.onnx.convert(
+    model="centerface.onnx",
+    minimum_deployment_target=ct.target.macOS15
+)
+model.save("CenterFace.mlpackage")</code></pre>
+
+      <p>The converted model takes a <code>[1, 3, 640, 640]</code> float tensor (RGB image) and outputs four arrays:</p>
+
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Output</th><th>Shape</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>var_848</code></td><td><code>[1, 1, 160, 160]</code></td><td>Face center heatmap</td></tr>
+            <tr><td><code>var_859</code></td><td><code>[1, 4, 160, 160]</code></td><td>Bounding box scale (h, w per face)</td></tr>
+            <tr><td><code>var_870</code></td><td><code>[1, 2, 160, 160]</code></td><td>Sub-pixel offset (y, x)</td></tr>
+            <tr><td><code>var_881</code></td><td><code>[1, 10, 160, 160]</code></td><td>5-point landmarks (x0,y0,...,x4,y4)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>The heatmap is the key—each cell in the 160×160 grid represents a 4×4 pixel region of the input. A high value means "face center here." The scale outputs give bounding box dimensions, and the landmarks give you eye, nose, and mouth positions relative to each detection's bounding box.</p>
+
+      <p>With the Core ML model in hand, I could run inference directly on the Neural Engine. No Python. No ONNX Runtime. No OpenCV.</p>
+    </section>
+
+    <!-- Phase 3: Going Native -->
+    <section id="going-native" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-apple text-dark me-2"></i>Phase 3: Going Native</h2>
+
+      <p>The app came together as a SwiftUI macOS application. The architecture is straightforward:</p>
+
+      <pre><code class="language-plaintext">Efface.app
+├── CenterFace.mlpackage        # Bundled Core ML model
+├── CenterFaceDetector          # Inference + post-processing
+├── NativeMediaProcessor        # Image/video pipeline
+├── AppState                    # Observable state machine
+└── Views/
+    ├── DropZoneView            # Drag-and-drop + file picker
+    ├── ProcessingView          # Progress bar + live log
+    ├── ResultView              # Before/after + save
+    └── SettingsView            # Style, sensitivity, mask shape</code></pre>
+
+      <h4>The Detection Pipeline</h4>
+
+      <p>For each frame, the detector resizes the input to 640×640 using Core Image (GPU-accelerated), converts to a <code>CVPixelBuffer</code> for Core ML input, runs inference on the Neural Engine, decodes the four output tensors into face detections, and applies non-maximum suppression to remove duplicates.</p>
+
+      <p>The decode step is where the interesting math lives. The heatmap gives confidence scores, but you need to combine all four outputs to get actual bounding boxes:</p>
+
+      <pre><code class="language-swift">let xCenter = (Float(col) + offset_x + 0.5) * 4.0
+let yCenter = (Float(row) + offset_y + 0.5) * 4.0
+let boxW = scale_w  // width in pixels
+let boxH = scale_h  // height in pixels</code></pre>
+
+      <p>The <code>* 4.0</code> maps from the 160×160 grid back to the 640×640 input space. The <code>+ 0.5</code> centers within each grid cell. The offset refines sub-pixel position.</p>
+
+      <!-- Before/After screenshots -->
+      <div class="row g-3 my-4">
+        <div class="col-md-6">
+          <figure class="figure w-100 mb-0">
+            <img src="/img/projects/efface-1.webp" alt="Photo before face anonymization" class="figure-img img-fluid rounded shadow">
+            <figcaption class="figure-caption text-center">Original photo and selecting options</figcaption>
+          </figure>
+        </div>
+        <div class="col-md-6">
+          <figure class="figure w-100 mb-0">
+            <img src="/img/projects/efface-2.webp" alt="Photo after Gaussian blur anonymization" class="figure-img img-fluid rounded shadow">
+            <figcaption class="figure-caption text-center">After Gaussian blur anonymization</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <h4>Anonymization Styles</h4>
+
+      <p>Once faces are detected, the app offers several anonymization modes—all implemented with Core Image filters for GPU acceleration:</p>
+
+      <ul>
+        <li><strong>Gaussian Blur</strong> — <code>CIGaussianBlur</code> applied to masked regions</li>
+        <li><strong>Solid Fill</strong> — Composited color rectangles with configurable color</li>
+        <li><strong>Mosaic</strong> — Pixelation via <code>CIPixellate</code> with adjustable block size</li>
+        <li><strong>None (detect only)</strong> — Shows detections without anonymizing, with overlay options: a reticle HUD, 5-point key landmarks, or full Apple Vision face contours</li>
+      </ul>
+
+      <div class="row g-3 my-4">
+        <div class="col-md-6">
+          <figure class="figure w-100 mb-0">
+            <img src="/img/projects/efface-3.webp" alt="Efface upload view" class="figure-img img-fluid rounded shadow">
+            <figcaption class="figure-caption text-center">Drop zone — drag or click to open media</figcaption>
+          </figure>
+        </div>
+        <div class="col-md-6">
+          <figure class="figure w-100 mb-0">
+            <img src="/img/projects/efface-4.webp" alt="Face detection overlay mode" class="figure-img img-fluid rounded shadow">
+            <figcaption class="figure-caption text-center">Detection overlay with face landmarks</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <h4>Video Processing</h4>
+
+      <p>Video processing uses <code>AVAssetReader</code> and <code>AVAssetWriter</code> for hardware-accelerated decode/encode, with face detection running on each frame. Temporal smoothing prevents detections from flickering between frames—if a face was detected in the previous frame near the same location, the confidence threshold is lowered to maintain tracking continuity.</p>
+
+      <div class="row g-3 my-4">
+        <div class="col-md-6">
+          <figure class="figure w-100 mb-0">
+            <img src="/img/projects/efface-5.webp" alt="Video before face anonymization" class="figure-img img-fluid rounded shadow">
+            <figcaption class="figure-caption text-center">Video frame — original</figcaption>
+          </figure>
+        </div>
+        <div class="col-md-6">
+          <figure class="figure w-100 mb-0">
+            <img src="/img/projects/efface-6.webp" alt="Video after pixelate anonymization" class="figure-img img-fluid rounded shadow">
+            <figcaption class="figure-caption text-center">Video frame — after mosaic pixelation</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-lightning-fill me-2"></i>The Full Pipeline</h6>
+        <p class="mb-0">The entire pipeline stays on Apple Silicon. Video decode happens on the media engine, face detection on the Neural Engine, blur/pixelate on the GPU, and re-encode back on the media engine. Python touches none of it.</p>
+      </div>
+    </section>
+
+    <!-- Phase 4: Getting the Details Right -->
+    <section id="getting-details-right" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-crosshair text-info me-2"></i>Phase 4: Getting the Details Right</h2>
+
+      <h4>Landmark Decode Bug</h4>
+
+      <p>CenterFace's five facial landmarks (left eye, right eye, nose, left mouth corner, right mouth corner) weren't landing where they should. Every landmark was shifted down and to the right of the actual facial feature.</p>
+
+      <p>The bug was in the reference frame. The landmark offsets in CenterFace are relative to the <strong>bounding box top-left corner</strong>, not the face center. The original Python reference code makes this clear:</p>
+
+      <pre><code class="language-python"># CenterFace Python reference
+lm_x = lms[0, j*2, row, col] * s1 + x1  # x1 = bbox left
+lm_y = lms[0, j*2+1, row, col] * s0 + y1  # y1 = bbox top</code></pre>
+
+      <p>My initial Swift code was anchoring landmarks to the face center (<code>xCenter</code>, <code>yCenter</code>), which adds half the box width and height—shifting everything to the lower-right. The fix:</p>
+
+      <pre><code class="language-swift">// Compute bbox top-left (not center)
+let x1 = xCenter - boxW / 2
+let y1 = yCenter - boxH / 2
+
+for i in 0..&lt;5 {
+    let lx = landmarkOffset_x[i] * boxW + x1
+    let ly = landmarkOffset_y[i] * boxH + y1
+    landmarks.append(CGPoint(x: lx / imageWidth, y: ly / imageHeight))
+}</code></pre>
+
+      <h4>Loading State</h4>
+
+      <p>A subtle UX issue: when loading HEIC photos, the app converts them to PNG behind the scenes (since Core Image processes them more reliably). This takes a moment, during which the UI still showed the drag-and-drop target. Users would click again thinking nothing happened. Adding a <code>.loading</code> phase to the state machine with a simple spinner fixed the confusion.</p>
+    </section>
+
+    <!-- Technical Deep Dive: The Float16 Crash -->
+    <section id="float16-crash" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-bug-fill text-danger me-2"></i>Technical Deep Dive: The Float16 Crash</h2>
+
+      <p>The app worked perfectly in development. Built a DMG, signed it, notarized it, installed it—and it crashed immediately when processing video.</p>
+
+      <pre><code class="language-plaintext">Thread 2 Crashed:: Dispatch queue: com.efface.videoprocessing
+Swift runtime failure: arithmetic overflow
+CenterFaceDetector.float32Buffer(from:) + 520</code></pre>
+
+      <h4>The Problem</h4>
+
+      <p>Core ML can return model outputs as either Float32 or Float16 arrays. In development builds, I was getting Float32. In release builds with optimizations enabled, Core ML chose Float16—and my manual IEEE 754 half-precision to single-precision conversion had a bug.</p>
+
+      <p>Float16 has a special case: <strong>denormalized numbers</strong> (exponent bits all zero, fraction non-zero). These represent very small values near zero. My conversion code tried to normalize them:</p>
+
+      <pre><code class="language-swift">// The buggy code
+var exp: UInt32 = 0   // exponent is zero for denormals
+var frac: UInt32 = /* fraction bits */
+
+// Normalize: shift fraction left until the implicit leading 1 appears
+while frac & 0x400 == 0 {
+    frac <<= 1
+    exp = exp &- 1  // Wrapping subtraction: 0 - 1 = UInt32.max
+}
+exp += 1  // UInt32.max + 1 = OVERFLOW</code></pre>
+
+      <p>The wrapping subtraction <code>&-</code> on an unsigned integer turns 0 into 4,294,967,295. Then <code>exp + 1</code> overflows. Swift's release mode enables arithmetic overflow traps, and the app crashes.</p>
+
+      <h4>The Fix</h4>
+
+      <p>Rather than fix the bit manipulation, I replaced it entirely with Apple's Accelerate framework:</p>
+
+      <pre><code class="language-swift">import Accelerate
+
+// Float16 → Float32 via vImage (handles all edge cases correctly)
+var srcBuf = vImage_Buffer(
+    data: UnsafeMutableRawPointer(mutating: float16Pointer),
+    height: 1, width: vImagePixelCount(count),
+    rowBytes: count * MemoryLayout&lt;UInt16&gt;.size
+)
+var dstBuf = vImage_Buffer(
+    data: float32Pointer,
+    height: 1, width: vImagePixelCount(count),
+    rowBytes: count * MemoryLayout&lt;Float&gt;.size
+)
+vImageConvert_Planar16FtoPlanarF(&srcBuf, &dstBuf, 0)</code></pre>
+
+      <p>One function call. Handles zeros, denormals, infinities, NaN. SIMD-optimized. And I added tests covering all 1,023 denormalized Float16 values—the exact case that caused the crash. The kind of test I should have written before shipping.</p>
+    </section>
+
+    <!-- Distribution -->
+    <section id="distribution" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-box-seam-fill text-success me-2"></i>Distribution: Signing, Notarizing, and Shipping</h2>
+
+      <p>macOS distribution outside the App Store requires three steps to avoid the "unidentified developer" warning:</p>
+
+      <ol>
+        <li><strong>Code signing</strong> with a Developer ID Application certificate</li>
+        <li><strong>Notarization</strong> — uploading to Apple's servers for malware scanning</li>
+        <li><strong>Stapling</strong> — attaching the notarization ticket to the binary</li>
+      </ol>
+
+      <pre><code class="language-bash"># Archive and export with Developer ID signing
+xcodebuild -project Efface.xcodeproj -scheme Efface \
+    -configuration Release -archivePath build/Efface.xcarchive archive
+
+xcodebuild -exportArchive -archivePath build/Efface.xcarchive \
+    -exportOptionsPlist ExportOptions.plist -exportPath build/export
+
+# Notarize
+xcrun notarytool submit build/Efface.dmg \
+    --apple-id "$APPLE_ID" --password "$APP_PASSWORD" \
+    --team-id "$TEAM_ID" --wait
+
+# Staple the ticket
+xcrun stapler staple build/Efface.dmg</code></pre>
+
+      <p>For the DMG itself, I wanted the classic Mac installer experience—app icon on the left, Applications shortcut on the right, drag arrow in between. This involves creating a writable disk image, mounting it, using AppleScript to set Finder view options and icon positions, then converting to a compressed read-only image. It's archaic and wonderful.</p>
+    </section>
+
+    <!-- Lessons Learned -->
+    <section id="lessons-learned" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-mortarboard-fill text-primary me-2"></i>Lessons Learned</h2>
+
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-lightning-fill me-2 text-success"></i>Don't fight the hardware</h5>
+            <p class="mb-0 text-secondary">Apple Silicon has dedicated engines for specific workloads—Neural Engine for ML, GPU for graphics, media engine for video codec. A native app that uses the right engine for each task will outperform a cross-platform solution running everything on CPU.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-rocket-takeoff-fill me-2 text-info"></i>Test with release builds</h5>
+            <p class="mb-0 text-secondary">The Float16 crash only appeared in optimized release builds. Debug builds used Float32 by default. If I'd run my test suite against a release build before shipping, I would have caught it immediately.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-book-fill me-2 text-warning"></i>Read the reference implementation</h5>
+            <p class="mb-0 text-secondary">Converting the ONNX model to Core ML took one function call. The hard part was correctly decoding the output tensors—understanding coordinate systems, reference frames, and interleaved channel layouts. Read the original paper, read the reference code, then read them again.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-bullseye me-2 text-danger"></i>Ship the simplest thing</h5>
+            <p class="mb-0 text-secondary">The app has no preferences database, no cloud sync, no plugin system. You drop a file, adjust a few sliders, and click Process. The entire state machine has five states. Sometimes the right architecture is no architecture.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Links & Resources -->
+    <section id="links" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-link-45deg text-secondary me-2"></i>Links & Resources</h2>
+
+      <div class="list-group">
+        <a href="https://github.com/canuk/efface-app/releases" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-download me-2"></i>Download Efface (DMG)</span>
+          <span class="badge bg-success">GitHub Releases</span>
+        </a>
+        <a href="https://github.com/canuk/efface-app/blob/master/PRIVACY.md" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-shield-check me-2"></i>Privacy Policy</span>
+          <span class="badge bg-secondary">GitHub</span>
+        </a>
+        <a href="https://arxiv.org/abs/1911.03599" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-journal-text me-2"></i>CenterFace Paper (Xu et al., 2019)</span>
+          <span class="badge bg-primary">arXiv</span>
+        </a>
+        <a href="https://github.com/ORB-HD/deface" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-github me-2"></i>Deface (Python)</span>
+          <span class="badge bg-dark">Original Inspiration</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center text-secondary pt-4 border-top">
+      <p>Built with <i class="bi bi-heart-fill text-danger"></i> on Apple Silicon</p>
+    </footer>
+
+  </article>
+</div>
