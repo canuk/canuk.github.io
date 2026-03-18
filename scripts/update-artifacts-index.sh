@@ -26,16 +26,28 @@ else
     SKIP_THUMBNAILS=false
 fi
 
-# Generate thumbnails for each HTML file
-echo "Checking thumbnails..."
+# Collect all artifact files (single-file .html and subdirectory-based index.html)
+artifact_files=()
 for file in "$ARTIFACTS_DIR"/*.html; do
     filename=$(basename "$file")
-
-    # Skip index.html
     [[ "$filename" == "index.html" ]] && continue
+    artifact_files+=("$file")
+done
+for dir in "$ARTIFACTS_DIR"/*/; do
+    [[ -f "$dir/index.html" ]] && artifact_files+=("$dir/index.html")
+done
 
-    basename_no_ext="${filename%.html}"
-    thumbnail="$THUMBNAILS_DIR/${basename_no_ext}.webp"
+# Generate thumbnails for each artifact
+echo "Checking thumbnails..."
+for file in "${artifact_files[@]}"; do
+    # Determine the slug (used for thumbnail name and card identification)
+    if [[ "$(dirname "$file")" == "$ARTIFACTS_DIR" ]]; then
+        bname=$(basename "$file")
+        slug="${bname%.html}"
+    else
+        slug=$(basename "$(dirname "$file")")
+    fi
+    thumbnail="$THUMBNAILS_DIR/${slug}.webp"
 
     if [[ "$SKIP_THUMBNAILS" == "true" ]]; then
         continue
@@ -43,9 +55,9 @@ for file in "$ARTIFACTS_DIR"/*.html; do
 
     # Generate thumbnail if it doesn't exist or is older than source
     if [[ ! -f "$thumbnail" ]] || [[ "$file" -nt "$thumbnail" ]]; then
-        echo "Generating thumbnail for $filename..."
+        echo "Generating thumbnail for $slug..."
         shot-scraper "$file" -o "$thumbnail" --width 800 --height 600 --quality 80 2>/dev/null || {
-            echo "  Warning: Failed to generate thumbnail for $filename"
+            echo "  Warning: Failed to generate thumbnail for $slug"
         }
     fi
 done
@@ -53,10 +65,7 @@ done
 # Collect all unique tags
 echo "Collecting tags..."
 all_tags=""
-for file in "$ARTIFACTS_DIR"/*.html; do
-    filename=$(basename "$file")
-    [[ "$filename" == "index.html" ]] && continue
-
+for file in "${artifact_files[@]}"; do
     tags=$(sed -n 's/.*<meta name="tags" content="\([^"]*\)".*/\1/p' "$file" | head -1)
     if [[ -n "$tags" ]]; then
         all_tags="$all_tags,$tags"
@@ -79,19 +88,23 @@ done
 # Build the card grid HTML
 echo "Building index..."
 cards_html=""
-for file in "$ARTIFACTS_DIR"/*.html; do
-    filename=$(basename "$file")
+for file in "${artifact_files[@]}"; do
+    # Determine slug and link href based on single-file vs subdirectory artifact
+    if [[ "$(dirname "$file")" == "$ARTIFACTS_DIR" ]]; then
+        bname=$(basename "$file")
+        slug="${bname%.html}"
+        default_link_href="$bname"
+    else
+        slug=$(basename "$(dirname "$file")")
+        default_link_href="$slug/"
+    fi
 
-    # Skip index.html
-    [[ "$filename" == "index.html" ]] && continue
-
-    basename_no_ext="${filename%.html}"
-    thumbnail="thumbnails/${basename_no_ext}.webp"
-    thumbnail_path="$THUMBNAILS_DIR/${basename_no_ext}.webp"
+    thumbnail="thumbnails/${slug}.webp"
+    thumbnail_path="$THUMBNAILS_DIR/${slug}.webp"
 
     # Extract title from <title> tag
     title=$(sed -n 's/.*<title>\([^<]*\)<\/title>.*/\1/p' "$file" | head -1)
-    [[ -z "$title" ]] && title="${basename_no_ext}"
+    [[ -z "$title" ]] && title="${slug}"
 
     # Extract description from meta tag if present
     description=$(sed -n 's/.*<meta name="description" content="\([^"]*\)".*/\1/p' "$file" | head -1)
@@ -145,7 +158,7 @@ for file in "$ARTIFACTS_DIR"/*.html; do
         link_attrs="target=\"_blank\" rel=\"noopener\""
         external_icon="<i class=\"bi bi-box-arrow-up-right ms-1 small\"></i>"
     else
-        link_href="$filename"
+        link_href="$default_link_href"
         link_attrs=""
         external_icon=""
     fi
