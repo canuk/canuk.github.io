@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photosphere Creator — AI Photosphere Generator</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <!-- Pannellum -->
+  <link href="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.css" rel="stylesheet">
+
+  <!-- Custom styles -->
+  <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Animated background mesh -->
+  <div class="bg-mesh"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar-custom">
+    <div class="container-fluid px-3 px-md-4 d-flex align-items-center justify-content-between">
+      <a class="brand" href="#">
+        <div class="brand-icon">
+          <i class="bi bi-globe2"></i>
+        </div>
+        <div>
+          <span class="brand-name">Photosphere Creator</span>
+          <span class="brand-tag">Powered by Gemini</span>
+        </div>
+      </a>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn-glass btn-icon" id="btn-theme" title="Toggle light/dark mode">
+          <i class="bi bi-moon-stars" id="theme-icon"></i>
+        </button>
+        <button class="btn-glass btn-icon" id="btn-settings" title="API Key Settings">
+          <i class="bi bi-gear"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="container-fluid px-3 px-md-4 py-3">
+
+    <!-- Prompt section -->
+    <div class="glass-card mb-3">
+      <div class="card-inner">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="section-title">
+            <i class="bi bi-stars"></i>
+            Create your world
+          </h2>
+          <div class="mode-toggle">
+            <input type="radio" name="prompt-mode" id="mode-simple" checked>
+            <label for="mode-simple">Simple</label>
+            <input type="radio" name="prompt-mode" id="mode-advanced">
+            <label for="mode-advanced">Advanced</label>
+            <div class="mode-slider"></div>
+          </div>
+        </div>
+
+        <!-- Simple mode fields -->
+        <div id="simple-fields">
+          <div class="prompt-input-wrapper mb-3">
+            <textarea class="prompt-textarea" id="scene-description" rows="2"
+              placeholder="A tranquil Japanese garden with a koi pond and cherry blossoms..."></textarea>
+            <div class="prompt-glow"></div>
+            <button class="btn-improve" id="btn-improve" title="Improve prompt with AI" type="button">
+              <i class="bi bi-stars"></i>
+              <span class="btn-improve-label">Improve</span>
+              <span class="btn-improve-spinner d-none"><i class="bi bi-arrow-repeat spin-icon"></i></span>
+            </button>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <!-- Perspective dropdown -->
+            <div class="col-md-6">
+              <div class="dropdown select-dropdown">
+                <button class="select-btn" type="button" data-bs-toggle="dropdown" id="perspective-btn">
+                  <i class="bi bi-eye select-icon"></i>
+                  <span class="select-label">Perspective</span>
+                  <span class="select-value" id="perspective-value">Eye level</span>
+                  <i class="bi bi-chevron-down select-chevron"></i>
+                </button>
+                <ul class="dropdown-menu select-menu" id="perspective-menu">
+                  <li><button class="dropdown-item select-option active" data-value="from eye level">
+                    <i class="bi bi-person-standing"></i>Eye level
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="from a bird's eye view, looking straight down">
+                    <i class="bi bi-arrow-down-circle"></i>Bird's eye
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="from ground level, low angle looking up">
+                    <i class="bi bi-arrow-up-circle"></i>Low angle
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="from a drone at 50 meters altitude">
+                    <i class="bi bi-send"></i>Drone (50m)
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="from the center of a room, interior view">
+                    <i class="bi bi-house"></i>Indoor
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="from underwater, looking around a coral reef">
+                    <i class="bi bi-water"></i>Underwater
+                  </button></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li class="px-2 pt-1">
+                    <input type="text" class="form-control form-control-sm custom-perspective-input"
+                      id="custom-perspective" placeholder="Custom perspective...">
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Weather / Lighting dropdown -->
+            <div class="col-md-6">
+              <div class="dropdown select-dropdown">
+                <button class="select-btn" type="button" data-bs-toggle="dropdown" id="weather-btn">
+                  <i class="bi bi-sun select-icon"></i>
+                  <span class="select-label">Lighting</span>
+                  <span class="select-value" id="weather-value">Clear sky</span>
+                  <i class="bi bi-chevron-down select-chevron"></i>
+                </button>
+                <ul class="dropdown-menu select-menu" id="weather-menu">
+                  <li><button class="dropdown-item select-option active" data-value="Clear sky, bright daylight">
+                    <i class="bi bi-sun"></i>Clear sky
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="Golden hour sunset, warm orange light, long shadows">
+                    <i class="bi bi-sunset"></i>Golden hour
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="Blue hour twilight, deep blue sky, soft ambient light">
+                    <i class="bi bi-moon-stars"></i>Blue hour
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="Overcast sky, moody dramatic clouds, soft diffused light">
+                    <i class="bi bi-cloud"></i>Overcast
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="Heavy rain, wet reflective surfaces, dramatic atmosphere">
+                    <i class="bi bi-cloud-rain-heavy"></i>Rainy
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="Snowy winter scene, soft white light, snow-covered surfaces">
+                    <i class="bi bi-snow2"></i>Snowy
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="Dense fog, misty atmosphere, limited visibility, ethereal">
+                    <i class="bi bi-cloud-fog2"></i>Foggy
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="Clear starry night sky, moonlight illumination, Milky Way visible">
+                    <i class="bi bi-stars"></i>Starry night
+                  </button></li>
+                  <li><button class="dropdown-item select-option" data-value="Neon city lights at night, vibrant colorful reflections">
+                    <i class="bi bi-lightbulb"></i>Neon nights
+                  </button></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li class="px-2 pt-1">
+                    <input type="text" class="form-control form-control-sm custom-perspective-input"
+                      id="custom-weather" placeholder="Custom lighting...">
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Example scenes -->
+          <div class="examples-row mb-3">
+            <span class="examples-label">Try an example:</span>
+            <div class="examples-scroll">
+              <button class="example-card" data-description="A serene Japanese zen garden with a koi pond, stone lanterns, raked sand patterns, and cherry blossom trees in full bloom"
+                data-perspective="from eye level" data-weather="Golden hour sunset, warm orange light, long shadows"
+                data-perspective-label="Eye level" data-weather-label="Golden hour"
+                data-preloaded-image="/img/photosphere_japanese_garden.png">
+                <i class="bi bi-flower2"></i>
+                <span>Japanese Garden</span>
+              </button>
+              <button class="example-card" data-description="A futuristic Mars colony with interconnected glass domes, red desert landscape stretching to the horizon, rovers parked nearby, and Earth visible in the pink sky"
+                data-perspective="from a drone at 50 meters altitude" data-weather="Clear sky, bright daylight"
+                data-perspective-label="Drone (50m)" data-weather-label="Clear sky">
+                <i class="bi bi-rocket-takeoff"></i>
+                <span>Mars Colony</span>
+              </button>
+              <button class="example-card" data-description="A vibrant coral reef teeming with tropical fish, sea turtles, manta rays, and sunlight filtering through crystal clear turquoise water"
+                data-perspective="from underwater, looking around a coral reef" data-weather="Clear sky, bright daylight"
+                data-perspective-label="Underwater" data-weather-label="Clear sky"
+                data-preloaded-image="/img/photosphere_coral_reef.jpeg"
+                data-preloaded-scene="/img/photosphere_scene_coral_reef.json">
+                <i class="bi bi-water"></i>
+                <span>Coral Reef</span>
+              </button>
+              <button class="example-card" data-description="The grand hall of a medieval castle with towering stone walls, ornate tapestries, iron chandeliers with candles, stained glass windows, and a roaring fireplace"
+                data-perspective="from the center of a room, interior view" data-weather="Warm candlelight and firelight glow, dramatic shadows"
+                data-perspective-label="Indoor" data-weather-label="Overcast">
+                <i class="bi bi-building"></i>
+                <span>Castle Hall</span>
+              </button>
+              <button class="example-card" data-description="A rain-soaked cyberpunk city street at night with towering neon signs in Japanese and Chinese, holographic advertisements, street food vendors, and flying vehicles overhead"
+                data-perspective="from eye level" data-weather="Neon city lights at night, vibrant colorful reflections"
+                data-perspective-label="Eye level" data-weather-label="Neon nights">
+                <i class="bi bi-pc-display-horizontal"></i>
+                <span>Cyberpunk City</span>
+              </button>
+              <button class="example-card" data-description="A modern aquaponics greenhouse with tilapia tanks, hydroponic grow beds full of leafy greens, biofilters, recirculating water systems, and a transparent arched roof"
+                data-perspective="from the center of a room, interior view" data-weather="Clear sky, bright daylight"
+                data-perspective-label="Indoor" data-weather-label="Clear sky"
+                data-preloaded-image="/img/photosphere_aquaponics.jpeg"
+                data-preloaded-scene="/img/photosphere_scene_aquaponics.json">
+                <i class="bi bi-droplet-half"></i>
+                <span>Aquaponics Greenhouse</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Advanced mode field -->
+        <div id="advanced-fields" class="d-none">
+          <div class="prompt-input-wrapper mb-3">
+            <textarea class="prompt-textarea" id="full-prompt" rows="4"
+              placeholder="Enter your full prompt for the equirectangular panorama..."></textarea>
+            <div class="prompt-glow"></div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <button class="btn-generate" id="btn-generate">
+            <span class="btn-generate-bg"></span>
+            <span class="btn-generate-content">
+              <i class="bi bi-stars"></i>
+              Generate Photosphere
+            </span>
+          </button>
+          <button class="btn-glass" id="btn-clear">
+            <i class="bi bi-x-lg me-1"></i>Clear
+          </button>
+          <div class="ms-auto d-flex align-items-center gap-3">
+            <label class="annotation-toggle" for="auto-annotate">
+              <input type="checkbox" id="auto-annotate" checked>
+              <span class="toggle-track">
+                <span class="toggle-thumb"></span>
+              </span>
+              <span class="toggle-label">Auto-annotate</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Viewer section -->
+    <div class="viewer-wrapper" id="viewer-wrapper">
+      <!-- Placeholder -->
+      <div class="viewer-placeholder" id="viewer-placeholder">
+        <div class="placeholder-orb">
+          <i class="bi bi-globe2"></i>
+        </div>
+        <p class="placeholder-text">Your photosphere will appear here</p>
+        <p class="placeholder-hint">Describe a scene and hit Generate</p>
+      </div>
+
+      <!-- Loading overlay -->
+      <div class="viewer-loading d-none" id="viewer-loading">
+        <div class="loading-orb">
+          <div class="loading-ring"></div>
+          <div class="loading-ring"></div>
+          <div class="loading-ring"></div>
+          <i class="bi bi-globe2 loading-icon"></i>
+        </div>
+        <p class="loading-status" id="loading-status">Generating panorama...</p>
+      </div>
+
+      <!-- Viewer toolbar (shown when panorama loaded) -->
+      <div class="viewer-toolbar d-none" id="viewer-toolbar">
+        <button class="toolbar-btn" id="btn-download" title="Download panorama image">
+          <i class="bi bi-download"></i>
+        </button>
+        <button class="toolbar-btn" id="btn-save-scene" title="Save scene (image + annotations) as JSON">
+          <i class="bi bi-floppy"></i>
+        </button>
+      </div>
+
+      <!-- Reposition overlay banner -->
+      <div class="reposition-banner d-none" id="reposition-banner">
+        <i class="bi bi-crosshair"></i>
+        Pan to position your marker
+        <button class="btn-generate btn-sm ms-2" id="btn-done-reposition">
+          <span class="btn-generate-bg"></span>
+          <span class="btn-generate-content"><i class="bi bi-check-lg"></i> Done</span>
+        </button>
+        <button class="btn-glass btn-sm" id="btn-cancel-reposition">Cancel</button>
+      </div>
+
+      <!-- Crosshair overlay -->
+      <div class="reposition-crosshair d-none" id="reposition-crosshair">
+        <i class="bi bi-plus-lg"></i>
+      </div>
+
+      <!-- Edit bar -->
+      <div class="edit-bar d-none" id="edit-bar">
+        <div class="edit-bar-inner">
+          <i class="bi bi-pencil-square edit-bar-icon"></i>
+          <input type="text" class="edit-bar-input" id="edit-bar-input"
+            placeholder="Describe an edit... e.g. &quot;Make it sunset&quot; or &quot;Add snow everywhere&quot;">
+          <button class="edit-bar-send" id="btn-edit-send" title="Apply edit">
+            <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pannellum container -->
+      <div id="panorama-container"></div>
+    </div>
+
+    <!-- Annotations panel -->
+    <div class="annotations-panel d-none" id="annotations-panel">
+      <div class="annotations-bar">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="annotations-label">
+            <i class="bi bi-pin-map"></i> Points of interest
+          </span>
+          <div id="annotation-chips" class="d-flex gap-2 flex-wrap"></div>
+          <button class="annotation-chip add-chip" id="btn-add-annotation" title="Add annotation">
+            <i class="bi bi-plus-lg"></i> Add
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Annotation edit dialog (positioned near chip) -->
+    <div class="edit-dialog d-none" id="edit-dialog">
+      <div class="edit-dialog-inner">
+        <div class="edit-dialog-field">
+          <label class="editor-label">Name</label>
+          <input type="text" class="editor-input" id="edit-name" placeholder="Point of interest name">
+        </div>
+        <div class="edit-dialog-field">
+          <label class="editor-label">Description</label>
+          <input type="text" class="editor-input" id="edit-description" placeholder="Brief description">
+        </div>
+        <div class="edit-dialog-actions">
+          <button class="btn-glass btn-sm btn-danger-glass" id="btn-delete-annotation" title="Delete">
+            <i class="bi bi-trash3"></i>
+          </button>
+          <button class="btn-generate btn-sm" id="btn-done-edit">
+            <span class="btn-generate-bg"></span>
+            <span class="btn-generate-content"><i class="bi bi-check-lg"></i> Done</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- API Key Modal -->
+  <div class="modal fade" id="api-key-modal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-modal">
+        <div class="modal-body p-4">
+          <div class="text-center mb-4">
+            <div class="modal-icon">
+              <i class="bi bi-key"></i>
+            </div>
+            <h4 class="mt-3 mb-1">Connect to Gemini</h4>
+            <p class="text-muted small mb-0">Your key stays in your browser. Never sent anywhere except the Gemini API.</p>
+          </div>
+          <div class="api-key-input-wrapper">
+            <i class="bi bi-shield-lock"></i>
+            <input type="password" class="api-key-input" id="api-key-input" placeholder="Paste your Gemini API key">
+          </div>
+          <button class="btn-generate w-100 mt-3" id="btn-save-key">
+            <span class="btn-generate-bg"></span>
+            <span class="btn-generate-content">
+              <i class="bi bi-check2-circle"></i>
+              Save & Connect
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div class="toast glass-toast border-0" id="error-toast" role="alert">
+      <div class="d-flex align-items-center p-3">
+        <i class="bi bi-exclamation-triangle text-warning me-2 fs-5"></i>
+        <div class="flex-grow-1" id="error-toast-body"></div>
+        <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
