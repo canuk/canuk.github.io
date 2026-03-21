@@ -3,9 +3,12 @@ import {
   buildPrompt,
   generatePanorama,
   editPanorama,
+  expandToPanorama,
+  overheadToPanorama,
   annotateImage,
   improvePrompt,
 } from "./gemini.js";
+import { saveToHistory, getHistory, getHistoryEntry, deleteHistoryEntry } from "./history.js";
 import {
   loadPanorama,
   addMarkers,
@@ -22,17 +25,24 @@ import {
 // --- DOM refs ---
 const btnGenerate = document.getElementById("btn-generate");
 const btnClear = document.getElementById("btn-clear");
-const btnSettings = document.getElementById("btn-settings");
 const btnTheme = document.getElementById("btn-theme");
 const themeIcon = document.getElementById("theme-icon");
+const btnHistory = document.getElementById("btn-history");
+const historyPanel = document.getElementById("history-panel");
+const historyList = document.getElementById("history-list");
+const btnHistoryClose = document.getElementById("btn-history-close");
+const btnSettings = document.getElementById("btn-settings");
 const btnSaveKey = document.getElementById("btn-save-key");
 const apiKeyInput = document.getElementById("api-key-input");
-const modeSimple = document.getElementById("mode-simple");
-const modeAdvanced = document.getElementById("mode-advanced");
+const modeGenerate = document.getElementById("mode-generate");
+const modeExpand = document.getElementById("mode-expand");
+const modeOverhead = document.getElementById("mode-overhead");
 const simpleFields = document.getElementById("simple-fields");
-const advancedFields = document.getElementById("advanced-fields");
+const expandFields = document.getElementById("expand-fields");
+const overheadFields = document.getElementById("overhead-fields");
 const sceneDescription = document.getElementById("scene-description");
-const fullPrompt = document.getElementById("full-prompt");
+const btnGenerateLabel = document.getElementById("btn-generate-label");
+const btnGenerateIcon = document.getElementById("btn-generate-icon");
 const viewerPlaceholder = document.getElementById("viewer-placeholder");
 const viewerLoading = document.getElementById("viewer-loading");
 const loadingStatus = document.getElementById("loading-status");
@@ -71,9 +81,7 @@ const editBarInput = document.getElementById("edit-bar-input");
 const btnEditSend = document.getElementById("btn-edit-send");
 const autoAnnotateToggle = document.getElementById("auto-annotate");
 
-const apiKeyModal = new bootstrap.Modal(
-  document.getElementById("api-key-modal")
-);
+const apiKeyModal = new bootstrap.Modal(document.getElementById("api-key-modal"));
 const errorToast = new bootstrap.Toast(errorToastEl);
 
 // --- State ---
@@ -87,6 +95,55 @@ let currentBase64 = null;
 let currentMimeType = null;
 let selectedPerspective = "from eye level";
 let selectedWeather = "Clear sky, bright daylight";
+const size2k = document.getElementById("size-2k");
+const size4k = document.getElementById("size-4k");
+const sizeCost = document.getElementById("size-cost");
+const modelFlash = document.getElementById("model-flash");
+const modelPro = document.getElementById("model-pro");
+const modelCost = document.getElementById("model-cost");
+
+function getSelectedImageSize() {
+  return size4k.checked ? "4K" : "2K";
+}
+
+function getSelectedModel() {
+  return modelPro.checked ? "pro" : "flash";
+}
+
+// Token / cost display refs
+const costEstimate = document.getElementById("cost-estimate");
+const costInfoLink = document.getElementById("cost-info-link");
+const annotateCost = document.getElementById("annotate-cost");
+const expandTokenBadge = document.getElementById("expand-token-badge");
+const expandTokenCount = document.getElementById("expand-token-count");
+const overheadTokenBadge = document.getElementById("overhead-token-badge");
+const overheadTokenCount = document.getElementById("overhead-token-count");
+
+// Expand mode state
+let expandImage = null; // { base64, mimeType } or null
+const expandSlot = document.getElementById("expand-slot-front");
+const expandInput = document.getElementById("expand-input-front");
+const expandThumb = document.getElementById("expand-thumb-front");
+const expandPreview = document.getElementById("expand-preview-front");
+const expandPromptEl = document.getElementById("expand-prompt-front");
+const expandClearBtn = document.getElementById("expand-clear-front");
+const expandDescLeft = document.getElementById("expand-desc-left");
+const expandDescRight = document.getElementById("expand-desc-right");
+const expandDescBehind = document.getElementById("expand-desc-behind");
+
+// Overhead mode state
+let overheadImage = null; // { base64, mimeType } or null
+const subSatellite = document.getElementById("sub-satellite");
+const subBlueprint = document.getElementById("sub-blueprint");
+const overheadSlot = document.getElementById("overhead-slot");
+const overheadInput = document.getElementById("overhead-input");
+const overheadThumb = document.getElementById("overhead-thumb");
+const overheadPreview = document.getElementById("overhead-preview");
+const overheadPromptEl = document.getElementById("overhead-prompt");
+const overheadClearBtn = document.getElementById("overhead-clear");
+const overheadPromptIcon = document.getElementById("overhead-prompt-icon");
+const overheadPromptLabel = document.getElementById("overhead-prompt-label");
+const overheadDetails = document.getElementById("overhead-details");
 
 // --- Init ---
 function init() {
@@ -100,7 +157,7 @@ function init() {
     apiKeyModal.show();
   }
 
-  // Core listeners
+  // API key listeners
   btnSaveKey.addEventListener("click", saveApiKey);
   apiKeyInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") saveApiKey();
@@ -109,6 +166,10 @@ function init() {
     apiKeyInput.value = localStorage.getItem("gemini-api-key") || "";
     apiKeyModal.show();
   });
+
+  // History
+  btnHistory.addEventListener("click", toggleHistory);
+  btnHistoryClose.addEventListener("click", () => historyPanel.classList.add("d-none"));
   btnTheme.addEventListener("click", toggleTheme);
   btnGenerate.addEventListener("click", handleGenerate);
   btnClear.addEventListener("click", handleClear);
@@ -117,8 +178,75 @@ function init() {
   editBarInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") handleEditPanorama();
   });
-  modeSimple.addEventListener("change", updatePromptMode);
-  modeAdvanced.addEventListener("change", updatePromptMode);
+  modeGenerate.addEventListener("change", () => { updatePromptMode(); estimateCost(); });
+  modeExpand.addEventListener("change", () => { updatePromptMode(); estimateCost(); });
+  modeOverhead.addEventListener("change", () => { updatePromptMode(); estimateCost(); });
+  sceneDescription.addEventListener("input", estimateCost);
+  autoAnnotateToggle.addEventListener("change", estimateCost);
+  size2k.addEventListener("change", estimateCost);
+  size4k.addEventListener("change", estimateCost);
+  modelFlash.addEventListener("change", estimateCost);
+  modelPro.addEventListener("change", estimateCost);
+
+  // Ensure correct defaults on page reload (browsers can remember radio state)
+  size2k.checked = true;
+  modelFlash.checked = true;
+
+  // Overhead sub-mode toggle
+  subSatellite.addEventListener("change", updateOverheadSubMode);
+  subBlueprint.addEventListener("change", updateOverheadSubMode);
+
+  // Overhead mode: upload handlers
+  overheadSlot.addEventListener("click", (e) => {
+    if (e.target.closest(".expand-slot-clear")) return;
+    overheadInput.click();
+  });
+  overheadInput.addEventListener("change", (e) => {
+    if (e.target.files[0]) processOverheadImage(e.target.files[0]);
+  });
+  overheadSlot.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    overheadSlot.classList.add("drag-over");
+  });
+  overheadSlot.addEventListener("dragleave", () => {
+    overheadSlot.classList.remove("drag-over");
+  });
+  overheadSlot.addEventListener("drop", (e) => {
+    e.preventDefault();
+    overheadSlot.classList.remove("drag-over");
+    const file = e.dataTransfer.files[0];
+    if (file) processOverheadImage(file);
+  });
+  overheadClearBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    clearOverheadImage();
+  });
+
+  // Expand mode: single photo upload handlers
+  expandSlot.addEventListener("click", (e) => {
+    if (e.target.closest(".expand-slot-clear")) return;
+    expandInput.click();
+  });
+  expandInput.addEventListener("change", (e) => {
+    if (e.target.files[0]) processExpandImage(e.target.files[0]);
+  });
+  expandSlot.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    expandSlot.classList.add("drag-over");
+  });
+  expandSlot.addEventListener("dragleave", () => {
+    expandSlot.classList.remove("drag-over");
+  });
+  expandSlot.addEventListener("drop", (e) => {
+    e.preventDefault();
+    expandSlot.classList.remove("drag-over");
+    const file = e.dataTransfer.files[0];
+    if (file) processExpandImage(file);
+  });
+  expandClearBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    clearExpandImage();
+  });
 
   // Save/download
   btnDownload.addEventListener("click", handleDownloadImage);
@@ -190,6 +318,8 @@ function init() {
       }
     });
   });
+
+  estimateCost();
 }
 
 // --- Load a preloaded example image from disk ---
@@ -310,14 +440,49 @@ function saveApiKey() {
 
 // --- Prompt mode toggle ---
 function updatePromptMode() {
-  const isSimple = modeSimple.checked;
-  simpleFields.classList.toggle("d-none", !isSimple);
-  advancedFields.classList.toggle("d-none", isSimple);
+  const isGenerate = modeGenerate.checked;
+  const isExpand = modeExpand.checked;
+  const isOverhead = modeOverhead.checked;
+  simpleFields.classList.toggle("d-none", !isGenerate);
+  expandFields.classList.toggle("d-none", !isExpand);
+  overheadFields.classList.toggle("d-none", !isOverhead);
+  if (isGenerate) {
+    btnGenerateIcon.className = "bi bi-stars";
+    btnGenerateLabel.textContent = "Generate Photosphere";
+  } else if (isExpand) {
+    btnGenerateIcon.className = "bi bi-arrows-fullscreen";
+    btnGenerateLabel.textContent = "Expand to 360\u00B0";
+  } else {
+    updateOverheadButtonLabel();
+  }
+}
+
+function updateOverheadSubMode() {
+  const isSatellite = subSatellite.checked;
+  overheadPromptIcon.className = isSatellite ? "bi bi-geo-alt" : "bi bi-rulers";
+  overheadPromptLabel.textContent = isSatellite
+    ? "Upload a satellite or aerial image"
+    : "Upload a floor plan or blueprint";
+  overheadDetails.placeholder = isSatellite
+    ? "e.g. Suburban neighborhood, summer, late afternoon..."
+    : "e.g. Modern kitchen, hardwood floors, granite countertops...";
+  updateOverheadButtonLabel();
+}
+
+function updateOverheadButtonLabel() {
+  if (subSatellite.checked) {
+    btnGenerateIcon.className = "bi bi-geo-alt";
+    btnGenerateLabel.textContent = "Create from Satellite";
+  } else {
+    btnGenerateIcon.className = "bi bi-rulers";
+    btnGenerateLabel.textContent = "Create from Blueprint";
+  }
 }
 
 // --- Get the current prompt ---
 function getCurrentPrompt() {
-  if (modeAdvanced.checked) return fullPrompt.value.trim();
+  if (modeExpand.checked) return "(expand mode)";
+  if (modeOverhead.checked) return "(overhead mode)";
   const desc = sceneDescription.value.trim();
   if (!desc) return null;
   return buildPrompt({ description: desc, perspective: selectedPerspective, weather: selectedWeather });
@@ -328,11 +493,10 @@ async function handleImprovePrompt() {
   const desc = sceneDescription.value.trim();
   if (!desc) { showError("Write a scene description first."); return; }
 
-  const apiKey = localStorage.getItem("gemini-api-key");
-  if (!apiKey) { apiKeyModal.show(); return; }
+
 
   btnImprove.disabled = true;
-  btnImprove.querySelector(".btn-improve-label").classList.add("d-none");
+  btnImprove.querySelector(".btn-improve-icon").classList.add("d-none");
   btnImprove.querySelector(".btn-improve-spinner").classList.remove("d-none");
 
   try {
@@ -346,7 +510,7 @@ async function handleImprovePrompt() {
     console.error("Improve prompt error:", err);
   } finally {
     btnImprove.disabled = false;
-    btnImprove.querySelector(".btn-improve-label").classList.remove("d-none");
+    btnImprove.querySelector(".btn-improve-icon").classList.remove("d-none");
     btnImprove.querySelector(".btn-improve-spinner").classList.add("d-none");
   }
 }
@@ -360,8 +524,7 @@ async function handleEditPanorama() {
     return;
   }
 
-  const apiKey = localStorage.getItem("gemini-api-key");
-  if (!apiKey) { apiKeyModal.show(); return; }
+
 
   isGenerating = true;
   btnEditSend.disabled = true;
@@ -371,20 +534,16 @@ async function handleEditPanorama() {
   showLoading("Applying edit...");
 
   try {
-    const { base64, mimeType } = await editPanorama(currentBase64, currentMimeType, instruction);
+    const { base64, mimeType } = await editPanorama(currentBase64, currentMimeType, instruction, getSelectedImageSize(), getSelectedModel());
     currentBase64 = base64;
     currentMimeType = mimeType;
     currentImageDataUrl = `data:${mimeType};base64,${base64}`;
 
     showLoading("Loading viewer...");
-    loadPanorama(currentImageDataUrl);
+    loadPanorama(currentImageDataUrl, currentAnnotations.length ? currentAnnotations : null);
     hideLoading();
 
-    // Re-add existing markers
-    if (currentAnnotations.length) {
-      rebuildMarkers(currentAnnotations);
-    }
-
+    saveCurrentToHistory(instruction, "edit");
     editBarInput.value = "";
   } catch (err) {
     hideLoading();
@@ -401,8 +560,10 @@ async function handleEditPanorama() {
 // --- Generate flow ---
 async function handleGenerate() {
   if (isGenerating) return;
-  const apiKey = localStorage.getItem("gemini-api-key");
-  if (!apiKey) { apiKeyModal.show(); return; }
+  if (modeExpand.checked) return handleExpand();
+  if (modeOverhead.checked) return handleOverhead();
+
+
 
   const prompt = getCurrentPrompt();
   if (!prompt) { showError("Please describe a scene first."); return; }
@@ -413,7 +574,7 @@ async function handleGenerate() {
   showLoading("Generating panorama...");
 
   try {
-    const { base64, mimeType } = await generatePanorama(prompt);
+    const { base64, mimeType } = await generatePanorama(prompt, getSelectedImageSize(), getSelectedModel());
     currentBase64 = base64;
     currentMimeType = mimeType;
     currentImageDataUrl = `data:${mimeType};base64,${base64}`;
@@ -427,6 +588,7 @@ async function handleGenerate() {
 
     currentAnnotations = [];
     selectedAnnotationIndex = -1;
+    saveCurrentToHistory(prompt, "generate");
 
     if (autoAnnotateToggle.checked) {
       annotationsPanel.classList.remove("d-none");
@@ -442,6 +604,307 @@ async function handleGenerate() {
     isGenerating = false;
     btnGenerate.disabled = false;
   }
+}
+
+// --- Expand flow ---
+async function handleExpand() {
+
+
+  if (!expandImage) {
+    showError("Upload a photo to expand.");
+    return;
+  }
+
+  isGenerating = true;
+  btnGenerate.disabled = true;
+  closeEditDialog();
+  showLoading("Expanding to 360\u00B0 panorama...");
+
+  try {
+    const directions = {
+      left: expandDescLeft.value.trim() || undefined,
+      right: expandDescRight.value.trim() || undefined,
+      behind: expandDescBehind.value.trim() || undefined,
+    };
+
+    const { base64, mimeType } = await expandToPanorama(
+      expandImage.base64, expandImage.mimeType, directions, getSelectedImageSize(), getSelectedModel()
+    );
+    currentBase64 = base64;
+    currentMimeType = mimeType;
+    currentImageDataUrl = `data:${mimeType};base64,${base64}`;
+
+    showLoading("Loading viewer...");
+    viewerPlaceholder.classList.add("d-none");
+    loadPanorama(currentImageDataUrl);
+    hideLoading();
+    viewerToolbar.classList.remove("d-none");
+    editBar.classList.remove("d-none");
+
+    currentAnnotations = [];
+    selectedAnnotationIndex = -1;
+    saveCurrentToHistory("(expand)", "expand");
+
+    if (autoAnnotateToggle.checked) {
+      annotationsPanel.classList.remove("d-none");
+      annotateInBackground(base64, mimeType);
+    } else {
+      annotationsPanel.classList.add("d-none");
+    }
+  } catch (err) {
+    hideLoading();
+    showError(err.message || "Expand failed. Please try again.");
+    console.error("Expand error:", err);
+  } finally {
+    isGenerating = false;
+    btnGenerate.disabled = false;
+  }
+}
+
+// --- Expand image processing ---
+function processExpandImage(file) {
+  if (!file.type.startsWith("image/")) {
+    showError("Please upload an image file.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const { base64, mimeType, width, height } = resizeImage(img, 1024);
+      expandImage = { base64, mimeType, width, height };
+
+      expandThumb.src = `data:${mimeType};base64,${base64}`;
+      expandPreview.classList.remove("d-none");
+      expandPromptEl.classList.add("d-none");
+      expandSlot.classList.add("filled");
+      showTokenBadge(expandTokenBadge, expandTokenCount, width, height);
+      estimateCost();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearExpandImage() {
+  expandImage = null;
+  expandInput.value = "";
+  expandPreview.classList.add("d-none");
+  expandPromptEl.classList.remove("d-none");
+  expandSlot.classList.remove("filled");
+  hideTokenBadge(expandTokenBadge);
+  estimateCost();
+}
+
+// --- Overhead flow ---
+async function handleOverhead() {
+
+
+  if (!overheadImage) {
+    showError(subSatellite.checked
+      ? "Upload a satellite or aerial image."
+      : "Upload a floor plan or blueprint.");
+    return;
+  }
+
+  const subMode = subSatellite.checked ? "satellite" : "blueprint";
+  const details = overheadDetails.value.trim() || undefined;
+
+  isGenerating = true;
+  btnGenerate.disabled = true;
+  closeEditDialog();
+  showLoading(subMode === "satellite"
+    ? "Analyzing satellite imagery..."
+    : "Analyzing blueprint...");
+
+  try {
+    const { base64, mimeType } = await overheadToPanorama(
+      overheadImage.base64, overheadImage.mimeType,
+      subMode, details,
+      (msg) => showLoading(msg), getSelectedImageSize(), getSelectedModel()
+    );
+    currentBase64 = base64;
+    currentMimeType = mimeType;
+    currentImageDataUrl = `data:${mimeType};base64,${base64}`;
+
+    showLoading("Loading viewer...");
+    viewerPlaceholder.classList.add("d-none");
+    loadPanorama(currentImageDataUrl);
+    hideLoading();
+    viewerToolbar.classList.remove("d-none");
+    editBar.classList.remove("d-none");
+
+    currentAnnotations = [];
+    selectedAnnotationIndex = -1;
+    saveCurrentToHistory(details || `(${subMode})`, `overhead-${subMode}`);
+
+    if (autoAnnotateToggle.checked) {
+      annotationsPanel.classList.remove("d-none");
+      annotateInBackground(base64, mimeType);
+    } else {
+      annotationsPanel.classList.add("d-none");
+    }
+  } catch (err) {
+    hideLoading();
+    showError(err.message || "Conversion failed. Please try again.");
+    console.error("Overhead error:", err);
+  } finally {
+    isGenerating = false;
+    btnGenerate.disabled = false;
+  }
+}
+
+// --- Overhead image processing ---
+function processOverheadImage(file) {
+  if (!file.type.startsWith("image/")) {
+    showError("Please upload an image file.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const { base64, mimeType, width, height } = resizeImage(img, 1024);
+      overheadImage = { base64, mimeType, width, height };
+
+      overheadThumb.src = `data:${mimeType};base64,${base64}`;
+      overheadPreview.classList.remove("d-none");
+      overheadPromptEl.classList.add("d-none");
+      overheadSlot.classList.add("filled");
+      showTokenBadge(overheadTokenBadge, overheadTokenCount, width, height);
+      estimateCost();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearOverheadImage() {
+  overheadImage = null;
+  overheadInput.value = "";
+  overheadPreview.classList.add("d-none");
+  overheadPromptEl.classList.remove("d-none");
+  overheadSlot.classList.remove("filled");
+  hideTokenBadge(overheadTokenBadge);
+  estimateCost();
+}
+
+function resizeImage(img, maxWidth) {
+  const canvas = document.createElement("canvas");
+  let w = img.naturalWidth;
+  let h = img.naturalHeight;
+  if (w > maxWidth) {
+    h = h * (maxWidth / w);
+    w = maxWidth;
+  }
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, w, h);
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+  return {
+    base64: dataUrl.split(",")[1],
+    mimeType: "image/jpeg",
+    width: Math.round(w),
+    height: Math.round(h),
+  };
+}
+
+// --- Token counting & cost estimation ---
+// Gemini image token formula: ≤384px both sides = 258 tokens, else 768px tiles × 258 each
+function countImageTokens(w, h) {
+  if (w <= 384 && h <= 384) return 258;
+  return Math.ceil(w / 768) * Math.ceil(h / 768) * 258;
+}
+
+// Pricing (per token) — Flash vs Pro
+const PRICE = {
+  flash: {
+    input:      0.50 / 1e6,  // gemini-3.1-flash input
+    outputImg:  60.0 / 1e6,  // image output
+    outputTxt:   3.0 / 1e6,  // text output
+  },
+  pro: {
+    input:      2.00 / 1e6,  // gemini-3-pro input
+    outputImg: 134.0 / 1e6,  // image output ($0.134/img ÷ ~1000 tokens)
+    outputTxt:  12.0 / 1e6,  // text output
+  },
+  flash25Input:  0.30 / 1e6, // gemini-2.5-flash input (for VLM/annotation)
+  flash25Output: 2.50 / 1e6, // gemini-2.5-flash output
+};
+// Output image tokens by size (from Gemini pricing page)
+const OUTPUT_TOKENS_BY_SIZE = { "2K": 1680, "4K": 2520 };
+
+// Annotation cost: output image sent to gemini-2.5-flash + ~100 token prompt, ~300 token JSON response
+const ANNOTATE_OUTPUT_TOKENS = 300;
+
+function getAnnotateCost(outputTokens) {
+  return (outputTokens + 100) * PRICE.flash25Input + ANNOTATE_OUTPUT_TOKENS * PRICE.flash25Output;
+}
+
+function estimateCost() {
+  const isGenerate = modeGenerate.checked;
+  const isExpand = modeExpand.checked;
+  const isOverhead = modeOverhead.checked;
+  const willAnnotate = autoAnnotateToggle.checked;
+  const imgSize = getSelectedImageSize();
+  const mdl = getSelectedModel();
+  const p = PRICE[mdl];
+  const outputImageTokens = OUTPUT_TOKENS_BY_SIZE[imgSize];
+
+  let cost = 0;
+  const outputImgCost = outputImageTokens * p.outputImg;
+
+  // Show per-unit costs
+  sizeCost.textContent = `~$${outputImgCost.toFixed(3)}/img`;
+  modelCost.textContent = mdl === "pro" ? "$2.00/1M in" : "$0.50/1M in";
+
+  if (isGenerate) {
+    const promptTokens = Math.ceil((sceneDescription.value.length || 50) / 4) + 80;
+    cost = promptTokens * p.input + outputImgCost;
+  } else if (isExpand) {
+    const imgTokens = expandImage ? countImageTokens(expandImage.width, expandImage.height) : 258;
+    const promptTokens = 200;
+    cost = (imgTokens + promptTokens) * p.input + outputImgCost;
+  } else if (isOverhead) {
+    const imgTokens = overheadImage ? countImageTokens(overheadImage.width, overheadImage.height) : 258;
+    // Step 1: VLM analysis (gemini-2.5-flash)
+    const step1Input = (imgTokens + 500) * PRICE.flash25Input;
+    const step1Output = 800 * PRICE.flash25Output;
+    // Step 2: Image generation (selected model)
+    const step2Input = 800 * p.input;
+    cost = step1Input + step1Output + step2Input + outputImgCost;
+  }
+
+  const annotateCostVal = getAnnotateCost(outputImageTokens);
+  if (willAnnotate) cost += annotateCostVal;
+
+  costEstimate.textContent = `~$${cost.toFixed(3)} est.`;
+  costEstimate.classList.remove("d-none");
+  costInfoLink.classList.remove("d-none");
+  updateAnnotateCostDisplay(willAnnotate, annotateCostVal);
+}
+
+function updateAnnotateCostDisplay(enabled, costVal) {
+  if (enabled) {
+    annotateCost.textContent = `~$${(costVal || 0.001).toFixed(4)}/run`;
+    annotateCost.style.opacity = "0.6";
+  } else {
+    annotateCost.textContent = "off";
+    annotateCost.style.opacity = "0.35";
+  }
+}
+
+function showTokenBadge(badge, countEl, width, height) {
+  const tokens = countImageTokens(width, height);
+  countEl.textContent = `${tokens.toLocaleString()} tokens`;
+  badge.classList.remove("d-none");
+}
+
+function hideTokenBadge(badge) {
+  badge.classList.add("d-none");
 }
 
 // --- Annotation (non-blocking) ---
@@ -477,8 +940,9 @@ function renderAnnotationChips() {
       <span class="chip-number">${i + 1}</span>
       ${escapeHtml(a.name)}
       <span class="chip-actions">
-        <span class="chip-action-btn" data-action="edit" data-index="${i}" title="Edit"><i class="bi bi-pencil"></i></span>
-        <span class="chip-action-btn" data-action="move" data-index="${i}" title="Move"><i class="bi bi-arrows-move"></i></span>
+        <span class="chip-action-btn" data-action="edit" data-index="${i}" title="Edit"><i class="bi bi-pencil" aria-hidden="true"></i></span>
+        <span class="chip-action-btn" data-action="move" data-index="${i}" title="Move"><i class="bi bi-arrows-move" aria-hidden="true"></i></span>
+        <span class="chip-action-btn chip-delete-btn" data-action="delete" data-index="${i}" title="Delete"><i class="bi bi-trash3" aria-hidden="true"></i></span>
       </span>
     `;
 
@@ -503,6 +967,10 @@ function renderAnnotationChips() {
         openEditDialog(idx, btn);
       } else if (action === "move") {
         startReposition(idx);
+      } else if (action === "delete") {
+        currentAnnotations.splice(idx, 1);
+        rebuildMarkers(currentAnnotations);
+        renderAnnotationChips();
       }
     });
   });
@@ -725,7 +1193,12 @@ function handleClear() {
   viewerPlaceholder.classList.remove("d-none");
 
   sceneDescription.value = "";
-  fullPrompt.value = "";
+  clearExpandImage();
+  expandDescLeft.value = "";
+  expandDescRight.value = "";
+  expandDescBehind.value = "";
+  clearOverheadImage();
+  overheadDetails.value = "";
 
   selectedPerspective = "from eye level";
   selectedWeather = "Clear sky, bright daylight";
@@ -753,6 +1226,117 @@ function hideLoading() {
 function showError(message) {
   errorToastBody.textContent = message;
   errorToast.show();
+}
+
+// --- History ---
+function saveCurrentToHistory(prompt, mode) {
+  if (!currentImageDataUrl) return;
+  saveToHistory({
+    imageDataUrl: currentImageDataUrl,
+    mimeType: currentMimeType,
+    prompt: prompt || "",
+    mode: mode || "generate",
+    imageSize: getSelectedImageSize(),
+    model: getSelectedModel(),
+    annotations: currentAnnotations || [],
+  }).catch(err => console.warn("History save failed:", err));
+}
+
+async function toggleHistory() {
+  historyPanel.classList.toggle("d-none");
+  if (!historyPanel.classList.contains("d-none")) {
+    await renderHistory();
+    historyPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+async function renderHistory() {
+  try {
+    const entries = await getHistory();
+    if (!entries.length) {
+      historyList.innerHTML = '<p style="color:var(--text-secondary);font-size:0.8rem;padding:1rem;text-align:center;">No history yet</p>';
+      return;
+    }
+    historyList.innerHTML = entries.map(e => `
+      <div class="history-item" data-id="${e.id}">
+        <img class="history-thumb" src="${e.imageDataUrl}" alt="Photosphere">
+        <div class="history-info">
+          <span class="history-mode">${escapeHtml(e.mode)}${e.imageSize === "4K" ? ' <span class="badge-4k">4K</span>' : ''}${e.model === "pro" ? ' <span class="badge-pro">PRO</span>' : ''}</span>
+          <span class="history-date">${new Date(e.createdAt).toLocaleString()}</span>
+          <span class="history-prompt">${escapeHtml(e.prompt || '')}</span>
+        </div>
+        <div class="history-actions">
+          <button class="history-load-btn" title="Load into viewer" aria-label="Load this photosphere"><i class="bi bi-eye" aria-hidden="true"></i></button>
+          <button class="history-download-btn" title="Download image" aria-label="Download image"><i class="bi bi-download" aria-hidden="true"></i></button>
+          <button class="history-delete-btn" title="Delete" aria-label="Delete this entry"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    `).join('');
+
+    // Load into viewer
+    historyList.querySelectorAll('.history-load-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = parseInt(btn.closest('.history-item').dataset.id);
+        loadHistoryEntry(id);
+      });
+    });
+
+    // Click thumbnail to load too
+    historyList.querySelectorAll('.history-thumb').forEach(thumb => {
+      thumb.style.cursor = 'pointer';
+      thumb.addEventListener('click', async () => {
+        const id = parseInt(thumb.closest('.history-item').dataset.id);
+        loadHistoryEntry(id);
+      });
+    });
+
+    // Download
+    historyList.querySelectorAll('.history-download-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = parseInt(btn.closest('.history-item').dataset.id);
+        const entry = await getHistoryEntry(id);
+        if (!entry) return;
+        const link = document.createElement("a");
+        link.href = entry.imageDataUrl;
+        const ext = entry.mimeType?.includes("png") ? "png" : "jpeg";
+        link.download = `photosphere_${id}.${ext}`;
+        link.click();
+      });
+    });
+
+    // Delete
+    historyList.querySelectorAll('.history-delete-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = parseInt(btn.closest('.history-item').dataset.id);
+        await deleteHistoryEntry(id);
+        await renderHistory();
+      });
+    });
+  } catch (err) {
+    console.warn("Failed to load history:", err);
+  }
+}
+
+async function loadHistoryEntry(id) {
+  const entry = await getHistoryEntry(id);
+  if (!entry) return;
+  currentImageDataUrl = entry.imageDataUrl;
+  currentBase64 = entry.imageDataUrl.split(',')[1];
+  currentMimeType = entry.mimeType;
+  currentAnnotations = entry.annotations || [];
+  selectedAnnotationIndex = -1;
+  viewerPlaceholder.classList.add("d-none");
+  loadPanorama(currentImageDataUrl, currentAnnotations.length ? currentAnnotations : null);
+  viewerToolbar.classList.remove("d-none");
+  editBar.classList.remove("d-none");
+  if (currentAnnotations.length) {
+    annotationsPanel.classList.remove("d-none");
+    renderAnnotationChips();
+  } else {
+    annotationsPanel.classList.add("d-none");
+  }
+  historyPanel.classList.add("d-none");
+  document.getElementById("viewer-wrapper").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // --- Start ---

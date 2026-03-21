@@ -3,10 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Photosphere Creator — AI Photosphere Generator</title>
-  <meta name="description" content="Generate AI-powered photospheres from text prompts with interactive 360° preview">
-  <meta name="tags" content="ai, generator, 3d">
-  <meta name="created" content="2026-03-16">
+  <title>PS Creator — AI Photosphere Generator</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,11 +27,11 @@
   <div class="bg-mesh"></div>
 
   <!-- Navbar -->
-  <nav class="navbar-custom">
+  <nav class="navbar-custom" aria-label="Main navigation">
     <div class="container-fluid px-3 px-md-4 d-flex align-items-center justify-content-between">
       <a class="brand" href="#">
         <div class="brand-icon">
-          <i class="bi bi-globe2"></i>
+          <img src="/img/photosphere_icon.svg" alt="" class="brand-svg">
         </div>
         <div>
           <span class="brand-name">Photosphere Creator</span>
@@ -41,11 +39,14 @@
         </div>
       </a>
       <div class="d-flex align-items-center gap-2">
-        <button class="btn-glass btn-icon" id="btn-theme" title="Toggle light/dark mode">
-          <i class="bi bi-moon-stars" id="theme-icon"></i>
+        <button class="btn-glass btn-icon" id="btn-history" title="History" aria-label="View history">
+          <i class="bi bi-clock-history" aria-hidden="true"></i>
         </button>
-        <button class="btn-glass btn-icon" id="btn-settings" title="API Key Settings">
-          <i class="bi bi-gear"></i>
+        <button class="btn-glass btn-icon" id="btn-theme" title="Toggle light/dark mode" aria-label="Toggle theme">
+          <i class="bi bi-moon-stars" id="theme-icon" aria-hidden="true"></i>
+        </button>
+        <button class="btn-glass btn-icon" id="btn-settings" title="API Key Settings" aria-label="API Key Settings">
+          <i class="bi bi-gear" aria-hidden="true"></i>
         </button>
       </div>
     </div>
@@ -53,6 +54,7 @@
 
   <!-- Main content -->
   <main class="container-fluid px-3 px-md-4 py-3">
+    <h1 class="visually-hidden">PS Creator — AI Photosphere Generator</h1>
 
     <!-- Prompt section -->
     <div class="glass-card mb-3">
@@ -62,11 +64,13 @@
             <i class="bi bi-stars"></i>
             Create your world
           </h2>
-          <div class="mode-toggle">
-            <input type="radio" name="prompt-mode" id="mode-simple" checked>
-            <label for="mode-simple">Simple</label>
-            <input type="radio" name="prompt-mode" id="mode-advanced">
-            <label for="mode-advanced">Advanced</label>
+          <div class="mode-toggle mode-toggle-3">
+            <input type="radio" name="prompt-mode" id="mode-generate" checked>
+            <label for="mode-generate">Generate</label>
+            <input type="radio" name="prompt-mode" id="mode-expand">
+            <label for="mode-expand">Expand</label>
+            <input type="radio" name="prompt-mode" id="mode-overhead">
+            <label for="mode-overhead">Overhead</label>
             <div class="mode-slider"></div>
           </div>
         </div>
@@ -75,12 +79,12 @@
         <div id="simple-fields">
           <div class="prompt-input-wrapper mb-3">
             <textarea class="prompt-textarea" id="scene-description" rows="2"
-              placeholder="A tranquil Japanese garden with a koi pond and cherry blossoms..."></textarea>
+              placeholder="A tranquil Japanese garden with a koi pond and cherry blossoms..."
+              aria-label="Scene description"></textarea>
             <div class="prompt-glow"></div>
-            <button class="btn-improve" id="btn-improve" title="Improve prompt with AI" type="button">
-              <i class="bi bi-stars"></i>
-              <span class="btn-improve-label">Improve</span>
-              <span class="btn-improve-spinner d-none"><i class="bi bi-arrow-repeat spin-icon"></i></span>
+            <button class="btn-improve" id="btn-improve" title="Improve prompt with AI" type="button" aria-label="Improve prompt">
+              <i class="bi bi-stars btn-improve-icon" aria-hidden="true"></i>
+              <i class="bi bi-arrow-repeat spin-icon btn-improve-spinner d-none" aria-hidden="true"></i>
             </button>
           </div>
 
@@ -116,7 +120,7 @@
                   <li><hr class="dropdown-divider"></li>
                   <li class="px-2 pt-1">
                     <input type="text" class="form-control form-control-sm custom-perspective-input"
-                      id="custom-perspective" placeholder="Custom perspective...">
+                      id="custom-perspective" placeholder="Custom perspective..." aria-label="Custom perspective">
                   </li>
                 </ul>
               </div>
@@ -162,7 +166,7 @@
                   <li><hr class="dropdown-divider"></li>
                   <li class="px-2 pt-1">
                     <input type="text" class="form-control form-control-sm custom-perspective-input"
-                      id="custom-weather" placeholder="Custom lighting...">
+                      id="custom-weather" placeholder="Custom lighting..." aria-label="Custom lighting">
                   </li>
                 </ul>
               </div>
@@ -218,12 +222,110 @@
           </div>
         </div>
 
-        <!-- Advanced mode field -->
-        <div id="advanced-fields" class="d-none">
-          <div class="prompt-input-wrapper mb-3">
-            <textarea class="prompt-textarea" id="full-prompt" rows="4"
-              placeholder="Enter your full prompt for the equirectangular panorama..."></textarea>
-            <div class="prompt-glow"></div>
+        <!-- Overhead mode fields -->
+        <div id="overhead-fields" class="d-none">
+          <!-- Sub-mode toggle: Satellite vs Blueprint -->
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="mode-toggle overhead-sub-toggle">
+              <input type="radio" name="overhead-sub" id="sub-satellite" checked>
+              <label for="sub-satellite"><i class="bi bi-geo-alt me-1"></i>Satellite</label>
+              <input type="radio" name="overhead-sub" id="sub-blueprint">
+              <label for="sub-blueprint"><i class="bi bi-rulers me-1"></i>Blueprint</label>
+              <div class="mode-slider"></div>
+            </div>
+          </div>
+
+          <!-- Image upload -->
+          <div class="expand-upload mb-3">
+            <div class="expand-slot" id="overhead-slot">
+              <input type="file" accept="image/*" class="d-none" id="overhead-input">
+              <div class="expand-slot-prompt" id="overhead-prompt">
+                <i class="bi bi-geo-alt" id="overhead-prompt-icon"></i>
+                <span class="expand-slot-label" id="overhead-prompt-label">Upload a satellite or aerial image</span>
+                <span class="expand-slot-hint">Click or drag & drop — the photosphere will be created from the center</span>
+              </div>
+              <div class="expand-slot-preview d-none" id="overhead-preview">
+                <img class="expand-thumb" id="overhead-thumb" alt="Overhead image">
+                <button class="expand-slot-clear" id="overhead-clear" title="Remove image">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <div class="token-badge d-none" id="overhead-token-badge">
+                <span class="token-count" id="overhead-token-count"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional details -->
+          <div class="mb-3">
+            <div class="expand-directions-header">
+              <i class="bi bi-chat-text"></i>
+              <span>Additional details (optional)</span>
+            </div>
+            <input type="text" class="expand-dir-input" id="overhead-details"
+              placeholder="e.g. Modern office building, winter scene, construction site..."
+              aria-label="Additional details">
+          </div>
+        </div>
+
+        <!-- Expand mode fields -->
+        <div id="expand-fields" class="d-none">
+          <!-- Photo upload -->
+          <div class="expand-upload mb-3">
+            <div class="expand-slot" id="expand-slot-front">
+              <input type="file" accept="image/*" class="d-none" id="expand-input-front">
+              <div class="expand-slot-prompt" id="expand-prompt-front">
+                <i class="bi bi-image"></i>
+                <span class="expand-slot-label">Upload a photo to expand into a 360° panorama</span>
+                <span class="expand-slot-hint">Click or drag & drop</span>
+              </div>
+              <div class="expand-slot-preview d-none" id="expand-preview-front">
+                <img class="expand-thumb" id="expand-thumb-front" alt="Photo">
+                <button class="expand-slot-clear" id="expand-clear-front" title="Remove image">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <div class="token-badge d-none" id="expand-token-badge">
+                <span class="token-count" id="expand-token-count"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Optional direction descriptions -->
+          <div class="expand-directions mb-3">
+            <div class="expand-directions-header">
+              <i class="bi bi-compass"></i>
+              <span>Optionally describe what's around the viewpoint</span>
+            </div>
+            <div class="row g-2">
+              <div class="col-md-4">
+                <div class="expand-dir-field">
+                  <label class="expand-dir-label" for="expand-desc-left">
+                    <i class="bi bi-arrow-left-short"></i> Left
+                  </label>
+                  <input type="text" class="expand-dir-input" id="expand-desc-left"
+                    placeholder="e.g. A parking lot with cars">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="expand-dir-field">
+                  <label class="expand-dir-label" for="expand-desc-right">
+                    <i class="bi bi-arrow-right-short"></i> Right
+                  </label>
+                  <input type="text" class="expand-dir-input" id="expand-desc-right"
+                    placeholder="e.g. An open grass field">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="expand-dir-field">
+                  <label class="expand-dir-label" for="expand-desc-behind">
+                    <i class="bi bi-arrow-down-short"></i> Behind
+                  </label>
+                  <input type="text" class="expand-dir-input" id="expand-desc-behind"
+                    placeholder="e.g. A road leading to town">
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -231,21 +333,45 @@
           <button class="btn-generate" id="btn-generate">
             <span class="btn-generate-bg"></span>
             <span class="btn-generate-content">
-              <i class="bi bi-stars"></i>
-              Generate Photosphere
+              <i class="bi bi-stars" id="btn-generate-icon"></i>
+              <span id="btn-generate-label">Generate Photosphere</span>
             </span>
           </button>
+          <span class="cost-estimate d-none" id="cost-estimate"></span><a class="cost-info-link d-none" id="cost-info-link" href="https://ai.google.dev/gemini-api/docs/gemini-3" target="_blank" rel="noopener" title="Gemini pricing details"><i class="bi bi-question-circle"></i></a>
           <button class="btn-glass" id="btn-clear">
             <i class="bi bi-x-lg me-1"></i>Clear
           </button>
           <div class="ms-auto d-flex align-items-center gap-3">
-            <label class="annotation-toggle" for="auto-annotate">
-              <input type="checkbox" id="auto-annotate" checked>
-              <span class="toggle-track">
-                <span class="toggle-thumb"></span>
-              </span>
-              <span class="toggle-label">Auto-annotate</span>
-            </label>
+            <div class="d-flex flex-column align-items-center">
+              <div class="mode-toggle" id="model-toggle">
+                <input type="radio" name="model-choice" id="model-flash" checked>
+                <label for="model-flash">Flash</label>
+                <input type="radio" name="model-choice" id="model-pro">
+                <label for="model-pro">Pro</label>
+                <div class="mode-slider"></div>
+              </div>
+              <span class="annotate-cost" id="model-cost"></span>
+            </div>
+            <div class="d-flex flex-column align-items-center">
+              <div class="mode-toggle" id="size-toggle">
+                <input type="radio" name="image-size" id="size-2k" checked>
+                <label for="size-2k">2K</label>
+                <input type="radio" name="image-size" id="size-4k">
+                <label for="size-4k">4K</label>
+                <div class="mode-slider"></div>
+              </div>
+              <span class="annotate-cost" id="size-cost"></span>
+            </div>
+            <div class="d-flex flex-column align-items-end">
+              <label class="annotation-toggle" for="auto-annotate">
+                <input type="checkbox" id="auto-annotate" checked>
+                <span class="toggle-track">
+                  <span class="toggle-thumb"></span>
+                </span>
+                <span class="toggle-label">Auto-annotate</span>
+              </label>
+              <span class="annotate-cost" id="annotate-cost">~$0.001</span>
+            </div>
           </div>
         </div>
       </div>
@@ -256,7 +382,7 @@
       <!-- Placeholder -->
       <div class="viewer-placeholder" id="viewer-placeholder">
         <div class="placeholder-orb">
-          <i class="bi bi-globe2"></i>
+          <img src="/img/photosphere_icon.svg" alt="" class="placeholder-svg">
         </div>
         <p class="placeholder-text">Your photosphere will appear here</p>
         <p class="placeholder-hint">Describe a scene and hit Generate</p>
@@ -268,9 +394,9 @@
           <div class="loading-ring"></div>
           <div class="loading-ring"></div>
           <div class="loading-ring"></div>
-          <i class="bi bi-globe2 loading-icon"></i>
+          <img src="/img/photosphere_icon.svg" alt="" class="loading-icon">
         </div>
-        <p class="loading-status" id="loading-status">Generating panorama...</p>
+        <p class="loading-status" id="loading-status" aria-live="polite" role="status">Generating panorama...</p>
       </div>
 
       <!-- Viewer toolbar (shown when panorama loaded) -->
@@ -304,7 +430,8 @@
         <div class="edit-bar-inner">
           <i class="bi bi-pencil-square edit-bar-icon"></i>
           <input type="text" class="edit-bar-input" id="edit-bar-input"
-            placeholder="Describe an edit... e.g. &quot;Make it sunset&quot; or &quot;Add snow everywhere&quot;">
+            placeholder="Describe an edit... e.g. &quot;Make it sunset&quot; or &quot;Add snow everywhere&quot;"
+            aria-label="Edit instruction">
           <button class="edit-bar-send" id="btn-edit-send" title="Apply edit">
             <i class="bi bi-arrow-right"></i>
           </button>
@@ -327,6 +454,21 @@
             <i class="bi bi-plus-lg"></i> Add
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- History panel -->
+    <div class="history-panel d-none" id="history-panel">
+      <div class="history-bar">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+          <span class="annotations-label">
+            <i class="bi bi-clock-history" aria-hidden="true"></i> History
+          </span>
+          <button class="btn-glass btn-sm" id="btn-history-close" aria-label="Close history">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="history-list" class="history-list"></div>
       </div>
     </div>
 
@@ -360,20 +502,20 @@
       <div class="modal-content glass-modal">
         <div class="modal-body p-4">
           <div class="text-center mb-4">
-            <div class="modal-icon">
-              <i class="bi bi-key"></i>
+            <div class="auth-icon">
+              <img src="/img/photosphere_icon.svg" alt="" class="auth-svg">
             </div>
             <h4 class="mt-3 mb-1">Connect to Gemini</h4>
             <p class="text-muted small mb-0">Your key stays in your browser. Never sent anywhere except the Gemini API.</p>
           </div>
           <div class="api-key-input-wrapper">
-            <i class="bi bi-shield-lock"></i>
-            <input type="password" class="api-key-input" id="api-key-input" placeholder="Paste your Gemini API key">
+            <i class="bi bi-shield-lock" aria-hidden="true"></i>
+            <input type="password" class="api-key-input" id="api-key-input" placeholder="Paste your Gemini API key" aria-label="API key">
           </div>
           <button class="btn-generate w-100 mt-3" id="btn-save-key">
             <span class="btn-generate-bg"></span>
             <span class="btn-generate-content">
-              <i class="bi bi-check2-circle"></i>
+              <i class="bi bi-check2-circle" aria-hidden="true"></i>
               Save & Connect
             </span>
           </button>

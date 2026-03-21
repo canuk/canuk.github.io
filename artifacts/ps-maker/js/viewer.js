@@ -2,17 +2,20 @@ let viewer = null;
 let hotspotIds = [];
 let _followRafId = null;
 let _followIndex = null;
+let _pendingMarkers = null;
 
 /**
  * Load or replace the panorama in the Pannellum viewer.
+ * If pendingAnnotations is provided, markers are added after the viewer loads.
  */
-export function loadPanorama(imageDataUrl) {
+export function loadPanorama(imageDataUrl, pendingAnnotations) {
   if (viewer) {
     viewer.destroy();
     viewer = null;
   }
   hotspotIds = [];
   stopFollowingCenter();
+  _pendingMarkers = pendingAnnotations || null;
 
   viewer = pannellum.viewer("panorama-container", {
     type: "equirectangular",
@@ -23,6 +26,16 @@ export function loadPanorama(imageDataUrl) {
     hotSpotDebug: false,
     hfov: 100,
   });
+
+  // Add pending markers once the viewer has loaded the image
+  if (_pendingMarkers) {
+    viewer.on("load", () => {
+      if (_pendingMarkers) {
+        addMarkers(_pendingMarkers);
+        _pendingMarkers = null;
+      }
+    });
+  }
 
   return viewer;
 }
