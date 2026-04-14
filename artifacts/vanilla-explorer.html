@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Explorer - Vanilla Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000;
+            color: #fff;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .glass {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        /* Hide Google UI elements we don't want */
+        .gm-style-cc, .gmnoprint {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Street View Container -->
+    <div id="pano" class="absolute inset-0 w-full h-full z-0"></div>
+
+    <!-- Overlay UI -->
+    <div id="ui-overlay" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-6 md:p-10 transition-opacity duration-500">
+        
+        <!-- Top Header & Search -->
+        <div class="flex flex-col md:flex-row justify-between items-start gap-6 pointer-events-auto">
+            <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="navigation" class="w-6 h-6 text-orange-500"></i>
+                    <h1 class="text-2xl md:text-4xl font-black tracking-tighter uppercase italic drop-shadow-lg">
+                        Global Explorer
+                    </h1>
+                </div>
+                <div class="px-2 py-0.5 border border-white/20 rounded-full text-[10px] tracking-widest uppercase text-white/70 w-fit glass">
+                    Vanilla Engine v1.0
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto max-w-md">
+                <div class="relative flex-1 min-w-[280px]">
+                    <div class="absolute left-3 top-1/2 -translate-y-1/2 z-10">
+                        <i data-lucide="search" class="w-4 h-4 text-white/40"></i>
+                    </div>
+                    <input
+                        id="search-input"
+                        type="text"
+                        placeholder="Search for a place..."
+                        class="w-full glass text-white rounded-full h-10 pl-10 pr-4 outline-none focus:border-orange-500 transition-all placeholder:text-white/40 pointer-events-auto"
+                    />
+                </div>
+                
+                <div class="flex gap-2">
+                    <button 
+                        id="capture-btn"
+                        class="glass rounded-full w-10 h-10 flex items-center justify-center hover:bg-white hover:text-black transition-all pointer-events-auto shadow-2xl"
+                        title="Capture Photosphere"
+                    >
+                        <i data-lucide="camera" class="w-4 h-4"></i>
+                    </button>
+                    <button 
+                        id="history-btn"
+                        class="glass rounded-full w-10 h-10 flex items-center justify-center hover:bg-white hover:text-black transition-all pointer-events-auto shadow-2xl"
+                        title="Travel History"
+                    >
+                        <i data-lucide="history" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="flex flex-col md:flex-row justify-between items-end gap-6 pointer-events-auto">
+            <div id="info-card" class="max-w-sm transition-all duration-300">
+                <div class="glass p-6 rounded-xl shadow-2xl">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-orange-500"></i>
+                        <span class="text-[10px] uppercase tracking-[0.2em] font-bold text-orange-500">Current Location</span>
+                    </div>
+                    <h2 id="loc-name" class="text-3xl font-bold tracking-tight mb-2 leading-tight">Loading...</h2>
+                    <p id="loc-desc" class="text-sm text-white/60 leading-relaxed mb-4">
+                        Initializing the explorer engine...
+                    </p>
+                    <div id="move-limit-alert" class="hidden mb-4 p-2 bg-orange-500/20 border border-orange-500/50 rounded text-[10px] text-orange-200 flex items-center gap-2">
+                        <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                        Move limit reached. Search or Teleport to continue.
+                    </div>
+                    <div class="flex gap-2 text-[10px] mono text-white/40">
+                        <span id="loc-lat">LAT: 0.0000</span>
+                        <span id="loc-lng">LNG: 0.0000</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3 items-end">
+                <button 
+                    id="teleport-btn"
+                    class="bg-orange-600 hover:bg-orange-500 text-white rounded-full px-8 py-6 text-lg font-bold shadow-2xl transition-all flex items-center gap-2"
+                >
+                    <i data-lucide="refresh-cw" class="h-5 w-5"></i>
+                    TELEPORT
+                </button>
+                <p class="text-[10px] uppercase tracking-widest text-white/40 font-medium drop-shadow-md">
+                    Powered by Google Street View
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI Toggles (Always visible) -->
+    <div class="absolute top-6 right-6 z-[100] flex flex-col gap-2">
+        <button id="toggle-ui-btn" class="glass rounded-full w-10 h-10 flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-2xl">
+            <i data-lucide="eye-off" id="toggle-ui-icon" class="w-4 h-4"></i>
+        </button>
+        <button id="toggle-info-btn" class="glass rounded-full w-10 h-10 flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-2xl">
+            <i data-lucide="info" class="w-4 h-4"></i>
+        </button>
+    </div>
+
+    <!-- API Key Modal -->
+    <div id="apikey-overlay" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[300] hidden flex items-center justify-center p-6">
+        <div class="glass max-w-md w-full p-8 rounded-2xl">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                    <i data-lucide="key-round" class="w-5 h-5 text-orange-500"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold">Google API Key Required</h3>
+                    <p class="text-zinc-400 text-sm">Enter your key to start exploring.</p>
+                </div>
+            </div>
+            <p class="text-xs text-white/50 mb-4">Your key is stored locally in your browser and never sent to any server other than Google.</p>
+            <input
+                id="apikey-input"
+                type="text"
+                placeholder="AIza..."
+                class="w-full glass text-white rounded-lg h-12 px-4 outline-none focus:border-orange-500 transition-all placeholder:text-white/40 mb-4 mono text-sm"
+            />
+            <button id="apikey-save-btn" class="w-full bg-orange-600 hover:bg-orange-500 h-12 font-bold rounded-lg flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="check" class="w-4 h-4"></i>
+                Save & Start Exploring
+            </button>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
+        <!-- Capture Modal -->
+        <div id="capture-modal" class="glass max-w-2xl w-full p-6 rounded-2xl hidden">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-xl font-bold">Capture Photosphere</h3>
+                    <p class="text-zinc-400 text-sm">Download a 360° equirectangular image.</p>
+                </div>
+                <button class="close-modal p-2 hover:bg-white/10 rounded-full transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="aspect-video bg-black rounded-lg border border-white/10 overflow-hidden relative mb-6">
+                <img id="capture-preview" src="" alt="Preview" class="w-full h-full object-cover">
+                <div class="absolute bottom-4 left-4 px-2 py-1 glass rounded text-[10px] uppercase tracking-widest">Preview</div>
+            </div>
+            <button id="download-360-btn" class="w-full bg-orange-600 hover:bg-orange-500 h-12 font-bold rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span id="download-text">Download 360° Equirectangular</span>
+            </button>
+        </div>
+
+        <!-- History Modal -->
+        <div id="history-modal" class="glass max-w-md w-full p-6 rounded-2xl hidden">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-xl font-bold">Travel History</h3>
+                    <p class="text-zinc-400 text-sm">Your recently visited locations.</p>
+                </div>
+                <button class="close-modal p-2 hover:bg-white/10 rounded-full transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="history-list" class="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                <!-- History items injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        let API_KEY = localStorage.getItem('explorer_google_api_key') || '';
+        const INTERESTING_LOCATIONS = [
+            { lat: 37.4277, lng: -122.1701, name: "Stanford Main Quad", description: "The historic heart of Stanford University." },
+            { lat: 48.8584, lng: 2.2945, name: "Eiffel Tower", description: "The iconic iron lady of Paris, France." },
+            { lat: 36.0544, lng: -112.1401, name: "Grand Canyon", description: "A natural wonder in Arizona, USA." },
+            { lat: -13.1631, lng: -72.5450, name: "Machu Picchu", description: "The lost city of the Incas in Peru." },
+            { lat: 35.6595, lng: 139.7005, name: "Shibuya Crossing", description: "The world's busiest pedestrian crossing in Tokyo." }
+        ];
+
+        // --- State ---
+        let panorama;
+        let svService;
+        let geocoder;
+        let autocomplete;
+        let currentLocation = INTERESTING_LOCATIONS[0];
+        let history = JSON.parse(localStorage.getItem('explorer_history') || '[]');
+        let moveCount = 0;
+        let isUiVisible = true;
+        let showInfo = true;
+
+        // --- Initialization ---
+        function initApp() {
+            lucide.createIcons();
+            if (!API_KEY) {
+                showApiKeyModal();
+                return;
+            }
+            document.getElementById('ui-overlay').style.opacity = '1';
+            loadGoogleMaps();
+            setupEventListeners();
+            updateHistoryUI();
+        }
+
+        function showApiKeyModal() {
+            document.getElementById('ui-overlay').style.opacity = '0';
+            document.getElementById('ui-overlay').style.pointerEvents = 'none';
+            const overlay = document.getElementById('apikey-overlay');
+            overlay.classList.remove('hidden');
+            overlay.style.display = 'flex';
+            lucide.createIcons();
+
+            const input = document.getElementById('apikey-input');
+            const btn = document.getElementById('apikey-save-btn');
+
+            const save = () => {
+                const key = input.value.trim();
+                if (!key) { input.focus(); return; }
+                localStorage.setItem('explorer_google_api_key', key);
+                API_KEY = key;
+                overlay.style.display = 'none';
+                document.getElementById('ui-overlay').style.opacity = '1';
+                document.getElementById('ui-overlay').style.pointerEvents = 'auto';
+                loadGoogleMaps();
+                setupEventListeners();
+                updateHistoryUI();
+            };
+
+            btn.onclick = save;
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+            input.focus();
+        }
+
+        function loadGoogleMaps() {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&callback=onGoogleMapsReady&loading=async`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
+        window.onGoogleMapsReady = function() {
+            svService = new google.maps.StreetViewService();
+            geocoder = new google.maps.Geocoder();
+            
+            // Initial Panorama
+            svService.getPanorama({
+                location: { lat: currentLocation.lat, lng: currentLocation.lng },
+                radius: 100,
+                source: google.maps.StreetViewSource.GOOGLE
+            }, (data, status) => {
+                const pos = (status === 'OK') ? data.location.latLng : currentLocation;
+                
+                panorama = new google.maps.StreetViewPanorama(document.getElementById('pano'), {
+                    position: pos,
+                    pov: { heading: 165, pitch: 0 },
+                    zoom: 1,
+                    addressControl: false,
+                    showRoadLabels: false,
+                    motionTracking: false,
+                    motionTrackingControl: false,
+                    fullscreenControl: false,
+                    panControl: false,
+                    zoomControl: false,
+                    linksControl: true,
+                    enableCloseButton: false,
+                    source: google.maps.StreetViewSource.GOOGLE
+                });
+
+                setupPanoramaListeners();
+                setupAutocomplete();
+                updateUI();
+            });
+        };
+
+        function setupPanoramaListeners() {
+            panorama.addListener('pano_changed', () => {
+                panorama.setOptions({ source: google.maps.StreetViewSource.GOOGLE });
+            });
+
+            panorama.addListener('position_changed', () => {
+                const pos = panorama.getPosition();
+                if (!pos) return;
+
+                moveCount++;
+                if (moveCount >= 5) {
+                    panorama.setOptions({ linksControl: false, clickToGo: false });
+                    document.getElementById('move-limit-alert').classList.remove('hidden');
+                }
+
+                if (moveCount < 5) {
+                    geocoder.geocode({ location: pos }, (results, status) => {
+                        if (status === 'OK' && results[0]) {
+                            currentLocation = {
+                                lat: pos.lat(),
+                                lng: pos.lng(),
+                                name: results[0].formatted_address.split(',')[0],
+                                description: results[0].formatted_address
+                            };
+                            addToHistory(currentLocation);
+                            updateUI();
+                        }
+                    });
+                }
+            });
+        }
+
+        function setupAutocomplete() {
+            const input = document.getElementById('search-input');
+            const container = input.parentElement;
+
+            // Try the new PlaceAutocompleteElement API
+            try {
+                const placeAuto = new google.maps.places.PlaceAutocompleteElement({
+                    inputElement: input,
+                    types: ['geocode', 'establishment'],
+                });
+                placeAuto.addEventListener('gmp-placeselect', async (e) => {
+                    const place = e.place;
+                    await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
+                    if (place.location) {
+                        handlePlaceSelection({
+                            geometry: { location: place.location },
+                            name: place.displayName,
+                            formatted_address: place.formattedAddress
+                        });
+                    }
+                });
+            } catch (err) {
+                console.warn('PlaceAutocompleteElement not available, using geocoder fallback', err);
+            }
+
+            // Always support Enter key via geocoder as fallback
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const query = input.value.trim();
+                    if (!query) return;
+                    geocoder.geocode({ address: query }, (results, status) => {
+                        if (status === 'OK' && results[0]) handlePlaceSelection(results[0]);
+                    });
+                }
+            });
+        }
+
+        function handlePlaceSelection(place) {
+            const lat = place.geometry.location.lat();
+            const lng = place.geometry.location.lng();
+
+            svService.getPanorama({
+                location: { lat, lng },
+                radius: 100,
+                source: google.maps.StreetViewSource.GOOGLE
+            }, (data, status) => {
+                if (status === 'OK' && data.location.latLng) {
+                    moveCount = 0;
+                    document.getElementById('move-limit-alert').classList.add('hidden');
+                    
+                    currentLocation = {
+                        lat: data.location.latLng.lat(),
+                        lng: data.location.latLng.lng(),
+                        name: place.name || place.formatted_address.split(',')[0],
+                        description: place.formatted_address
+                    };
+
+                    panorama.setPosition(data.location.latLng);
+                    panorama.setOptions({ linksControl: true, clickToGo: true });
+                    updateUI();
+                    addToHistory(currentLocation);
+                } else {
+                    alert("No official Google Street View available here.");
+                }
+            });
+        }
+
+        // --- Actions ---
+        function teleport(loc) {
+            const target = loc || INTERESTING_LOCATIONS[Math.floor(Math.random() * INTERESTING_LOCATIONS.length)];
+            
+            svService.getPanorama({
+                location: { lat: target.lat, lng: target.lng },
+                radius: loc ? 100 : 2000,
+                source: google.maps.StreetViewSource.GOOGLE
+            }, (data, status) => {
+                if (status === 'OK' && data.location.latLng) {
+                    moveCount = 0;
+                    document.getElementById('move-limit-alert').classList.add('hidden');
+                    
+                    currentLocation = {
+                        lat: data.location.latLng.lat(),
+                        lng: data.location.latLng.lng(),
+                        name: loc ? loc.name : (data.location.shortDescription || "Discovery"),
+                        description: loc ? loc.description : (data.location.description || "Found via teleport")
+                    };
+
+                    panorama.setPano(data.location.pano);
+                    panorama.setOptions({ linksControl: true, clickToGo: true });
+                    updateUI();
+                    closeModals();
+                } else if (!loc) {
+                    teleport(); // Try again if random failed
+                }
+            });
+        }
+
+        async function getPanoMetadata(panoId) {
+            // Fetch metadata to get actual image dimensions
+            const url = `https://www.google.com/maps/photometa/v1?authuser=0&hl=en&gl=us&pb=!1m4!1smaps_sv.tactile!11m2!2m1!1b1!2m2!1sen!2sus!3m3!1m2!1e2!2s${panoId}!4m57!1e1!1e2!1e3!1e4!1e5!1e6!1e8!1e12!2m1!1e1!4m1!1i48!5m1!1e1!5m1!1e2!6m1!1e1!6m1!1e2!9m36!1m3!1e2!2b1!3e2!1m3!1e2!2b0!3e3!1m3!1e3!2b1!3e2!1m3!1e3!2b0!3e3!1m3!1e8!2b0!3e3!1m3!1e1!2b0!3e3!1m3!1e4!2b0!3e3!1m3!1e10!2b1!3e2!1m3!1e10!2b0!3e3`;
+            try {
+                const resp = await fetch(url);
+                const text = await resp.text();
+                // Parse the response to extract image dimensions
+                // The format contains imageWidth and imageHeight in the protobuf-like response
+                const widthMatch = text.match(/\[(\d{3,5}),\s*(\d{3,5})\]/);
+                if (widthMatch) {
+                    const w = parseInt(widthMatch[1]);
+                    const h = parseInt(widthMatch[2]);
+                    // The larger number is width for equirectangular
+                    return { width: Math.max(w, h), height: Math.min(w, h) };
+                }
+            } catch (e) {
+                console.warn('Could not fetch pano metadata, using defaults', e);
+            }
+            return null;
+        }
+
+        async function download360() {
+            const panoId = panorama.getPano();
+            if (!panoId) return;
+
+            const btn = document.getElementById('download-360-btn');
+            const text = document.getElementById('download-text');
+            btn.disabled = true;
+            text.innerText = "Fetching metadata...";
+
+            try {
+                const zoom = 3;
+                const tileSize = 512;
+                const cols = 8;
+                const rows = 4;
+                const fullWidth = cols * tileSize;   // 4096
+                const fullHeight = rows * tileSize;  // 2048
+
+                // Fetch all tiles onto a full-size canvas
+                const fullCanvas = document.createElement('canvas');
+                fullCanvas.width = fullWidth;
+                fullCanvas.height = fullHeight;
+                const fullCtx = fullCanvas.getContext('2d');
+
+                text.innerText = "Stitching panorama...";
+
+                const fetchTile = (x, y) => {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.crossOrigin = "anonymous";
+                        img.src = `https://streetviewpixels-pa.googleapis.com/v1/tile?cb_client=maps_sv.tactile&panoid=${panoId}&x=${x}&y=${y}&zoom=${zoom}`;
+                        img.onload = () => {
+                            fullCtx.drawImage(img, x * tileSize, y * tileSize);
+                            resolve();
+                        };
+                        img.onerror = () => {
+                            const sub = (x + y) % 4;
+                            img.src = `https://cbk${sub}.google.com/cbk?output=tile&panoid=${panoId}&zoom=${zoom}&x=${x}&y=${y}`;
+                            img.onload = () => {
+                                fullCtx.drawImage(img, x * tileSize, y * tileSize);
+                                resolve();
+                            };
+                            img.onerror = () => resolve();
+                        };
+                    });
+                };
+
+                const promises = [];
+                for (let y = 0; y < rows; y++) {
+                    for (let x = 0; x < cols; x++) {
+                        promises.push(fetchTile(x, y));
+                    }
+                }
+                await Promise.all(promises);
+
+                // Detect actual content bounds by scanning for non-black pixels
+                text.innerText = "Cropping black bars...";
+                const imageData = fullCtx.getImageData(0, 0, fullWidth, fullHeight);
+                const pixels = imageData.data;
+                const threshold = 10; // pixel brightness threshold
+
+                const isBlackRow = (row) => {
+                    const start = row * fullWidth * 4;
+                    for (let x = 0; x < fullWidth; x += 4) { // sample every 4th pixel for speed
+                        const i = start + x * 4;
+                        if (pixels[i] > threshold || pixels[i+1] > threshold || pixels[i+2] > threshold) return false;
+                    }
+                    return true;
+                };
+
+                const isBlackCol = (col) => {
+                    for (let y = 0; y < fullHeight; y += 4) {
+                        const i = (y * fullWidth + col) * 4;
+                        if (pixels[i] > threshold || pixels[i+1] > threshold || pixels[i+2] > threshold) return false;
+                    }
+                    return true;
+                };
+
+                // Find content bounds
+                let top = 0, bottom = fullHeight - 1, left = 0, right = fullWidth - 1;
+                while (top < fullHeight && isBlackRow(top)) top++;
+                while (bottom > top && isBlackRow(bottom)) bottom--;
+                while (left < fullWidth && isBlackCol(left)) left++;
+                while (right > left && isBlackCol(right)) right--;
+
+                const cropW = right - left + 1;
+                const cropH = bottom - top + 1;
+
+                // Enforce 2:1 aspect ratio for equirectangular
+                // Use the wider dimension as the reference
+                let outW, outH, drawX, drawY;
+                if (cropW >= cropH * 2) {
+                    // Width-limited: use full width, derive height
+                    outW = cropW;
+                    outH = Math.round(cropW / 2);
+                } else {
+                    // Height-limited: use full height, derive width
+                    outH = cropH;
+                    outW = cropH * 2;
+                }
+
+                // Center the cropped content on the 2:1 canvas (black padding if needed)
+                drawX = Math.round((outW - cropW) / 2);
+                drawY = Math.round((outH - cropH) / 2);
+
+                const outCanvas = document.createElement('canvas');
+                outCanvas.width = outW;
+                outCanvas.height = outH;
+                const outCtx = outCanvas.getContext('2d');
+                outCtx.fillStyle = '#000';
+                outCtx.fillRect(0, 0, outW, outH);
+                outCtx.drawImage(fullCanvas, left, top, cropW, cropH, drawX, drawY, cropW, cropH);
+
+                const dataUrl = outCanvas.toDataURL('image/jpeg', 0.92);
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `360-${currentLocation.name.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+                link.click();
+            } catch (err) {
+                console.error(err);
+                alert("Download failed.");
+            } finally {
+                btn.disabled = false;
+                text.innerText = "Download 360° Equirectangular";
+            }
+        }
+
+        // --- UI Helpers ---
+        function updateUI() {
+            document.getElementById('loc-name').innerText = currentLocation.name;
+            document.getElementById('loc-desc').innerText = currentLocation.description;
+            document.getElementById('loc-lat').innerText = `LAT: ${currentLocation.lat.toFixed(4)}`;
+            document.getElementById('loc-lng').innerText = `LNG: ${currentLocation.lng.toFixed(4)}`;
+        }
+
+        function addToHistory(loc) {
+            if (history.length > 0 && history[0].lat === loc.lat && history[0].lng === loc.lng) return;
+            history = [loc, ...history].slice(0, 20);
+            localStorage.setItem('explorer_history', JSON.stringify(history));
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            const list = document.getElementById('history-list');
+            if (history.length === 0) {
+                list.innerHTML = '<div class="text-center py-10 text-zinc-500 italic">No history yet.</div>';
+                return;
+            }
+
+            list.innerHTML = history.map((loc, i) => `
+                <button onclick='teleport(${JSON.stringify(loc)})' class="w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 transition-all flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500">
+                        <i data-lucide="map-pin" class="w-4 h-4"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-sm truncate">${loc.name}</h4>
+                        <p class="text-xs text-zinc-500 truncate">${loc.description}</p>
+                    </div>
+                </button>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('teleport-btn').onclick = () => teleport();
+            
+            document.getElementById('toggle-ui-btn').onclick = () => {
+                isUiVisible = !isUiVisible;
+                document.getElementById('ui-overlay').style.opacity = isUiVisible ? '1' : '0';
+                document.getElementById('ui-overlay').style.pointerEvents = isUiVisible ? 'auto' : 'none';
+                document.getElementById('toggle-ui-icon').setAttribute('data-lucide', isUiVisible ? 'eye-off' : 'eye');
+                lucide.createIcons();
+            };
+
+            document.getElementById('toggle-info-btn').onclick = () => {
+                showInfo = !showInfo;
+                document.getElementById('info-card').style.opacity = showInfo ? '1' : '0';
+                document.getElementById('info-card').style.transform = showInfo ? 'translateX(0)' : 'translateX(-20px)';
+            };
+
+            // Modals
+            document.getElementById('capture-btn').onclick = () => {
+                const pos = panorama.getPosition();
+                const pov = panorama.getPov();
+                const url = `https://maps.googleapis.com/maps/api/streetview?size=640x360&location=${pos.lat()},${pos.lng()}&heading=${pov.heading}&pitch=${pov.pitch}&fov=90&key=${API_KEY}`;
+                document.getElementById('capture-preview').src = url;
+                openModal('capture-modal');
+            };
+
+            document.getElementById('history-btn').onclick = () => openModal('history-modal');
+            
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.onclick = closeModals;
+            });
+
+            document.getElementById('download-360-btn').onclick = download360;
+        }
+
+        function openModal(id) {
+            document.getElementById('modal-overlay').classList.remove('hidden');
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModals() {
+            document.getElementById('modal-overlay').classList.add('hidden');
+            document.getElementById('capture-modal').classList.add('hidden');
+            document.getElementById('history-modal').classList.add('hidden');
+        }
+
+        // Start the app
+        initApp();
+    </script>
+</body>
+</html>

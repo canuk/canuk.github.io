@@ -4,3 +4,5 @@ _site
 .DS_Store
 CLAUDE.md
 .claude-api-key
+scripts/.claude/
+scripts/firebase-debug.log
