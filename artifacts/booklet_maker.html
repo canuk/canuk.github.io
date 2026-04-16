@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Booklet Maker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&display=swap');
 
@@ -311,6 +312,60 @@
     font-style: italic;
   }
 
+  /* Preview */
+  .preview {
+    margin-top: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+    display: none;
+  }
+
+  .preview.visible { display: block; }
+
+  .preview-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+
+  .preview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.6rem;
+  }
+
+  .preview-page {
+    position: relative;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    aspect-ratio: auto;
+  }
+
+  .preview-page canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .preview-page-num {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.55);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-align: center;
+    padding: 2px 0;
+  }
+
   /* Spinner */
   @keyframes spin {
     to { transform: rotate(360deg); }
@@ -358,6 +413,11 @@
 
   <div class="status" id="status"></div>
 
+  <div class="preview" id="preview">
+    <div class="preview-title">Page Preview</div>
+    <div class="preview-grid" id="previewGrid"></div>
+  </div>
+
   <div class="layout-info">
     <div class="layout-title">Imposition Layout</div>
     <div class="sheet-label">Sheet 1 — Front</div>
@@ -380,12 +440,15 @@
 
 <script>
 const { PDFDocument } = PDFLib;
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 const makeBtn = document.getElementById('makeBtn');
 const statusEl = document.getElementById('status');
 const preserveRatioToggle = document.getElementById('preserveRatio');
+const previewEl = document.getElementById('preview');
+const previewGrid = document.getElementById('previewGrid');
 
 let pdfFile = null;
 
@@ -416,7 +479,7 @@ fileInput.addEventListener('change', () => {
   if (fileInput.files[0]) setFile(fileInput.files[0]);
 });
 
-function setFile(file) {
+async function setFile(file) {
   pdfFile = file;
   dropZone.classList.add('has-file');
   dropZone.innerHTML = `
@@ -427,6 +490,40 @@ function setFile(file) {
   `;
   makeBtn.disabled = false;
   statusEl.className = 'status';
+
+  // Render preview
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    previewGrid.innerHTML = '';
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 1 });
+      const scale = 200 / viewport.width;
+      const scaled = page.getViewport({ scale });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = scaled.width;
+      canvas.height = scaled.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: scaled }).promise;
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'preview-page';
+      wrapper.appendChild(canvas);
+
+      const label = document.createElement('div');
+      label.className = 'preview-page-num';
+      label.textContent = `Page ${i}`;
+      wrapper.appendChild(label);
+
+      previewGrid.appendChild(wrapper);
+    }
+
+    previewEl.classList.add('visible');
+  } catch (e) {
+    console.error('Preview failed:', e);
+  }
 }
 
 function showStatus(msg, type) {
