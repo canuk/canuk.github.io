@@ -1,71 +1,111 @@
 import React, { useCallback, useState } from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import ChatScreen from './src/ChatScreen';
+import Header from './src/Header';
+import TabBar, { TabKey } from './src/TabBar';
+import HomeScreen from './src/HomeScreen';
+import CaptureScreen from './src/CaptureScreen';
+import SurveyScreen from './src/SurveyScreen';
+import InfoScreen from './src/InfoScreen';
 import CameraScreen from './src/CameraScreen';
 import { Message } from './src/types';
+import { theme } from './src/theme';
 
-type Mode = 'chat' | 'camera';
+const TAB_TITLES: Record<TabKey, string> = {
+  home: 'Your Study Companion',
+  capture: 'Sample Capture',
+  survey: 'Survey',
+  info: 'About',
+};
 
 const initialMessages: Message[] = [
   {
     id: 'greet-1',
     role: 'bot',
     kind: 'text',
-    text: "Hi! I'm a sample chatbot. Type a message, or tap the camera icon to snap a photo and share it with me.",
+    text: "Hi! I'm a sample chatbot. Ask me anything, or head to the Capture tab to snap a photo.",
     createdAt: Date.now(),
   },
 ];
 
 export default function App() {
+  const [tab, setTab] = useState<TabKey>('home');
   const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [mode, setMode] = useState<Mode>('chat');
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const idCounter = React.useRef(0);
 
   const appendMessage = useCallback((msg: Message) => {
     setMessages((prev) => [...prev, msg]);
   }, []);
 
-  const handleCapture = useCallback(
-    (uri: string) => {
-      const now = Date.now();
-      appendMessage({
-        id: `u-${now}`,
-        role: 'user',
-        kind: 'image',
-        uri,
-        createdAt: now,
-      });
-      appendMessage({
-        id: `b-${now + 1}`,
-        role: 'bot',
-        kind: 'text',
-        text: 'Nice shot! I can see you sent me a photo.',
-        createdAt: now + 1,
-      });
-      setMode('chat');
-    },
-    [appendMessage]
-  );
+  const handleCapture = useCallback((uri: string) => {
+    idCounter.current += 1;
+    const now = Date.now();
+    appendMessage({
+      id: `u-${now}-${idCounter.current}`,
+      role: 'user',
+      kind: 'image',
+      uri,
+      createdAt: now,
+    });
+    idCounter.current += 1;
+    appendMessage({
+      id: `b-${now}-${idCounter.current}`,
+      role: 'bot',
+      kind: 'text',
+      text: 'Nice shot! I can see you sent me a photo.',
+      createdAt: now + 1,
+    });
+    setCameraOpen(false);
+    setTab('home');
+  }, [appendMessage]);
+
+  if (cameraOpen) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <SafeAreaView style={styles.cameraRoot} edges={['top', 'bottom']}>
+          <CameraScreen
+            onCapture={handleCapture}
+            onCancel={() => setCameraOpen(false)}
+          />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
-      {mode === 'chat' ? (
-        <ChatScreen
-          messages={messages}
-          appendMessage={appendMessage}
-          onOpenCamera={() => setMode('camera')}
-        />
-      ) : (
-        <CameraScreen onCapture={handleCapture} onCancel={() => setMode('chat')} />
-      )}
-    </SafeAreaView>
+    <SafeAreaProvider>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <Header title={TAB_TITLES[tab]} />
+        <View style={styles.body}>
+          {tab === 'home' && (
+            <HomeScreen messages={messages} appendMessage={appendMessage} />
+          )}
+          {tab === 'capture' && (
+            <CaptureScreen onOpenCamera={() => setCameraOpen(true)} />
+          )}
+          {tab === 'survey' && <SurveyScreen />}
+          {tab === 'info' && <InfoScreen />}
+        </View>
+        <TabBar active={tab} onChange={setTab} />
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: theme.bg,
+  },
+  cameraRoot: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  body: {
+    flex: 1,
   },
 });

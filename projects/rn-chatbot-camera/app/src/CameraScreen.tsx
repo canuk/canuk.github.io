@@ -8,6 +8,8 @@ import {
   Alert,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { Feather } from '@expo/vector-icons';
+import { theme, radius } from './theme';
 
 type Props = {
   onCapture: (uri: string) => void;
@@ -23,7 +25,7 @@ export default function CameraScreen({ onCapture, onCancel }: Props) {
   if (!permission) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={theme.accent} />
       </View>
     );
   }
@@ -31,9 +33,7 @@ export default function CameraScreen({ onCapture, onCancel }: Props) {
   if (!permission.granted) {
     return (
       <View style={styles.center}>
-        <Text style={styles.permText}>
-          We need camera access to take photos.
-        </Text>
+        <Text style={styles.permText}>We need camera access to take photos.</Text>
         <Pressable style={styles.primaryBtn} onPress={requestPermission}>
           <Text style={styles.primaryText}>Grant permission</Text>
         </Pressable>
@@ -62,8 +62,8 @@ export default function CameraScreen({ onCapture, onCancel }: Props) {
     <View style={styles.root}>
       <CameraView ref={cameraRef} style={styles.camera} facing={facing} />
       <View style={styles.controls}>
-        <Pressable style={styles.sideBtn} onPress={onCancel}>
-          <Text style={styles.sideText}>Cancel</Text>
+        <Pressable style={styles.sideBtn} onPress={onCancel} accessibilityLabel="Cancel">
+          <Feather name="x" size={22} color="#f9fafb" />
         </Pressable>
         <Pressable
           style={[styles.shutter, capturing && styles.shutterActive]}
@@ -78,7 +78,7 @@ export default function CameraScreen({ onCapture, onCancel }: Props) {
           onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
           accessibilityLabel="Flip camera"
         >
-          <Text style={styles.sideText}>Flip</Text>
+          <Feather name="refresh-cw" size={22} color="#f9fafb" />
         </Pressable>
       </View>
     </View>
@@ -92,12 +92,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#111827',
+    backgroundColor: theme.bg,
     padding: 24,
     gap: 12,
   },
   permText: {
-    color: '#f9fafb',
+    color: theme.textPrimary,
     textAlign: 'center',
     marginBottom: 12,
     fontSize: 16,
@@ -129,25 +129,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   sideBtn: {
-    minWidth: 72,
-    height: 44,
-    paddingHorizontal: 12,
-    borderRadius: 22,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
-  sideText: { color: '#f9fafb', fontWeight: '600' },
   primaryBtn: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#2563eb',
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    backgroundColor: theme.accent,
   },
-  primaryText: { color: '#f9fafb', fontWeight: '600' },
+  primaryText: { color: '#ffffff', fontWeight: '700' },
   secondaryBtn: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
-  secondaryText: { color: '#9ca3af' },
+  secondaryText: { color: theme.textSecondary, fontWeight: '600' },
 });
