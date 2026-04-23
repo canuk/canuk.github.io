@@ -1,7 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import Header from './src/Header';
 import TabBar, { TabKey } from './src/TabBar';
 import HomeScreen from './src/HomeScreen';
@@ -30,6 +32,10 @@ const initialMessages: Message[] = [
 ];
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    ...Feather.font,
+    ...MaterialCommunityIcons.font,
+  });
   const [tab, setTab] = useState<TabKey>('home');
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -60,6 +66,17 @@ export default function App() {
     setCameraOpen(false);
     setTab('home');
   }, [appendMessage]);
+
+  if (!fontsLoaded) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <View style={styles.splash}>
+          <ActivityIndicator color={theme.accent} />
+        </View>
+      </SafeAreaProvider>
+    );
+  }
 
   if (cameraOpen) {
     return (
@@ -107,5 +124,11 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
+  },
+  splash: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.bg,
   },
 });
