@@ -12,7 +12,10 @@
     },
     "android": {
       "package": "com.example.rnchatbotcamera",
-      "permissions": ["android.permission.CAMERA"]
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       [
@@ -21,6 +24,12 @@
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to capture photos in chat."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fcc30caa-2ada-4282-82dc-424c14cf436e"
+      }
+    },
+    "owner": "canuk"
   }
 }

@@ -22,20 +22,27 @@ type Props = {
 export default function ChatScreen({ messages, appendMessage, onOpenCamera }: Props) {
   const [draft, setDraft] = useState('');
   const listRef = useRef<FlatList<Message>>(null);
+  const counterRef = useRef(0);
+  const atBottomRef = useRef(true);
+
+  const nextId = (prefix: string) => {
+    counterRef.current += 1;
+    return `${prefix}-${Date.now()}-${counterRef.current}`;
+  };
 
   const send = () => {
     const text = draft.trim();
     if (!text) return;
     const now = Date.now();
-    appendMessage({ id: `u-${now}`, role: 'user', kind: 'text', text, createdAt: now });
+    appendMessage({ id: nextId('u'), role: 'user', kind: 'text', text, createdAt: now });
     setDraft('');
     setTimeout(() => {
       appendMessage({
-        id: `b-${now + 1}`,
+        id: nextId('b'),
         role: 'bot',
         kind: 'text',
         text: respond(text),
-        createdAt: now + 1,
+        createdAt: Date.now(),
       });
     }, 350);
   };
@@ -54,7 +61,18 @@ export default function ChatScreen({ messages, appendMessage, onOpenCamera }: Pr
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => <Bubble message={item} />}
-        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+        onScroll={(e) => {
+          const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+          const distanceFromBottom =
+            contentSize.height - (contentOffset.y + layoutMeasurement.height);
+          atBottomRef.current = distanceFromBottom < 40;
+        }}
+        scrollEventThrottle={32}
+        onContentSizeChange={() => {
+          if (atBottomRef.current) {
+            listRef.current?.scrollToEnd({ animated: true });
+          }
+        }}
       />
       <View style={styles.inputRow}>
         <TextInput
