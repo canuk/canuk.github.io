@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme, radius } from './theme';
 
@@ -29,6 +29,20 @@ function StepIconRenderer({ icon, color }: { icon: StepIcon; color: string }) {
 }
 
 export default function CaptureScreen({ onOpenCamera }: Props) {
+  if (Platform.OS === 'web') {
+    return (
+      <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Sample Capture</Text>
+          <Text style={styles.body}>
+            The capture flow uses the device camera and isn't available in the web preview.
+            Install the iOS or Android build to try it.
+          </Text>
+        </View>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <View style={styles.card}>

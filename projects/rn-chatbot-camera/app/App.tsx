@@ -11,6 +11,7 @@ import CaptureScreen from './src/CaptureScreen';
 import SurveyScreen from './src/SurveyScreen';
 import InfoScreen from './src/InfoScreen';
 import CameraScreen from './src/CameraScreen';
+import OfflineBanner from './src/OfflineBanner';
 import { Message } from './src/types';
 import { theme } from './src/theme';
 
@@ -97,6 +98,7 @@ export default function App() {
       <StatusBar style="dark" />
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <Header title={TAB_TITLES[tab]} />
+        <OfflineBanner />
         <View style={styles.body}>
           {tab === 'home' && (
             <HomeScreen messages={messages} appendMessage={appendMessage} />

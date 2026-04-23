@@ -3,12 +3,16 @@
     "name": "RN Chatbot Camera",
     "slug": "rn-chatbot-camera",
     "version": "1.0.0",
+    "scheme": "rn-chatbot-camera",
     "orientation": "portrait",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.rnchatbotcamera"
+      "bundleIdentifier": "com.example.rnchatbotcamera",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.example.rnchatbotcamera",
@@ -16,6 +20,16 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ]
+    },
+    "web": {
+      "bundler": "metro",
+      "name": "Study Companion",
+      "shortName": "Companion",
+      "themeColor": "#2563eb",
+      "backgroundColor": "#f4f6f8",
+      "display": "standalone",
+      "lang": "en",
+      "orientation": "portrait"
     },
     "plugins": [
       [
