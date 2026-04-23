@@ -7,7 +7,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "verify": "expo-doctor && expo export --platform android --output-dir /tmp/expo-verify && rm -rf /tmp/expo-verify"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.4",
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~18.3.12",
+    "expo-doctor": "^1.18.0",
     "typescript": "^5.3.3"
   }
 }
