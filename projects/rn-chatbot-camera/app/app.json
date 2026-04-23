@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "RN Chatbot Camera",
+    "slug": "rn-chatbot-camera",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.rnchatbotcamera"
+    },
+    "android": {
+      "package": "com.example.rnchatbotcamera",
+      "permissions": ["android.permission.CAMERA"]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to capture photos in chat."
+        }
+      ]
+    ]
+  }
+}

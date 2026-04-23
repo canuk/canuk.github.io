@@ -1,0 +1,302 @@
+---
+layout: default
+title: Building RN Chatbot Camera
+description: "A minimal React Native sample app — chatbot + camera — and the end-to-end process of compiling it to an APK and sideloading it onto a Chromebook."
+---
+
+<div class="container py-5">
+  <article class="article-content mx-auto">
+    <!-- Header -->
+    <header class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3">RN Chatbot Camera</h1>
+      <p class="lead text-secondary">A tiny React Native sample — chatbot + camera — built to learn the APK pipeline and sideloading onto a Chromebook</p>
+      <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+        <span class="badge" style="background-color: #61DAFB;"><i class="bi bi-phone me-1 text-dark"></i><span class="text-dark">React Native</span></span>
+        <span class="badge" style="background-color: #000020;"><i class="bi bi-layers me-1"></i>Expo SDK 52</span>
+        <span class="badge" style="background-color: #3178C6;"><i class="bi bi-braces me-1"></i>TypeScript</span>
+        <span class="badge" style="background-color: #3DDC84;"><i class="bi bi-android2 me-1"></i>Android APK</span>
+      </div>
+    </header>
+
+    <p class="lead text-secondary mb-5">
+      A deliberately small React Native app built with Expo: a single-screen chatbot that answers via local rules, plus a camera mode that captures pictures and drops them back into the conversation as image bubbles. The goal isn't the app itself — it's a clean excuse to walk through the full <em>&ldquo;code → APK → Chromebook&rdquo;</em> pipeline.
+    </p>
+
+    <h2><i class="bi bi-target me-2"></i>Goal</h2>
+    <p>Answer three questions end-to-end:</p>
+    <ol>
+      <li>How do you scaffold a React Native app with camera access?</li>
+      <li>How do you turn it into an installable <code>.apk</code> without owning a dedicated Android build machine?</li>
+      <li>How do you sideload that APK onto a Chromebook?</li>
+    </ol>
+
+    <h2><i class="bi bi-diagram-3 me-2"></i>Architecture</h2>
+    <p>Expo's managed workflow is the right default for a learning project — it hides the Gradle / CocoaPods machinery behind a couple of CLI commands, and its cloud build service (EAS Build) produces a signed APK without needing Android Studio installed locally.</p>
+
+    <div class="row row-cols-1 row-cols-md-3 g-3 my-4">
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">App stack</h5>
+            <ul class="mb-0">
+              <li>React Native 0.76</li>
+              <li>Expo SDK 52 (managed)</li>
+              <li>expo-camera 16</li>
+              <li>TypeScript (strict)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">Build</h5>
+            <ul class="mb-0">
+              <li>EAS Build (cloud)</li>
+              <li>Gradle (local fallback)</li>
+              <li>Preview profile → APK</li>
+              <li>Production → AAB</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">Install</h5>
+            <ul class="mb-0">
+              <li>ChromeOS Linux (Crostini)</li>
+              <li>ARC ADB sideload</li>
+              <li><code>adb connect</code> to 100.115.92.2</li>
+              <li><code>adb install</code> the APK</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2><i class="bi bi-chat-dots me-2"></i>The App</h2>
+    <p>Two modes, one screen state machine: <strong>chat</strong> or <strong>camera</strong>. No navigation library, no global state, no network calls.</p>
+
+<pre class="bg-dark text-light p-3 rounded"><code class="language-typescript">// App.tsx — the whole thing
+export default function App() {
+  const [messages, setMessages] = useState&lt;Message[]&gt;(initialMessages);
+  const [mode, setMode] = useState&lt;'chat' | 'camera'&gt;('chat');
+
+  const appendMessage = useCallback((m: Message) =&gt; {
+    setMessages((prev) =&gt; [...prev, m]);
+  }, []);
+
+  return mode === 'chat'
+    ? &lt;ChatScreen messages={messages}
+                  appendMessage={appendMessage}
+                  onOpenCamera={() =&gt; setMode('camera')} /&gt;
+    : &lt;CameraScreen onCapture={uri =&gt; { /* append image, switch back */ }}
+                    onCancel={() =&gt; setMode('chat')} /&gt;;
+}</code></pre>
+
+    <h3>The &ldquo;bot&rdquo;</h3>
+    <p>Deliberately dumb. The point is the <em>pipeline</em>, not LLM integration.</p>
+
+<pre class="bg-dark text-light p-3 rounded"><code class="language-typescript">export function respond(input: string): string {
+  const q = input.trim().toLowerCase();
+  if (/\b(hi|hello|hey)\b/.test(q))  return 'Hey there! How can I help?';
+  if (/\bcamera\b/.test(q))          return 'Tap the camera icon to take a picture.';
+  if (/\bapk\b/.test(q))             return 'Build one with `eas build --profile preview --platform android`.';
+  if (q.endsWith('?'))               return "That's a good question — I'm just a demo bot.";
+  return `You said: "${input}". Try asking about the camera or saying hi.`;
+}</code></pre>
+
+    <h3>The camera</h3>
+    <p>expo-camera v16 exposes a <code>CameraView</code> component and a <code>useCameraPermissions</code> hook. Everything you need for a shutter button fits in ~60 lines:</p>
+
+<pre class="bg-dark text-light p-3 rounded"><code class="language-typescript">const [permission, requestPermission] = useCameraPermissions();
+const cameraRef = useRef&lt;CameraView&gt;(null);
+
+const takePhoto = async () =&gt; {
+  const photo = await cameraRef.current?.takePictureAsync({ quality: 0.7 });
+  if (photo?.uri) onCapture(photo.uri);  // bubble it back into chat
+};
+
+return &lt;CameraView ref={cameraRef} style={{ flex: 1 }} facing="back" /&gt;;</code></pre>
+
+    <div class="alert alert-info">
+      <strong>Why expo-camera and not react-native-vision-camera?</strong> Vision Camera is more powerful (frame processors, GPU pipelines), but requires a development build and native config. For a learning project the managed workflow keeps the feedback loop short: edit, reload, done.
+    </div>
+
+    <h2><i class="bi bi-shield-lock me-2"></i>Permissions</h2>
+    <p>The Android manifest needs <code>CAMERA</code>, and the Expo config plugin injects the user-facing consent string. Both live in <code>app.json</code>:</p>
+
+<pre class="bg-dark text-light p-3 rounded"><code class="language-json">{
+  "expo": {
+    "android": {
+      "package": "com.example.rnchatbotcamera",
+      "permissions": ["android.permission.CAMERA"]
+    },
+    "plugins": [
+      ["expo-camera", {
+        "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to capture photos in chat."
+      }]
+    ]
+  }
+}</code></pre>
+
+    <h2><i class="bi bi-box-seam me-2"></i>Building the APK</h2>
+    <p>The fastest path: EAS Build. A cloud worker runs Gradle, signs the APK with a key it generates for you, and hands you a download link. No Android Studio, no JDK wrangling.</p>
+
+<pre class="bg-light p-3 rounded"><code>npm install -g eas-cli
+eas login
+eas init                              # links the project to your Expo account
+eas build --profile preview --platform android</code></pre>
+
+    <p>The <code>preview</code> profile is the interesting one — it's wired to emit an APK rather than an AAB (which is what Google Play actually wants but can't be sideloaded directly):</p>
+
+<pre class="bg-dark text-light p-3 rounded"><code class="language-json">// eas.json
+"preview": {
+  "distribution": "internal",
+  "android": { "buildType": "apk" }
+}</code></pre>
+
+    <h3>Local build fallback</h3>
+    <p>If you'd rather not depend on Expo's cloud (or you've hit the free tier limit), <code>expo prebuild</code> materializes the <code>android/</code> project so Gradle can do the work on your own machine:</p>
+
+<pre class="bg-light p-3 rounded"><code>npx expo prebuild --platform android
+cd android
+./gradlew assembleRelease
+# APK lands in android/app/build/outputs/apk/release/</code></pre>
+
+    <p>That path needs JDK 17 and the Android SDK. EAS sidesteps both.</p>
+
+    <h2><i class="bi bi-laptop me-2"></i>Installing on a Chromebook</h2>
+    <p>ChromeOS runs Android apps inside a sandboxed Android subsystem (ARC). The Play Store is the official path, but for a sideloaded APK you go through ADB — the same protocol used for any Android device.</p>
+
+    <p>Two layers need to be enabled first:</p>
+    <ol>
+      <li><strong>Linux (Crostini)</strong> — provides a shell where <code>adb</code> can run.<br>
+        <em>Settings → Advanced → Developers → Linux development environment → Turn on</em></li>
+      <li><strong>ADB sideloading for ARC</strong> — opens the Android subsystem to <code>adb install</code>.<br>
+        <em>Settings → Advanced → Developers → Linux development environment → Develop Android apps → Enable ADB debugging</em></li>
+    </ol>
+
+    <div class="alert alert-warning">
+      <strong>Heads up:</strong> toggling ADB debugging on ARC shows a powerwash-style warning. In practice it reboots and keeps your data, but take a snapshot of anything irreplaceable first. You only need to do this once per device.
+    </div>
+
+    <h3>Then, from the Linux terminal</h3>
+
+<pre class="bg-light p-3 rounded"><code># 1. Install ADB once
+sudo apt update &amp;&amp; sudo apt install -y android-tools-adb
+
+# 2. Move the APK into the Linux container
+#    (drag it into "Linux files" in the ChromeOS Files app)
+
+# 3. Point ADB at the Android subsystem — note the fixed IP
+adb connect 100.115.92.2:5555
+#    Accept the dialog that appears on the ChromeOS desktop
+
+# 4. Install
+adb install rn-chatbot-camera.apk
+
+# 5. Launch it from the ChromeOS launcher
+</code></pre>
+
+    <div class="alert alert-info">
+      <strong>The magic IP:</strong> <code>100.115.92.2</code> is the address ChromeOS assigns to the Android VM. It's stable across reboots, so you can script this once and forget.
+    </div>
+
+    <h2><i class="bi bi-bug me-2"></i>Things that tripped me up</h2>
+
+    <div class="row row-cols-1 row-cols-md-2 g-3 my-4">
+      <div class="col">
+        <div class="card h-100 border-primary">
+          <div class="card-body">
+            <h5 class="card-title text-primary">Expo Go vs dev build</h5>
+            <p class="card-text">On SDK 52 with the New Architecture, some native modules (incl. some <code>expo-camera</code> paths) don't load inside Expo Go. A dev client build fixes it: <code>eas build --profile development</code>.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 border-primary">
+          <div class="card-body">
+            <h5 class="card-title text-primary">APK vs AAB</h5>
+            <p class="card-text">The default <code>production</code> profile builds an AAB, which Google Play can split per-device but ADB can't install directly. <code>preview</code> produces the APK you actually want for sideloading.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 border-primary">
+          <div class="card-body">
+            <h5 class="card-title text-primary">Package name clashes</h5>
+            <p class="card-text"><code>com.example.*</code> is fine for testing, but if you ever want to ship on Play you'll need a reverse-DNS package you actually own. Rename in <code>app.json</code> before the first store upload — it's effectively permanent afterward.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 border-primary">
+          <div class="card-body">
+            <h5 class="card-title text-primary">ARC &ne; a real phone</h5>
+            <p class="card-text">The ChromeOS Android runtime emulates a specific device. Sensors, camera APIs, and window resizing behave differently than a phone. Test the golden path on ARC <em>and</em> a real device before declaring victory.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2><i class="bi bi-lightbulb me-2"></i>What I learned</h2>
+    <ol>
+      <li><strong>Managed Expo is genuinely the path of least resistance</strong> for an Android-first learning project. The first signed APK was ~15 minutes from <code>npx create-expo-app</code>.</li>
+      <li><strong>EAS Build's preview profile is the one you actually want</strong> for sideloading. The default production path optimizes for Play Store distribution, which makes sideloading harder.</li>
+      <li><strong>Chromebooks are surprisingly good Android test targets.</strong> Once ADB is wired up, the feedback loop is as fast as a cable-attached phone, with the benefit of a full keyboard and a real debugger on the same device.</li>
+      <li><strong>The hardest part is the settings toggles</strong>, not the code. Both Crostini and ARC ADB live behind &ldquo;Developers&rdquo; menus that are easy to miss.</li>
+    </ol>
+
+    <h2><i class="bi bi-folder2-open me-2"></i>Repository layout</h2>
+<pre class="bg-light p-3 rounded"><code>projects/rn-chatbot-camera/
+├── index.html              # this page
+└── app/
+    ├── App.tsx             # root: toggles chat &harr; camera
+    ├── app.json            # Expo config, Android package, permissions
+    ├── eas.json            # EAS Build profiles (preview = APK)
+    ├── package.json
+    ├── tsconfig.json
+    ├── babel.config.js
+    ├── README.md
+    └── src/
+        ├── ChatScreen.tsx
+        ├── CameraScreen.tsx
+        ├── bot.ts
+        └── types.ts</code></pre>
+
+    <!-- Back to Projects -->
+    <div class="text-center mt-4">
+      <a href="{{ site.baseurl }}/" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Back to Projects
+      </a>
+      <a href="https://github.com/canuk/canuk.github.io/tree/master/projects/rn-chatbot-camera/app" target="_blank" class="btn btn-primary ms-2">
+        <i class="bi bi-github me-2"></i>View Source
+      </a>
+    </div>
+  </article>
+</div>
+
+<style>
+.article-content h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.article-content h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.article-content pre {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.article-content pre code {
+  font-size: 0.875rem;
+}
+</style>
