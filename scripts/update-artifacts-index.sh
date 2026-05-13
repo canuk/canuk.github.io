@@ -233,7 +233,7 @@ cat >> "$INDEX_FILE" << 'MIDDLE'
 MIDDLE
 
 # Append the cards
-echo -n "$cards_html" >> "$INDEX_FILE"
+printf '%s' "$cards_html" >> "$INDEX_FILE"
 
 # Append the footer with styles and JavaScript
 cat >> "$INDEX_FILE" << 'FOOTER'
@@ -350,7 +350,7 @@ cat >> "$INDEX_FILE" << 'FOOTER'
         description.includes(searchLower);
 
       const matchesTag = currentTag === 'all' ||
-        tags.split(',').map(t => t.trim()).includes(currentTag);
+        tags.split(',').map(t => t.trim()).includes(currentTag.toLowerCase());
 
       if (matchesSearch && matchesTag) {
         card.classList.remove('hidden');
