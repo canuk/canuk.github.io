@@ -1,0 +1,177 @@
+---
+layout: default
+title: WebLLM Prompt Lab
+description: "A side-by-side AI playground where students run language models in their own browser. No API keys, no data leaving the device. Built for an after-school program so the AI stops being a black box."
+---
+
+<div class="container py-5">
+  <article class="article-content mx-auto">
+
+    <!-- Hero -->
+    <header class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3">WebLLM Prompt Lab</h1>
+      <p class="lead text-secondary">Two language models side-by-side, running in the browser. Built so kids can poke at how AI works instead of just chatting with it.</p>
+      <div class="d-flex justify-content-center gap-2 mt-4 flex-wrap">
+        <span class="badge" style="background-color: #FF6F00;"><i class="bi bi-cpu me-1"></i>WebGPU</span>
+        <span class="badge" style="background-color: #0891B2;"><i class="bi bi-box me-1"></i>WebLLM</span>
+        <span class="badge" style="background-color: #4F46E5;"><i class="bi bi-search me-1"></i>RAG (bge-small)</span>
+        <span class="badge" style="background-color: #6366F1;"><i class="bi bi-database me-1"></i>IndexedDB</span>
+        <span class="badge" style="background-color: #F59E0B;"><i class="bi bi-vector-pen me-1"></i>Vanilla JS</span>
+        <span class="badge" style="background-color: #2563EB;"><i class="bi bi-fire me-1"></i>Firebase Hosting</span>
+      </div>
+    </header>
+
+    <p class="lead text-secondary mb-5">
+      Live at <a href="https://webllm-promptlab.web.app" target="_blank"><strong>webllm-promptlab.web.app</strong></a>. Pick a model, watch it download once into IndexedDB, and from then on it runs offline on the student's own laptop. No API key, no data leaving the device. Two panes side-by-side so you can run the same prompt against two models and watch the streaming.
+    </p>
+
+    <figure class="text-center mb-5">
+      <img src="screenshots/desktop-home.webp" alt="WebLLM Prompt Lab desktop view, two panes ready to load models, header with Compare/Sync/New/Knowledge/Cache/Export buttons" class="img-fluid rounded shadow-sm" />
+      <figcaption class="text-secondary small mt-2">Desktop view. Each pane has its own model, system prompt, generation settings, and Knowledge toggle.</figcaption>
+    </figure>
+
+    <h2><i class="bi bi-question-circle me-2"></i>Why build this</h2>
+    <p>Working on a project that wanted something students could experiment with privately in their after-school program. The hosted assistants (ChatGPT, Claude, Gemini) are slick, but they're also opaque (you don't see the model, you don't see the prompt template, you don't see what knowledge the model "has").</p>
+    <p>Running the model in the browser via <strong>WebGPU</strong> makes the pipeline visible and keeps every prompt on the student's device. The student loads weights they can see in their browser's storage. They edit a system prompt and watch the answer change. They turn retrieval on and off and watch the same model get smarter or dumber on the same question.</p>
+
+    <h2><i class="bi bi-cpu-fill me-2"></i>How it works</h2>
+    <p>The runtime is <a href="https://github.com/mlc-ai/web-llm" target="_blank"><strong>WebLLM</strong></a> from MLC, a TVM-compiled WebGPU runtime that ships quantized transformer weights to the browser and runs inference there. Each pane has its own Web Worker hosting a WebLLM engine, so generation in pane A doesn't block pane B's UI.</p>
+    <p>The model list is curated down to 10 featured models with friendly names and one-line taglines ("Best all-around for Chromebooks," "Loves structured prompts. Great for RAG."), but the full ~85-model WebLLM catalog is one tab click away in the picker. Each tile shows tier (Quick / Balanced / Smart), size in MB or GB, last-used timestamp, and whether the weights are already cached locally.</p>
+
+    <figure class="text-center my-4">
+      <img src="screenshots/desktop-picker.webp" alt="Model picker dialog showing 10 featured models as tiles" class="img-fluid rounded shadow-sm" />
+      <figcaption class="text-secondary small mt-2">The picker replaces a raw <code>&lt;select&gt;</code> of cryptic filenames like <code>Llama-3.2-3B-Instruct-q4f16_1-MLC</code> with friendly names, taglines, and cached badges.</figcaption>
+    </figure>
+
+    <h2><i class="bi bi-search me-2"></i>The Knowledge panel: client-side RAG!</h2>
+    <p>Drop in a text file, Markdown, PDF, or Word doc and the page:</p>
+    <ol>
+      <li>Chunks the text hierarchically (parent paragraphs ~1500 chars, child sentences ~200 chars with one-sentence overlap)</li>
+      <li>Embeds every chunk with <a href="https://huggingface.co/Xenova/bge-small-en-v1.5" target="_blank"><code>Xenova/bge-small-en-v1.5</code></a> running in a Web Worker via <a href="https://huggingface.co/docs/transformers.js" target="_blank">transformers.js</a></li>
+      <li>Stores text + embeddings in IndexedDB so they survive page reloads</li>
+    </ol>
+    <p>Each pane has a per-pane "Use knowledge" toggle. When a student sends a message, the page embeds the query once, retrieves top-k unique parent passages by cosine similarity, and folds them into the <strong>system message</strong> wrapped in <code>&lt;reference&gt;&lt;doc&gt;</code> tags. The user message stays clean (small models get confused by "Context:" headers that look like document continuations).</p>
+
+    <figure class="text-center my-4">
+      <img src="screenshots/desktop-knowledge.webp" alt="Knowledge dialog with the sample stick-insect doc loaded" class="img-fluid rounded shadow-sm" />
+      <figcaption class="text-secondary small mt-2">Knowledge dialog with the bundled sample document. <strong>VIEW</strong> shows the raw text that was chunked. <strong>REMOVE</strong> deletes it from IndexedDB.</figcaption>
+    </figure>
+
+    <p>The side-by-side demo: leave pane A's <strong>Use knowledge</strong> off, turn pane B's on, load the sample doc (the true-but-obscure story of the Lord Howe Island stick insect's 2001 rediscovery on Ball's Pyramid), then ask both panes "where was the Lord Howe Island stick insect rediscovered?" Pane A confabulates, pane B answers correctly. Same model, same temperature, same prompt. The only variable is retrieval.</p>
+
+    <p>The match threshold is exposed as a per-pane slider (default 55% cosine similarity). When a question doesn't clear the bar, the response gets a small dashed footer: <em>"Searched knowledge · best match 42% (below 55% threshold)"</em>. Kids can see retrieval ran, see why it didn't fire, and move the slider if they disagree.</p>
+
+    <h2><i class="bi bi-link-45deg me-2"></i>Engine sharing for memory-constrained devices</h2>
+    <p>An early version of the app ran two isolated workers per pane. That meant picking the same model in both panes loaded the weights into VRAM <em>twice</em>. Fine on a developer laptop, fatal on a Chromebook with 4 GB of RAM.</p>
+    <p>The fix was a small registry:</p>
+<pre><code class="language-js">const engineRegistry = new Map(); // modelId -> { engine, worker, refCount }</code></pre>
+    <p>Each pane holds a reference. Picking the same model in both panes shares one engine and one copy of the weights. Picking different models gives each pane its own worker. When a pane switches away, the refcount decrements, and the underlying engine is unloaded only when nothing's holding it.</p>
+    <p>Generation is already serialized between panes (one WebGPU device, one timeline), so sharing the engine costs nothing. A defensive <code>engine.resetChat()</code> runs between calls when the previous caller was a different pane, so KV-cache state doesn't leak between conversations.</p>
+
+    <h2><i class="bi bi-phone me-2"></i>Mobile (it works, barely)</h2>
+    <p>The app runs on phones. Not the ideal experience, but it works, which matters when students don't all have laptops at home.</p>
+    <figure class="text-center my-4">
+      <img src="screenshots/mobile-shot.webp" alt="Mobile portrait view with two stacked panes and a fitted send button" class="img-fluid rounded shadow-sm" style="max-width: 360px;" />
+      <figcaption class="text-secondary small mt-2">On phones the picker collapses to a single column, the brand wordmark wraps, and the Send button stretches to match the textarea height (44 px minimum tap target).</figcaption>
+    </figure>
+    <p>A few mobile-specific tweaks:</p>
+    <ul>
+      <li>Fresh phone visits default to the two smallest models (SmolLM2 360M for A, Qwen 2.5 0.5B for B) instead of a 3B Llama, because 3B is brutal on a phone.</li>
+      <li>The model picker tiles get a "Slow on phone" pill for anything &gt;1 GB on phone-sized viewports.</li>
+      <li>A one-time advisory banner: <em>"On a phone? These models run…barely (or not at all!) Phone browsers are more limited than laptops. Stick to Quick-tier models, or open this site on a Chromebook or other computer for the full experience."</em></li>
+      <li>Textareas use a 16 px font so iOS Safari doesn't auto-zoom on focus.</li>
+      <li>Header buttons are 36 × 44 (WCAG 2.5.8 allows the narrower width with adequate spacing, and vertical tap accuracy is what really matters on phones).</li>
+    </ul>
+
+    <h2><i class="bi bi-universal-access me-2"></i>Accessibility (it's school software)</h2>
+    <p>This needs to work in a public-school setting, so I did a proper accessibility pass:</p>
+    <ul>
+      <li><code>:focus-visible</code> rings on every interactive element (cyan default; violet inside pane B's context).</li>
+      <li>Skip link to the message input as the first focusable element on the page.</li>
+      <li><code>role="banner"</code> / <code>"main"</code> / <code>"contentinfo"</code> landmarks; dialogs have <code>aria-labelledby</code> pointing at their titles.</li>
+      <li>All decorative Lucide SVG icons are auto-stamped with <code>aria-hidden="true"</code> and <code>focusable="false"</code>; the surrounding button has the accessible name.</li>
+      <li>RAG threshold sliders use <code>aria-labelledby</code>; the percentage badge next to them is <code>aria-hidden</code> so screen readers don't double-announce.</li>
+      <li><code>prefers-reduced-motion</code> rule kills the pulse / blink / indeterminate-bar animations.</li>
+      <li><code>forced-colors: active</code> rule keeps structural borders visible in Windows High Contrast mode.</li>
+      <li>Muted text color darkened from <code>#6B7A92</code> to <code>#5A6982</code> to clear WCAG AA contrast on the icy-blue background.</li>
+    </ul>
+    <p>Verified at 375×667 via Playwright: zero overflowing elements, zero unlabeled visible inputs, all SVGs aria-hidden, all 30 buttons have accessible names.</p>
+
+    <h2><i class="bi bi-cloud-arrow-down me-2"></i>Next up: classroom model mirror</h2>
+    <p>If school wifi can't handle 30 students each pulling 2 GB the first time, the plan is a Pi 5 8 GB with a USB SSD plugged into the classroom switch. The Pi doesn't run inference (the Chromebooks do that), it just mirrors the model weights from HuggingFace once and serves them locally with <code>Access-Control-Allow-Origin: *</code>. About $130 in hardware, one afternoon of setup. The app already supports an <code>appConfig.model_list</code> override, so the change to point at a Pi instead of HF is roughly 30 lines.</p>
+
+    <h2><i class="bi bi-mortarboard-fill me-2"></i>Insights</h2>
+    <div class="row g-4 mb-5">
+      <div class="col-md-6">
+        <div class="card card-modern h-100 p-3">
+          <h5><i class="bi bi-arrow-repeat me-2 text-info"></i>Small models hate clever prompts</h5>
+          <p class="mb-0 text-secondary">My first RAG injection wrote "Context:\n[1] doc\n…" into the user message. TinyLlama echoed back garbled "Preferring Context: [Context, followed by another question…" Switching the injection to <code>&lt;reference&gt;&lt;doc&gt;</code> tags inside the system message (never touching the user turn) fixed it across every model.</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card card-modern h-100 p-3">
+          <h5><i class="bi bi-shield-check me-2 text-success"></i>"Grounded" should be honest</h5>
+          <p class="mb-0 text-secondary">First version badged every response "grounded · N sources" even when the retrieved chunks were 45% similar (i.e., not relevant). The badge was lying. Now the threshold gates whether grounding fires, and below-threshold queries get a separate "searched · no strong match" footer instead.</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card card-modern h-100 p-3">
+          <h5><i class="bi bi-rulers me-2 text-warning"></i>WCAG ≠ iOS HIG</h5>
+          <p class="mb-0 text-secondary">Slapping <code>min-width: 44px</code> on every header button made six icons plus the brand wordmark overflow a 375 px viewport, causing horizontal scroll. WCAG 2.5.8 allows narrower with adequate spacing, and vertical 44 is what really matters for tap accuracy on phones.</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card card-modern h-100 p-3">
+          <h5><i class="bi bi-arrows-collapse me-2 text-primary"></i><code>white-space: pre-wrap</code> hates HTML</h5>
+          <p class="mb-0 text-secondary">User bubbles need <code>pre-wrap</code> to preserve their newlines. Assistant bubbles (rendered HTML from <code>marked</code>) get a literal <code>\n</code> between every block element. Under <code>pre-wrap</code>, those rendered as visible blank lines, producing ridiculous gaps between paragraphs and lists. Scoping <code>pre-wrap</code> to <code>.msg.user</code> only fixed it.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center mt-4">
+      <a href="{{ site.baseurl }}/" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Back to Projects
+      </a>
+      <a href="https://webllm-promptlab.web.app" target="_blank" class="btn btn-primary ms-2">
+        <i class="bi bi-box-arrow-up-right me-2"></i>Try it
+      </a>
+      <a href="https://github.com/canuk/webllm-promptlab" target="_blank" class="btn btn-dark ms-2">
+        <i class="bi bi-github me-2"></i>View Source
+      </a>
+    </div>
+  </article>
+</div>
+
+<style>
+.article-content h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border-color);
+}
+.article-content h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+.article-content h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+.article-content pre {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+.article-content pre code {
+  font-size: 0.875rem;
+}
+.article-content figure img {
+  max-width: 100%;
+  height: auto;
+}
+.article-content figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+</style>

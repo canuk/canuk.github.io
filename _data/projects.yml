@@ -1,0 +1,116 @@
+# Project listings for the home page.
+#
+# Sorting rules (handled in index.html):
+#   1. Anything with `featured:` (a number) pins to the top, in ascending order.
+#      Set featured: 1, 2, 3, ... for the order you want them to appear.
+#   2. Everything else sorts by `date:` descending (newest first).
+#
+# To add a new project: copy any block below, set the date to today, and drop
+# it anywhere in this file. Position in the file doesn't matter — sorting is
+# by `featured` then `date`.
+
+- slug: build-a-bot
+  title: Build-a-Bot
+  description: "Chatbot building interface for learning about AI. Build AI to learn about AI."
+  date: 2024-09-01
+  featured: 1
+  thumb: build-a-bot-thumb.webp
+  badges:
+    - { color: "#B1040E", icon: "bi-mortarboard", text: "Stanford" }
+    - { color: "#F7DF1E", icon: "bi-filetype-js", text: "JavaScript", text_dark: true }
+  buttons:
+    - { url: "https://bot101.app", icon: "bi-box-arrow-up-right", label: "Try App", primary: true, target: "_blank" }
+
+- slug: openenginedata
+  title: OpenEngineData
+  description: "Open-source platform for aviation engine monitor data analysis. Ruby gem, TypeScript parser, Rails web app, and Electron desktop app."
+  date: 2026-01-03
+  featured: 2
+  thumb: openenginedata-thumb.webp
+  badges:
+    - { color: "#CC342D", icon: "bi-gem", text: "Ruby" }
+    - { color: "#3178C6", icon: "bi-braces", text: "TypeScript" }
+    - { color: "#CC0000", icon: "bi-train-front", text: "Rails 8" }
+    - { color: "#47848F", icon: "bi-window", text: "Electron" }
+  buttons:
+    - { url: "/projects/openenginedata/", icon: "bi-journal-code", label: "Build Notes" }
+    - { url: "https://openenginedata.org", icon: "bi-box-arrow-up-right", label: "Visit Site", primary: true, target: "_blank" }
+
+- slug: ai-comic-studio
+  title: AI Comic Studio
+  description: "AI-powered comic creation platform for educational research. Generate comic panels using generative AI."
+  date: 2026-01-13
+  featured: 3
+  thumb: ai-comic-studio-thumb.webp
+  badges:
+    - { color: "#B1040E", icon: "bi-mortarboard", text: "Stanford" }
+    - { color: "#F7DF1E", icon: "bi-filetype-js", text: "JavaScript", text_dark: true }
+  buttons:
+    - { url: "/projects/ai-comic-studio/", icon: "bi-journal-code", label: "Build Notes" }
+
+- slug: webllm-promptlab
+  title: WebLLM Prompt Lab
+  description: "Side-by-side AI playground where students run real language models entirely in their own browser via WebGPU. RAG over user-supplied docs, engine sharing, offline after first load. Built for an after-school program."
+  date: 2026-05-13
+  thumb: webllm-promptlab-thumb.webp
+  badges:
+    - { color: "#FF6F00", icon: "bi-cpu", text: "WebGPU" }
+    - { color: "#0891B2", icon: "bi-box", text: "WebLLM" }
+    - { color: "#4F46E5", icon: "bi-search", text: "RAG" }
+    - { color: "#F59E0B", icon: "bi-vector-pen", text: "Vanilla JS" }
+  buttons:
+    - { url: "/projects/webllm-promptlab/", icon: "bi-journal-code", label: "Build Notes" }
+    - { url: "https://webllm-promptlab.web.app", icon: "bi-box-arrow-up-right", label: "Try It", primary: true, target: "_blank" }
+
+- slug: rn-chatbot-camera
+  title: RN Chatbot Camera
+  description: "One React Native codebase targeting iOS, Android, and a PWA. Lessons from burning EAS build credits, plus strategies for testing on real devices via Firebase Device Streaming and BrowserStack."
+  date: 2026-04-23
+  thumb: rn-chatbot-camera-thumb.webp
+  badges:
+    - { color: "#61DAFB", icon: "bi-phone", text: "React Native", text_dark: true }
+    - { color: "#000020", icon: "bi-layers", text: "Expo" }
+    - { color: "#000000", icon: "bi-apple", text: "iOS" }
+    - { color: "#3DDC84", icon: "bi-android2", text: "Android" }
+    - { color: "#6366F1", icon: "bi-globe", text: "PWA" }
+  buttons:
+    - { url: "/projects/rn-chatbot-camera/", icon: "bi-journal-code", label: "Build Notes" }
+    - { url: "https://github.com/canuk/canuk.github.io/tree/master/projects/rn-chatbot-camera/app", icon: "bi-github", label: "Source", primary: true, target: "_blank" }
+
+- slug: efface
+  title: Efface
+  description: "Native macOS face anonymization app. Runs CenterFace on the Apple Neural Engine for hardware-accelerated blur, pixelate, and mask in photos and videos."
+  date: 2026-03-11
+  thumb: efface-thumb.webp
+  badges:
+    - { color: "#F05138", icon: "bi-swift", text: "Swift" }
+    - { color: "#000000", icon: "bi-cpu", text: "Core ML" }
+    - { color: "#007AFF", icon: "bi-app", text: "SwiftUI" }
+  buttons:
+    - { url: "/projects/efface/", icon: "bi-journal-code", label: "Build Notes" }
+    - { url: "https://github.com/canuk/efface-app/releases", icon: "bi-download", label: "Download", primary: true, target: "_blank" }
+
+- slug: vft-cam
+  title: VFT Camera
+  description: "Zero-dependency 360° photosphere capture web app. Built with WebGL2, Three.js, and modern browser APIs for virtual field trips."
+  date: 2026-01-04
+  thumb: vftcam-thumb.webp
+  badges:
+    - { color: "#B1040E", icon: "bi-mortarboard", text: "Stanford" }
+    - { color: "#F7DF1E", icon: "bi-filetype-js", text: "JavaScript", text_dark: true }
+    - { color: "#000000", icon: "bi-box", text: "Three.js" }
+  buttons:
+    - { url: "/projects/vft-cam/", icon: "bi-journal-code", label: "Build Notes" }
+    - { url: "https://vftcam.stanford.edu", icon: "bi-box-arrow-up-right", label: "Try App", primary: true, target: "_blank" }
+
+- slug: guitar-flash-cards
+  title: Classical Guitar Flash Cards
+  description: "iOS app to master classical guitar fretboard positions through interactive flash cards with authentic guitar sounds."
+  date: 2026-01-03
+  thumb: guitar-flash-cards-thumb.webp
+  badges:
+    - { color: "#F05138", icon: "bi-swift", text: "Swift" }
+    - { color: "#000000", icon: "bi-apple", text: "iOS" }
+  buttons:
+    - { url: "https://classical-guitar-notes.web.app", icon: "bi-globe", label: "Try Web" }
+    - { url: "https://apps.apple.com/us/app/classical-guitar-flash-cards/id6753901074", icon: "bi-apple", label: "App Store", primary: true, target: "_blank" }
