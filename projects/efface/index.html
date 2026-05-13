@@ -30,6 +30,7 @@ description: "How I built Efface — a native macOS face anonymization app. From
         <li><a href="#getting-details-right">Phase 4: Getting the Details Right</a></li>
         <li><a href="#float16-crash">Technical Deep Dive: The Float16 Crash</a></li>
         <li><a href="#distribution">Distribution: Signing, Notarizing, and Shipping</a></li>
+        <li><a href="#v1-1-0-update">v1.1.0 Update: Preview, Batch, and a Detour I Pulled Back Out</a></li>
         <li><a href="#lessons-learned">Lessons Learned</a></li>
         <li><a href="#links">Links & Resources</a></li>
       </ol>
@@ -309,6 +310,54 @@ xcrun stapler staple build/Efface.dmg</code></pre>
       <p>For the DMG itself, I wanted the classic Mac installer experience—app icon on the left, Applications shortcut on the right, drag arrow in between. This involves creating a writable disk image, mounting it, using AppleScript to set Finder view options and icon positions, then converting to a compressed read-only image. It's archaic and wonderful.</p>
     </section>
 
+    <!-- v1.1.0 Update -->
+    <section id="v1-1-0-update" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-arrow-up-circle-fill text-primary me-2"></i>v1.1.0 Update: Preview, Batch, and a Detour I Pulled Back Out</h2>
+
+      <p>A researcher reached out who had a folder of hour-long classroom videos and a real-world problem with the original Efface: the only way to know if her settings (sensitivity, mask scale, blur style) were dialled in correctly was to wait an hour for one video to finish, watch it, and try again if she didn't like the result. With fifty videos to anonymize, that was a non-starter. The original app assumed you process one file at a time, end to end. v1.1.0 grew up around her use case.</p>
+
+      <h4>Preview First 10 Seconds</h4>
+
+      <p>The simplest fix to the long-render problem: clamp the processor to a time range, write the result to a temp file, open it. The pipeline doesn't change much — <code>AVAssetReader</code> takes a <code>timeRange</code> already; you just have to remember to <code>writer.startSession(atSourceTime: timeRange.start)</code> instead of <code>.zero</code>, otherwise frames before <code>timeRange.start</code> get dropped silently. The result is a 10-second clip you can watch, tweak settings, preview again, and commit to the full hour only when you're satisfied.</p>
+
+      <h4>Batch Folder Processing</h4>
+
+      <p>Process Folder… opens a folder picker, enumerates every video in it, and queues each one as a job. There's a settings sidebar so you can tune blur style and sensitivity for the whole batch, and a "Test First 10s" button that runs preview mode on the first video so you can validate the settings before kicking off an overnight render.</p>
+
+      <p>Two design decisions worth calling out:</p>
+
+      <ul>
+        <li><strong>Resume on relaunch is automatic.</strong> If a video already has an <code>_anonymized.mp4</code> output in the chosen output folder, the job starts in the <em>completed</em> state. Pointing the app at the same input + output folders after a crash skips already-done videos. Persistence is "for free" via the filesystem — no manifest to serialize, no SQLite, no state file.</li>
+        <li><strong>Atomic-rename writes.</strong> Each job writes to <code>.&lt;name&gt;.tmp-&lt;uuid&gt;</code> in the output folder during processing and renames to the final name on success. A partial output never appears in the listing, and a partial file never tricks the resume logic into thinking a video is done when it isn't.</li>
+      </ul>
+
+      <p>You can remove videos from the list before or during a run, stop a single video without cancelling the whole batch, or reprocess one row with new settings after the batch finishes. The runner iterates by next-queued <em>lookup</em> rather than index, so removing items mid-run can't shift the iteration out from under itself. That kind of detail wouldn't matter on paper, but the moment a user is staring at a 50-video queue thinking "actually, skip this one," it matters a lot.</p>
+
+      <h4>The Detour I Pulled Back Out</h4>
+
+      <p>I also took a stab at <strong>selective face blurring</strong>: pre-scan the video, cluster face embeddings into unique identities, let the user tap which faces to blur and which to keep visible. Done well, this would let a teacher post classroom recordings with their own face visible and every student blurred — a real, valuable privacy use case.</p>
+
+      <p><em>Done well</em> is the operative phrase. Apple's Vision framework has no public face recognition API — <code>VNFaceObservation</code> doesn't carry an embedding, and Photos' people-clustering is entirely private. So I bundled a MobileFaceNet Core ML model, did 5-point landmark alignment to canonical 112×112, and ran cosine clustering on the resulting 512-dimensional embeddings.</p>
+
+      <p>It worked on easy footage. On a video of a group at a sporting event — varied lighting, motion blur, profile views, similar face sizes at distance — the same person consistently split across two or three clusters. Classroom footage with thirty kids was probably going to be the same story. Once I followed that thread, I realized one-vs-many face re-identification on uncontrolled real-world video is genuinely a research-grade problem, not a weekend project. Shipping a "privacy mode" that worked on tutorials and broke on the actual use case would have been worse than not shipping it.</p>
+
+      <p>So I pulled the whole feature: <code>FaceIdentity</code>, <code>FaceClusterer</code>, <code>FaceEmbedder</code>, <code>PreScanner</code>, <code>FaceSelectionView</code>, the bundled MobileFaceNet model. About 1,400 lines of code, gone. The full implementation lives on a <a href="https://github.com/canuk/Efface/tree/feature/scan-and-select-faces" target="_blank">feature branch</a> in case the technology shifts and the problem becomes tractable later.</p>
+
+      <p>Cutting it had a nice side effect for the App Store path: the only bundled model on master is now CenterFace (BSD-3 licensed), which makes licensing review trivial. The MobileFaceNet weights had murky provenance that I would have had to resolve before shipping commercially anyway.</p>
+
+      <h4>Privacy Manifest and Small Polish</h4>
+
+      <p>For App Store submission, Apple requires a <code>PrivacyInfo.xcprivacy</code> bundle declaring tracking, data collection, and "required reason" API usage. Efface's is short and honest: zero tracking, zero data collected, file-timestamp APIs accessed under reasons <code>C617.1</code> (the app's own temp directory) and <code>3B52.1</code> (files the user explicitly picks via drag-drop or Open). The manifest is purely declarative — there's nothing to enforce because there's nothing being collected.</p>
+
+      <p>One bit of UI polish small enough that I almost didn't write about it: macOS dims default-action buttons when the window loses focus. The user reported the "Start Batch" button appearing to vanish when they clicked another window. I added a custom <code>PrimaryButtonStyle</code> that paints its own accent-colored background regardless of window state. Six lines of code, big perceived difference.</p>
+
+      <h4>Lesson Earned (Again)</h4>
+
+      <p>The "ship the simplest thing" rule earned another data point. The selective-blur path was conceptually elegant and technically interesting to build. But the underlying ML problem doesn't have a robust off-the-shelf solution today, and a privacy feature that only works on easy footage isn't a privacy feature — it's a hazard. Cutting it shrunk the binary by ~7 MB, removed a licensing concern, and made the remaining feature set the actual story: anonymize a file, anonymize a folder, preview before committing. That's the whole tool.</p>
+
+      <p>The released v1.1.0 binary is 7 MB. Notarized, stapled, sandboxed, on-device, no network. Available on <a href="https://github.com/canuk/efface-app/releases/tag/v1.1.0" target="_blank">GitHub Releases</a>.</p>
+    </section>
+
     <!-- Lessons Learned -->
     <section id="lessons-learned" class="mb-5">
       <h2 class="fw-bold mb-4"><i class="bi bi-mortarboard-fill text-primary me-2"></i>Lessons Learned</h2>
@@ -346,6 +395,10 @@ xcrun stapler staple build/Efface.dmg</code></pre>
       <h2 class="fw-bold mb-4"><i class="bi bi-link-45deg text-secondary me-2"></i>Links & Resources</h2>
 
       <div class="list-group">
+        <a href="https://apps.apple.com/us/app/efface-face-anonymization/id6760423778?mt=12" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-apple me-2"></i>Efface on the Mac App Store</span>
+          <span class="badge bg-primary">App Store</span>
+        </a>
         <a href="https://github.com/canuk/efface-app/releases" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
           <span><i class="bi bi-download me-2"></i>Download Efface (DMG)</span>
           <span class="badge bg-success">GitHub Releases</span>

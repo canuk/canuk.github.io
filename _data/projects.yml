@@ -79,8 +79,8 @@
 
 - slug: efface
   title: Efface
-  description: "Native macOS face anonymization app. Runs CenterFace on the Apple Neural Engine for hardware-accelerated blur, pixelate, and mask in photos and videos."
-  date: 2026-03-11
+  description: "Native macOS face anonymization app. Runs CenterFace on the Apple Neural Engine for hardware-accelerated blur, pixelate, and mask in photos and videos. Now on the Mac App Store."
+  date: 2026-05-13
   thumb: efface-thumb.webp
   badges:
     - { color: "#F05138", icon: "bi-swift", text: "Swift" }
@@ -88,7 +88,7 @@
     - { color: "#007AFF", icon: "bi-app", text: "SwiftUI" }
   buttons:
     - { url: "/projects/efface/", icon: "bi-journal-code", label: "Build Notes" }
-    - { url: "https://github.com/canuk/efface-app/releases", icon: "bi-download", label: "Download", primary: true, target: "_blank" }
+    - { url: "https://apps.apple.com/us/app/efface-face-anonymization/id6760423778?mt=12", icon: "bi-apple", label: "App Store", primary: true, target: "_blank" }
 
 - slug: vft-cam
   title: VFT Camera
