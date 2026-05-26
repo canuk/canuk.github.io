@@ -6,3 +6,6 @@ CLAUDE.md
 .claude-api-key
 scripts/.claude/
 scripts/firebase-debug.log
+
+# remember plugin local state
+/.remember/

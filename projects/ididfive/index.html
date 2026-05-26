@@ -1,0 +1,139 @@
+---
+layout: default
+title: Building I Did Five
+description: "I Did Five went from a web app to a private native iOS journal. Notes on building it: the five-line constraint, an Info.plist that Xcode ignored, white controls disappearing on colored themes, and a day strip that wouldn't line up."
+---
+
+<div class="container py-5">
+  <article class="article-content mx-auto">
+
+    <!-- Hero Section -->
+    <header class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3">Building I Did Five</h1>
+      <p class="lead text-secondary">A private journal that asks for five lines a day, built for iPhone</p>
+      <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+        <span class="badge" style="background-color: #F05138;"><i class="bi bi-swift me-1"></i>Swift</span>
+        <span class="badge" style="background-color: #007AFF;"><i class="bi bi-app me-1"></i>SwiftUI</span>
+        <span class="badge" style="background-color: #FF9500;"><i class="bi bi-database-fill me-1"></i>SwiftData</span>
+        <span class="badge" style="background-color: #3478F7;"><i class="bi bi-cloud-fill me-1"></i>CloudKit</span>
+        <span class="badge" style="background-color: #000000;"><i class="bi bi-phone-fill me-1"></i>iOS</span>
+      </div>
+    </header>
+
+    <figure class="figure d-block text-center mb-5">
+      <img src="/img/projects/ididfive-1.webp" alt="I Did Five journal screen showing five activity fields and the day strip" class="figure-img img-fluid rounded shadow" style="max-height: 620px;">
+      <figcaption class="figure-caption text-center">The journal screen: one prompt, five short lines, a day strip across the top.</figcaption>
+    </figure>
+
+    <!-- Table of Contents -->
+    <nav class="toc card card-modern p-4 mb-5">
+      <h5 class="fw-bold mb-3"><i class="bi bi-list-ol me-2"></i>Contents</h5>
+      <ol class="mb-0">
+        <li><a href="#the-idea">The idea</a></li>
+        <li><a href="#web-to-native">From web to native</a></li>
+        <li><a href="#info-plist">The Info.plist Xcode ignored</a></li>
+        <li><a href="#white-on-white">Theming and the white cells</a></li>
+        <li><a href="#day-strip">The day strip</a></li>
+        <li><a href="#coffee">Coffee tiers</a></li>
+        <li><a href="#links">Links</a></li>
+      </ol>
+    </nav>
+
+    <!-- The Idea -->
+    <section id="the-idea" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-lightbulb-fill text-warning me-2"></i>The idea</h2>
+
+      <p>I've always wanted to keep a journal and never managed to stick with one. It felt like a big commitment, an open-ended page and a whole day to account for, and I'd give up not long after starting. I Did Five shrinks that down to one prompt a day, asking for five things I did. A walk, a meal, a call with my sister, a bug I fixed, half an hour with a book. That's a full entry.</p>
+
+      <p>Five is a deliberate limit. It's small enough to finish in about a minute, which is the main reason I've actually kept it up. If the app asked me for a paragraph I would have drifted off it weeks ago.</p>
+
+      <p>There is nothing else in it on purpose. No tags, no streaks, no formatting, no photos. Just five lines and a date. Keeping the surface that small is what makes it easy to open on a day when I don't have much to say.</p>
+    </section>
+
+    <!-- Web to Native -->
+    <section id="web-to-native" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-arrow-left-right text-primary me-2"></i>From web to native</h2>
+
+      <p>The first version was a web app: a bit of Ruby, a login, entries saved to a server and read back in the browser. It worked, but I only ever opened it at my desk, and a journal I check at a desk is one I forget about for the rest of the day.</p>
+
+      <p>I wanted it on my phone instead, private, and quick to open, so I rebuilt it as a native iOS app. The rewrite drops the server completely. Entries live on the device in SwiftData and sync through the user's own iCloud account over CloudKit, so there is no login, no analytics, and no backend for me to keep running. It works offline and catches up the next time it has a connection.</p>
+
+      <p>Being an app also added the piece the web version never had: a reminder. Mine fires at 8pm on weeknights, and from the notification it takes a few seconds to put down one thing from the day, or all five if I feel like it. That nudge is most of why the habit finally stuck.</p>
+    </section>
+
+    <!-- Info.plist -->
+    <section id="info-plist" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-file-earmark-code-fill text-danger me-2"></i>The Info.plist Xcode ignored</h2>
+
+      <p>Once sync was working, Xcode started printing a warning on every launch: CloudKit push needs the <code>remote-notification</code> background mode declared in the Info.plist. It was declared. I had added it to the Info.plist by hand, and the build was reading right past the file.</p>
+
+      <p>The cause was in the build settings. The target had <code>GENERATE_INFOPLIST_FILE = YES</code> and no <code>INFOPLIST_FILE</code> pointing at the file in the repo. With that combination Xcode synthesizes the Info.plist from build settings at compile time and never opens the checked-in one, so the background mode, the font list, and the privacy flags I had added were all being dropped without a word.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-exclamation-triangle-fill me-2"></i><code>UIBackgroundModes</code> can't be set through <code>INFOPLIST_KEY_</code></h6>
+        <p class="mb-0">An earlier attempt had tried to patch this with <code>INFOPLIST_KEY_UIBackgroundModes</code>. That route doesn't work. Xcode only promotes a fixed set of <code>INFOPLIST_KEY_</code> settings into the generated plist, and <code>UIBackgroundModes</code> isn't one of them, so the setting was present and had no effect, with nothing to flag it.</p>
+      </div>
+
+      <p>I pointed <code>INFOPLIST_FILE</code> at the real Info.plist and turned generation off, so the file in the repo is the one that ships. While I was in there I removed a leftover <code>armv7</code> device-capability requirement that makes no sense for an arm64-only iOS 18 build.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-fonts me-2"></i>Register fonts in one place</h6>
+        <p class="mb-0">The app loads Quicksand at launch with <code>CTFontManagerRegisterFontsForURL</code> instead of declaring it under <code>UIAppFonts</code>. Do both and the runtime registration fails because the font is already registered, so I left the fonts out of the plist and let the launch code handle them.</p>
+      </div>
+    </section>
+
+    <!-- White on White -->
+    <section id="white-on-white" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-palette-fill text-primary me-2"></i>Theming and the white cells</h2>
+
+      <p>There are six themes, five of them colored gradients and one plain Classic. The forms keep their row backgrounds opaque white on all of them, which I had missed. I'd tinted a few controls white so they would read against the colored backgrounds, and those controls vanished the moment they landed inside a form row.</p>
+
+      <p>It caught the coffee icon in Settings, the supporter badge next to your name, and the price on the subscription screen. All three were white, invisible on the five colored themes, and fine on Classic. The rule I needed was that white reads on the gradient but text inside a form row has to be dark or tinted.</p>
+
+      <figure class="figure d-block text-center my-4">
+        <img src="/img/projects/ididfive-2.webp" alt="I Did Five settings screen on a colored theme with a visible supporter badge and coffee icon" class="figure-img img-fluid rounded shadow" style="max-height: 620px;">
+        <figcaption class="figure-caption text-center">Settings on a colored theme after the fix, with the coffee marks and supporter badge in colors that read on the white cells.</figcaption>
+      </figure>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-segmented-nav me-2"></i>The stock segmented control</h6>
+        <p class="mb-0">The Browse filter started as a stock <code>.segmented</code> picker. Its unselected labels use a dark system color you can't override, so they disappeared on the darker themes. I swapped it for a small custom control: a white pill behind the selected option, and the theme's own text color for the rest.</p>
+      </div>
+    </section>
+
+    <!-- Day Strip -->
+    <section id="day-strip" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-calendar3 text-danger me-2"></i>The day strip</h2>
+
+      <p>You move between days with a row of weekday labels across the top of the journal. The selected day is the largest and boldest, the others get smaller as they sit further from it, and anything past today is dimmed. A dot above a label marks a day that has an entry.</p>
+
+      <p>My first version set the sizes with <code>scaleEffect</code>, and it looked fine until I checked the baselines. <code>scaleEffect</code> only changes how a view is drawn, not the space it reserves, so each label was laid out at full size and then scaled down on top. That left uneven gaps between the days and bottoms of the words that didn't line up.</p>
+
+      <p>The version I kept uses a real font size for each label and aligns the whole row on a shared text baseline with fixed spacing between items. The names sit on one line, bottoms aligned and evenly spaced, whatever size each one is. The dot takes its color from the theme so it stays legible on every background.</p>
+    </section>
+
+    <!-- Coffee -->
+    <section id="coffee" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-cup-hot-fill text-warning me-2"></i>Coffee tiers</h2>
+
+      <p>An app like this needs some income after launch, and a single up-front price doesn't go far against the years of small fixes that follow. So there is an optional Buy Me a Coffee screen with three auto-renewing tiers, built with StoreKit 2. Subscribing adds a small supporter badge next to your name in Settings.</p>
+
+      <p>The tier descriptions are the one spot where I had some fun with the copy: a gas-station coffee that has been on the burner since 6am, a chain latte with your name spelled wrong on the cup, and an independent cafe that serves it in a heavy ceramic mug. The journal itself stays plain everywhere else.</p>
+    </section>
+
+    <!-- Links -->
+    <section id="links" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-link-45deg text-secondary me-2"></i>Links &amp; Resources</h2>
+
+      <div class="list-group">
+        <a href="https://ididfive.com" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-globe me-2"></i>I Did Five site</span>
+          <span class="badge bg-primary">ididfive.com</span>
+        </a>
+      </div>
+
+      <p class="text-center text-secondary mt-4 mb-0"><em>A private journal that asks for five lines a day.</em></p>
+    </section>
+
+  </article>
+</div>

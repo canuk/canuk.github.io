@@ -1,0 +1,195 @@
+---
+layout: default
+title: Building AviatorWatch
+description: "How I built AviatorWatch, an aviation app for Apple Watch. Sixteen complications, a battery-conscious TimelineView design, and the gotchas of shipping a paired watchOS and iOS app."
+---
+
+<div class="container py-5">
+  <article class="article-content mx-auto">
+
+    <!-- Hero Section -->
+    <header class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3">Building AviatorWatch</h1>
+      <p class="lead text-secondary">An aviation app for Apple Watch: sixteen complications, a battery-conscious design, and the realities of shipping for watchOS</p>
+      <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+        <span class="badge" style="background-color: #F05138;"><i class="bi bi-swift me-1"></i>Swift</span>
+        <span class="badge" style="background-color: #007AFF;"><i class="bi bi-app me-1"></i>SwiftUI</span>
+        <span class="badge" style="background-color: #FF2D55;"><i class="bi bi-grid-1x2-fill me-1"></i>WidgetKit</span>
+        <span class="badge" style="background-color: #000000;"><i class="bi bi-smartwatch me-1"></i>watchOS</span>
+        <span class="badge" style="background-color: #5856D6;"><i class="bi bi-airplane-fill me-1"></i>Aviation</span>
+      </div>
+    </header>
+
+    <figure class="figure d-block text-center mb-5">
+      <img src="/img/projects/aviatorwatch-2.webp" alt="AviatorWatch complications shown across multiple Apple Watch faces" class="figure-img img-fluid rounded shadow">
+      <figcaption class="figure-caption text-center">AviatorWatch complications across several watch faces.</figcaption>
+    </figure>
+
+    <!-- Table of Contents -->
+    <nav class="toc card card-modern p-4 mb-5">
+      <h5 class="fw-bold mb-3"><i class="bi bi-list-ol me-2"></i>Contents</h5>
+      <ol class="mb-0">
+        <li><a href="#the-idea">The Idea</a></li>
+        <li><a href="#shared-brain">Sharing data across targets</a></li>
+        <li><a href="#sixteen-complications">Sixteen complications</a></li>
+        <li><a href="#battery">Battery and TimelineView</a></li>
+        <li><a href="#active-runway">Active runway</a></li>
+        <li><a href="#the-moon">The moon</a></li>
+        <li><a href="#personal-minimums">Personal minimums and alerts</a></li>
+        <li><a href="#shipping-paired">Shipping a paired app</a></li>
+        <li><a href="#links">Links</a></li>
+      </ol>
+    </nav>
+
+    <!-- The Idea -->
+    <section id="the-idea" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-lightbulb-fill text-warning me-2"></i>The Idea</h2>
+
+      <p>I fly, but not every day. AviatorWatch started as a way to keep a bit of the cockpit in view on the days in between: the METAR at my home field, the active runway based on current wind, density altitude, the altimeter setting, the moon phase, and a personal-minimums alert when conditions drop below what I'm comfortable with. The instrument-panel details, at a glance, on my wrist.</p>
+
+      <p>The app is <strong>watch-first</strong>: the iOS app is a companion for setup and a bigger weather card, but the watch, and specifically the complications, is the product.</p>
+
+      <figure class="figure d-block text-center my-4">
+        <img src="/img/projects/aviatorwatch-1.webp" alt="AviatorWatch watch home screen with the nowcast tile" class="figure-img img-fluid rounded shadow" style="max-height: 620px;">
+        <figcaption class="figure-caption text-center">The watch home screen: a dense "nowcast" tile with Saira italic numerals, a flight-category accent, and the runway/wind trapezoid, over a faint topographic backdrop.</figcaption>
+      </figure>
+    </section>
+
+    <!-- Shared Brain -->
+    <section id="shared-brain" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-diagram-3-fill text-primary me-2"></i>Sharing data across targets</h2>
+
+      <p>AviatorWatch ships as three build targets out of one Xcode project: the <strong>watch app</strong>, a <strong>complications extension</strong>, and the <strong>iOS companion</strong>. The challenge is keeping all three on the same weather without each one hitting the network.</p>
+
+      <p>An App Group handles it. <code>WeatherService</code> fetches a METAR once, parses it, and writes the result to App Group <code>UserDefaults</code>. The complication extension reads that cached snapshot instead of fetching its own, which matters because WidgetKit wakes it on its own schedule under a tight time and energy budget.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-files me-2"></i>The multi-target membership trap</h6>
+        <p class="mb-0">Xcode's synchronized file groups default a new file to "not in this target." A model that needs to live in the watch app, the complications extension, <em>and</em> iOS has to be added to each target's membership list explicitly. Forget one and you get a "cannot find type in scope" error in a target you weren't editing.</p>
+      </div>
+
+      <figure class="figure d-block text-center my-4">
+        <img src="/img/projects/aviatorwatch-3.webp" alt="AviatorWatch iOS companion app showing the KHMT weather card" class="figure-img img-fluid rounded shadow" style="max-height: 620px;">
+        <figcaption class="figure-caption text-center">The iOS companion: same parsed METAR, a roomier card. Active runway computed from wind, with crosswind and headwind components below.</figcaption>
+      </figure>
+    </section>
+
+    <!-- Sixteen Complications -->
+    <section id="sixteen-complications" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-grid-3x3-gap-fill text-danger me-2"></i>Sixteen complications</h2>
+
+      <p>The app ships sixteen complications spanning the circular, rectangular, inline, and corner families: an FAA sectional-style airport symbol, a Kollsman-window altimeter with a rising/falling/steady trend, a TAF timeline of the next four forecast periods, a runway-and-wind trapezoid, moon phase with lunar surface texture, and more. Getting them to render correctly across the watch faces meant relearning several things the documentation doesn't make obvious.</p>
+
+      <h5 class="fw-bold mt-4 mb-2">Corner "Stack text" needs an undocumented modifier</h5>
+      <p>To get two curved lines along a corner arc (Apple's "Stack text" template), the body content has to carry <code>.widgetCurvesContent()</code>. Without it the body renders flat at the corner anchor below a curved <code>widgetLabel</code>. And <code>widgetLabel</code> only ever renders <em>one</em> line: a <code>VStack</code> inside it collapses to its first child, and a <code>\n</code> gets stripped to a space.</p>
+
+      <pre><code class="language-swift">Text("KHMT")
+    .foregroundColor(categoryColor)
+    .widgetCurvesContent()          // required to curve the body content
+    .widgetLabel { Text("BKN030 · 10SM") }   // inner curved arc</code></pre>
+
+      <h5 class="fw-bold mt-4 mb-2">Tinted faces apply a luminance mask</h5>
+      <p>watchOS renders complications in <code>.fullColor</code>, <code>.accented</code>, and <code>.vibrant</code> modes. On the tinted modes the system applies a luminance mask: opaque content becomes the tint color, so a black fill turns into a solid block and the white text on top vanishes. <code>.widgetAccentable(false)</code> does <em>not</em> fully preserve your raw colors.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-palette-fill me-2"></i>The reliable pattern</h6>
+        <p class="mb-0">Gate on <code>@Environment(\.widgetRenderingMode)</code> and provide a separate tinted layout built only from hierarchical <code>ShapeStyle</code>s: <code>.primary</code>, <code>.secondary</code>, <code>.tertiary</code>. Those survive the luminance mask correctly across both accented and vibrant modes. For images that should keep texture (the moon surface), a normal <code>Image</code> at reduced opacity lets the system tint it while the detail survives.</p>
+      </div>
+
+      <h5 class="fw-bold mt-4 mb-2">The silent <code>containerBackground</code> failure</h5>
+      <p>On watchOS 10+, every complication body must end with <code>.containerBackground(for: .widget) { Color.clear }</code>. Omit it and the complication fails to load in the gallery, with no error and no warning.</p>
+
+      <h5 class="fw-bold mt-4 mb-2">Time updates are free</h5>
+      <p><code>Text(date, style: .time)</code> (and <code>.relative</code>, <code>.timer</code>, <code>.offset</code>) update themselves at the right cadence with no timeline cost. A clock complication needs one timeline entry per day, for the date label rolling over at midnight, not sixty entries an hour to advance the minute. <code>Text(date, format:)</code> does <em>not</em> auto-update, so use <code>style:</code> when you want the refresh.</p>
+    </section>
+
+    <!-- Battery -->
+    <section id="battery" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-battery-half text-warning me-2"></i>Battery and TimelineView</h2>
+
+      <p>Early on, the watch app used too much battery. The cause was <code>TimelineView</code>. Several views each ran their own periodic ticker to keep relative times fresh, and on a device that sleeps whenever it can, a handful of always-on tickers add up.</p>
+
+      <p>I went through every <code>TimelineView</code>, worked out what each one needed to update for, and either widened its cadence or removed it. A status row showing "fetched 5 sec ago" ticking up every second adds nothing when the weather cache is an hour long, so it became a once-a-minute wall-clock readout. The number that matters, how old the observation is, comes from the METAR's own timestamp and re-renders once a minute.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-bug-fill me-2"></i><code>.environment</code> freezes auto-updating Text</h6>
+        <p class="mb-0">Putting <code>.environment(\.timeZone, …)</code> or <code>.environment(\.locale, …)</code> on a <code>Text(date, style: .time)</code> inside a complication kills its per-minute auto-update with no warning. The text freezes at whatever it first rendered. If you need a specific zone, format the string yourself rather than leaning on the auto-updating style.</p>
+      </div>
+
+      <p>The network path follows the same restraint: requests batch ICAO codes, send a proper <code>User-Agent</code>, and back off on rate limits. A one-hour cache balances freshness against how often the radio wakes up.</p>
+    </section>
+
+    <!-- Active Runway -->
+    <section id="active-runway" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-airplane-fill text-primary me-2"></i>Active runway</h2>
+
+      <p>The active runway is the feature I use most. In Auto mode it picks the runway with the best headwind for the current wind, the smallest angle between the wind and the runway heading. Headings are <strong>magnetic</strong>, because that's what I read off the compass.</p>
+
+      <p>But I didn't want only the wind-favored runway. At my home field I wanted to set my own preferred runway, the one I use in calm winds (Runway 23). So each airport can stay on Auto or be given a preferred runway, stored per-ICAO in App Group <code>UserDefaults</code>. When a preferred runway is set, the selection applies a priority: calm winds (under 3 kt) use the preferred runway; if the preferred runway has more than 5 kt of headwind it stays selected; otherwise the wind-favored runway wins.</p>
+
+      <p>The headwind and crosswind components against the selected runway are straightforward trig, and those two numbers are what matter for a landing decision. The watch shows them as chips under the runway; the complication condenses them to a single line.</p>
+    </section>
+
+    <!-- The Moon -->
+    <section id="the-moon" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-moon-stars-fill text-primary me-2"></i>The moon</h2>
+
+      <p>I like flying at night, and a bright moon changes the whole flight. Under a full moon the ground is lit and you can pick out terrain and the runway from a long way out. So I wanted the moon phase and the moonrise and moonset times built in, both on the home screen and as a complication I can keep on the watch face.</p>
+
+      <p>The phase and the rise and set times come from a Swift port of an astronomical ephemerides calculator, based on Meeus' algorithms. Given the airport's latitude, longitude, and the date, it computes the sun and moon positions, then iterates to find rise, set, and transit times, the illumination fraction, and the phase. It runs on the watch, with no network call for any of it.</p>
+
+      <p>For the phase I didn't want a flat crescent shape. The view uses a photograph of the full moon with a shadow mask drawn over it for the current phase, so the lit part shows real craters and maria. The detail screen sits on a night-sky gradient with the phase name, the illumination percent, and the rise and set times.</p>
+
+      <figure class="figure d-block text-center my-4">
+        <img src="/img/projects/aviatorwatch-4.webp" alt="AviatorWatch moon detail screen showing a photographic moon with the current phase, illumination, and rise/set times" class="figure-img img-fluid rounded shadow" style="max-height: 620px;">
+        <figcaption class="figure-caption text-center">The moon detail screen: a real lunar photo masked to the current phase, with illumination and rise/set times.</figcaption>
+      </figure>
+    </section>
+
+    <!-- Personal Minimums -->
+    <section id="personal-minimums" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-bell-fill text-danger me-2"></i>Personal minimums and alerts</h2>
+
+      <p>Every pilot carries personal minimums: limits stricter than the regs, set by experience and comfort. AviatorWatch lets you set them (ceiling, visibility, crosswind, flight category) and watches your airports against them. When a field drops below a line you drew, it fires a notification.</p>
+
+      <p>The notification uses a custom <code>WKNotificationScene</code> with a hand-built long-look view: the airport, a plane-warning glyph, and one row per breached threshold with the value colored by its kind (the flight-category row gets the VFR/MVFR/IFR/LIFR color so it reads as the category at a glance). The title says "Personal mins," not "below minimums," because "below minimums" reads as below <em>IFR</em> minimums, a different and worse condition than dropping under your own limits.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-info-circle-fill me-2"></i>What you can't restyle</h6>
+        <p class="mb-0">The collapsed notification row in the system list shows your <em>app icon</em> as its glyph (there's no per-notification override), and the title is plain text, so a custom vector can't go inline there (only emoji). The custom layout only renders in the long look, when the user taps in.</p>
+      </div>
+    </section>
+
+    <!-- Shipping Paired -->
+    <section id="shipping-paired" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-box-seam-fill text-secondary me-2"></i>Shipping a Paired App</h2>
+
+      <p>Archiving a paired watchOS + iOS app for the App Store has a trap that produces a "Generic Xcode Archive" (the kind you can't submit) with no obvious explanation. The fix is a few settings that all have to be right at once: an explicit target dependency from the iOS app to the watch app, <code>SKIP_INSTALL = YES</code> on the watch target, and the archive flag set correctly on the scheme. Get one wrong and Xcode hands you an archive that Organizer refuses to upload.</p>
+
+      <p>The rest of getting to submittable was the usual shipping checklist: a correct privacy manifest, fonts registered in every target that renders them, the custom URL scheme routing cleanly, dead code removed, and an honest, prominent disclaimer in the About screen. v1 scope is intentionally <strong>US + Canada</strong>, because that's where the NOAA Aviation Weather Center data has solid coverage.</p>
+    </section>
+
+    <!-- Links -->
+    <section id="links" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-link-45deg text-secondary me-2"></i>Links &amp; Resources</h2>
+
+      <div class="list-group">
+        <a href="https://aviatorwatch.app" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-globe me-2"></i>AviatorWatch marketing site</span>
+          <span class="badge bg-primary">aviatorwatch.app</span>
+        </a>
+        <a href="https://aviationweather.gov" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-cloud-sun-fill me-2"></i>NOAA Aviation Weather Center (METAR/TAF data)</span>
+          <span class="badge bg-secondary">Data Source</span>
+        </a>
+        <a href="https://ourairports.com/data/" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-airplane-engines-fill me-2"></i>OurAirports, airport &amp; runway open data</span>
+          <span class="badge bg-secondary">Data Source</span>
+        </a>
+      </div>
+
+      <p class="text-center text-secondary mt-4 mb-0"><em>Made with ❤️ for pilots who want to feel connected to flying, between flights.</em></p>
+    </section>
+
+  </article>
+</div>

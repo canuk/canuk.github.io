@@ -1,0 +1,466 @@
+---
+layout: default
+title: From Audio Interviews to Structured Data
+description: "How I combined WhisperX transcription, speaker diarization, and a local LLM into a one-command Ruby pipeline that turns a folder of interview MP3s into a clean, coded CSV."
+---
+
+<div class="container py-5">
+  <article class="article-content mx-auto">
+
+    <!-- Hero -->
+    <header class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3">From Audio Interviews to Structured Data</h1>
+      <p class="lead text-secondary">Combining Whisper, speaker diarization, and a local LLM into a one-command pipeline</p>
+      <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+        <span class="badge" style="background-color: #CC342D;"><i class="bi bi-gem me-1"></i>Ruby</span>
+        <span class="badge" style="background-color: #4B8BBE;"><i class="bi bi-soundwave me-1"></i>WhisperX</span>
+        <span class="badge" style="background-color: #6B5B95;"><i class="bi bi-people-fill me-1"></i>pyannote</span>
+        <span class="badge" style="background-color: #1E1E1E;"><i class="bi bi-cpu-fill me-1"></i>LM Studio</span>
+      </div>
+    </header>
+
+    <!-- TOC -->
+    <nav class="toc card card-modern p-4 mb-5">
+      <h5 class="fw-bold mb-3"><i class="bi bi-list-ol me-2"></i>Contents</h5>
+      <ol class="mb-0">
+        <li><a href="#the-problem">The Problem</a></li>
+        <li><a href="#overview">Pipeline Overview</a></li>
+        <li><a href="#naming">Step 1: Naming as Metadata</a></li>
+        <li><a href="#whisperx">Step 2: A Self-Hosted WhisperX Service</a></li>
+        <li><a href="#diarization-trap">Step 3: Why Diarization Alone Isn't Enough</a></li>
+        <li><a href="#llm">Step 4: The LLM as Aligner and Coder</a></li>
+        <li><a href="#validation">Step 5: Validation Before Trust</a></li>
+        <li><a href="#main-loop">Step 6: Putting It Together</a></li>
+        <li><a href="#sample-output">Sample Output</a></li>
+        <li><a href="#next">What I'd Do Differently</a></li>
+        <li><a href="#links">Links</a></li>
+      </ol>
+    </nav>
+
+    <!-- The Problem -->
+    <section id="the-problem" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-exclamation-circle-fill text-warning me-2"></i>The Problem</h2>
+
+      <p>A researcher has 40+ hours of interview audio sitting on a hard drive. Each recording is a conversation between an interviewer and one narrator. The goal is a CSV where every row is one utterance — either a question or a response — tagged with the narrator's ID and a topic code. From there, the researcher can group, count, quote, and compare across the corpus.</p>
+
+      <p>Doing this by hand is the bottleneck. Off-the-shelf transcription gets you part of the way: it produces a wall of text. Diarization gets you a different part of the way: it labels who was talking, but not very reliably. Neither output is "research-ready" on its own.</p>
+
+      <p>The fabricated example used throughout this write-up is an <strong>oral history archive</strong>: interviewers sitting down with narrators to record stories about migration, family, work, faith, and place. The actual project this pipeline was built for is private; the technique is what's worth sharing.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-lightbulb-fill me-2"></i>The Goal</h6>
+        <p class="mb-0">One command: <code>ruby pipeline.rb ./interviews</code>. In: a folder of MP3s. Out: a validated CSV where every row is one utterance, attributed to either the interviewer or the narrator, tagged with a topic code from a closed list.</p>
+      </div>
+    </section>
+
+    <!-- Pipeline Overview -->
+    <section id="overview" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-diagram-3-fill text-primary me-2"></i>Pipeline Overview</h2>
+
+      <p>Four stages, each handling one job:</p>
+
+      <pre><code>MP3 folder
+   │
+   ▼
+WhisperX service  ──►  raw.txt   (verbatim, no labels)
+                  ──►  diarized.txt   (with speaker labels)
+   │
+   ▼
+LLM (Gemma via LM Studio)
+   - aligns raw vs diarized
+   - decides true speaker from context
+   - emits CSV rows with topic codes
+   │
+   ▼
+Per-row validation  ──►  master_output.csv</code></pre>
+
+      <p>The Ruby script (<code>pipeline.rb</code>) is the glue. It calls a local HTTP transcription service, calls a local LLM, validates the output, and appends to one master CSV. Everything runs on a LAN, with no data leaving the network.</p>
+    </section>
+
+    <!-- Step 1: Naming -->
+    <section id="naming" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-tag-fill text-success me-2"></i>Step 1: Naming as Metadata</h2>
+
+      <p>The filenames themselves carry the metadata the LLM needs later. The convention is <code>[narrator_id]_[theme_tag][anything].mp3</code>:</p>
+
+      <pre><code>1042_Migration.mp3
+1051_Family.mp3
+1062_War_session2.m4a
+1078_Faith.mp3</code></pre>
+
+      <p>One regex pulls out both fields and the rest of the filename is ignored, so the researcher can add notes to the filename without breaking the parser:</p>
+
+      <pre><code class="language-ruby">FILENAME_PATTERN = /\A(\d+)_([A-Za-z]+)/
+
+def parse_filename(filepath)
+  basename = File.basename(filepath, File.extname(filepath))
+  match = basename.match(FILENAME_PATTERN)
+  return nil unless match
+  {
+    narrator_id: match[1],
+    theme: match[2].upcase,
+    base_path: File.join(File.dirname(filepath), basename)
+  }
+end</code></pre>
+
+      <p>This is a small choice that pays off later: the narrator ID and the theme tag flow all the way through the pipeline into every CSV row, with no separate metadata file to keep in sync.</p>
+    </section>
+
+    <!-- Step 2: WhisperX service -->
+    <section id="whisperx" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-soundwave text-info me-2"></i>Step 2: A Self-Hosted WhisperX Service</h2>
+
+      <p><a href="https://github.com/m-bain/whisperX" target="_blank">WhisperX</a> wraps OpenAI Whisper with forced alignment and speaker diarization (via <a href="https://github.com/pyannote/pyannote-audio" target="_blank">pyannote</a>). Running it as a CLI works fine for one file. Running it as a small HTTP service makes more sense once you have dozens, because:</p>
+
+      <ul>
+        <li>The model only loads into GPU memory once.</li>
+        <li>The Ruby pipeline doesn't need Python in its environment.</li>
+        <li>Other tools on the LAN can use the same transcriber.</li>
+      </ul>
+
+      <p>The service exposes four endpoints: <code>POST /jobs</code> to submit a file, <code>GET /jobs/:id</code> to poll status, and <code>GET /jobs/:id/result/{txt,json}</code> to fetch results. The Ruby client is small:</p>
+
+      <pre><code class="language-ruby">def submit_transcription_job(filepath)
+  uri = URI("#{TRANSCRIBE_HOST}/jobs")
+  boundary = "----RubyFormBoundary#{rand(1_000_000)}"
+  filename = File.basename(filepath)
+  file_data = File.binread(filepath)
+
+  body = ""
+  body &lt;&lt; "--#{boundary}\r\n"
+  body &lt;&lt; "Content-Disposition: form-data; name=\"file\"; filename=\"#{filename}\"\r\n"
+  body &lt;&lt; "Content-Type: application/octet-stream\r\n\r\n"
+  body &lt;&lt; file_data
+  body &lt;&lt; "\r\n--#{boundary}--\r\n"
+
+  request = Net::HTTP::Post.new(uri)
+  request["Content-Type"] = "multipart/form-data; boundary=#{boundary}"
+  request.body = body
+
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.read_timeout = 300
+  response = http.request(request)
+  JSON.parse(response.body)["job_id"]
+end
+
+def poll_job(job_id)
+  uri = URI("#{TRANSCRIBE_HOST}/jobs/#{job_id}")
+  loop do
+    result = JSON.parse(Net::HTTP.get(uri))
+    case result["status"]
+    when "done"  then return true
+    when "error" then return false
+    else sleep POLL_SECS
+    end
+  end
+end</code></pre>
+
+      <p>Two output files matter. The <code>.diarized.txt</code> has speaker labels, in the format pyannote produces. The <code>.raw.txt</code> is derived from the JSON segments — a clean verbatim transcript with no labels, suitable for quoting:</p>
+
+      <pre><code class="language-ruby">json_text = Net::HTTP.get(URI("#{TRANSCRIBE_HOST}/jobs/#{job_id}/result/json"))
+File.write("#{base_path}.result.json", json_text)
+
+raw_text = JSON.parse(json_text)["segments"]
+  .map { |s| s["text"] }
+  .join(" ")
+  .gsub(/  +/, " ")
+  .strip
+File.write("#{base_path}.raw.txt", raw_text)</code></pre>
+
+      <p>Transcription is the slowest step, so the pipeline skips it when both transcript files already exist and are non-empty. That makes re-runs cheap when iterating on the LLM prompt.</p>
+    </section>
+
+    <!-- Step 3: Diarization trap -->
+    <section id="diarization-trap" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-question-octagon-fill text-danger me-2"></i>Step 3: Why Diarization Alone Isn't Enough</h2>
+
+      <p>Diarization is the part everyone underestimates. It is confident, and it is often wrong in ways that break downstream coding. Two failure modes show up over and over:</p>
+
+      <h4>Failure mode A: identity drift</h4>
+      <p>pyannote assigns <code>SPEAKER_00</code> and <code>SPEAKER_01</code> at the start of the recording. Halfway through, after a long pause, it sometimes flips the assignment. Now the interviewer is labelled <code>SPEAKER_01</code> for the rest of the file.</p>
+
+      <h4>Failure mode B: role confusion</h4>
+      <p>When the narrator speaks for two minutes uninterrupted — telling a long story about leaving home — and then the interviewer asks a question, the diarizer can split the narrator's monologue across both labels. Or, when the interviewer reads a long preamble at the start, the diarizer labels them as the answerer because they spoke first and longest.</p>
+
+      <p>Here is a fabricated snippet that shows the kind of mess you have to clean up:</p>
+
+      <pre><code>[SPEAKER_00] So tell me about the journey across.
+[SPEAKER_01] We left in the spring of '52. My father had cousins in
+             Saskatchewan, so we went there first. I remember
+             the boat — the Beaverbrae. I can still see it.
+[SPEAKER_01] Mm-hm.                                  ← interviewer
+[SPEAKER_00] My mother was seasick the whole crossing.    ← narrator
+[SPEAKER_00] What did you bring with you?
+[SPEAKER_01] One trunk. My mother's sewing machine took up half of it.</code></pre>
+
+      <p>A naive script that trusts the speaker labels will assign the narrator's seasick line to the interviewer and the interviewer's "Mm-hm" to the narrator. By itself, diarization is not enough. The verbatim text from Whisper is also not enough, because it has no speakers at all. Both together are enough, if you have something that can reason about them.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-key-fill me-2"></i>The Trick</h6>
+        <p class="mb-0">Send both the raw and the diarized transcript to an LLM. Tell it the diarization labels are a <em>hint</em>, not the truth. Tell it which role asks questions and which role answers. Let it override the labels when context contradicts them.</p>
+      </div>
+    </section>
+
+    <!-- Step 4: LLM -->
+    <section id="llm" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-cpu-fill text-dark me-2"></i>Step 4: The LLM as Aligner and Coder</h2>
+
+      <p>The LLM does three things in one shot: align the raw transcript against the diarized transcript line-by-line, decide the true speaker for each line, and assign each question a topic code from a closed list. It runs locally via <a href="https://lmstudio.ai" target="_blank">LM Studio</a> with Gemma loaded — same model called through an OpenAI-compatible endpoint.</p>
+
+      <h4>The system prompt</h4>
+      <p>The prompt is the load-bearing piece. It names the two inputs, names the two roles, explicitly downgrades the diarization labels to a hint, and pins the output format:</p>
+
+      <pre><code>You are an expert qualitative data analyst processing oral history transcripts.
+
+You will receive two inputs:
+1. A RAW transcript (verbatim, no speaker labels).
+2. A DIARIZED transcript (with speaker labels from an AI diarization
+   tool — labels may contain errors).
+
+YOUR TASK:
+1. Align the RAW transcript lines with the DIARIZED transcript lines by
+   matching the text content.
+2. Determine the TRUE speaker for each line using CONTEXT:
+   - Use the DIARIZATION speaker labels as a strong starting hint.
+   - OVERRIDE the diarization if the context clearly contradicts it
+     (e.g., the "Interviewer" is sharing a personal story, or the
+     "Narrator" is asking interview questions).
+   - The Interviewer asks questions and gives prompts. The Narrator
+     answers and shares experiences.
+3. Output ONLY valid Q&amp;A rows as CSV.
+
+OUTPUT FORMAT (CSV, no header row):
+Narrator ID,Order,Type of Text,Text,Theme,Root Question
+
+- Type of Text: "question" if the true speaker is the Interviewer;
+  "response" if the true speaker is the Narrator.
+- Text: VERBATIM from the RAW transcript (quote if it contains commas).
+- Root Question: classify into one of these themes:
+    "Family"     — family relationships and home life
+    "Work"       — occupations, trades, daily labour
+    "Migration"  — moving, arriving, leaving
+    "Place"      — landscapes, buildings, neighbourhoods
+    "Faith"      — religious practice and belief
+    "War"        — military service, displacement, loss
+    "Education"  — schooling, mentors, learning
+    "Community"  — neighbours, clubs, mutual aid
+- For response rows: carry forward the Root Question from the most
+  recent preceding question.
+- For follow-up questions ("Say more", "Tell me about that"): carry
+  forward the Root Question from the question they follow up on.</code></pre>
+
+      <p>Two rules quietly do most of the work. The first is "use the labels as a hint, override on context." The second is "responses inherit the most recent question's theme." That second rule is what makes the output usable for analysis. Without it, most of the rows in the CSV would have a blank theme.</p>
+
+      <h4>The Ruby call</h4>
+      <p>Standard <code>ruby-openai</code> against the LM Studio endpoint, with a generous timeout because local inference on a long interview is not fast:</p>
+
+      <pre><code class="language-ruby">CLIENT = OpenAI::Client.new(
+  access_token: "lm-studio",
+  uri_base: LM_STUDIO_URL,
+  request_timeout: 1800  # 30 minutes
+)
+
+response = CLIENT.chat(
+  parameters: {
+    model: MODEL_NAME,
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user",   content: user_prompt }
+    ],
+    temperature: 0.1,
+    max_tokens: 8192
+  }
+)</code></pre>
+
+      <p>Temperature is low because the job is alignment and classification, not generation. The user prompt is just the narrator ID, the theme tag, the raw transcript, and the diarized transcript, with a closing reminder: "Output the CSV rows now. No headers, no markdown, no explanation."</p>
+    </section>
+
+    <!-- Step 5: Validation -->
+    <section id="validation" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-shield-check text-success me-2"></i>Step 5: Validation Before Trust</h2>
+
+      <p>Even at <code>temperature: 0.1</code>, LLMs occasionally produce a malformed line. They miss a closing quote, drop a column, or invent a topic code that wasn't in the list. The fix isn't more prompt engineering. It's validation per row, so one bad line doesn't poison the whole file:</p>
+
+      <pre><code class="language-ruby">VALID_THEMES = %w[Family Work Migration Place Faith War Education Community].freeze
+
+def validate_and_parse_rows(csv_text, narrator_id, theme)
+  valid_rows = []
+  rejected = 0
+
+  csv_text.each_line.with_index(1) do |line, line_num|
+    line = line.strip
+    next if line.empty?
+
+    begin
+      parsed = CSV.parse_line(line)
+    rescue CSV::MalformedCSVError
+      log("  REJECTED line #{line_num} (malformed): #{line[0..80]}...")
+      rejected += 1
+      next
+    end
+
+    if parsed.nil? || parsed.length != 6
+      log("  REJECTED line #{line_num} (expected 6 cols, got #{parsed&amp;.length})")
+      rejected += 1
+      next
+    end
+
+    type_of_text = parsed[2]&amp;.downcase&amp;.strip
+    unless %w[question response].include?(type_of_text)
+      log("  REJECTED line #{line_num} (invalid type '#{type_of_text}')")
+      rejected += 1
+      next
+    end
+    parsed[2] = type_of_text
+
+    rq = parsed[5]&amp;.strip || ""
+    parsed[5] = rq
+    if !rq.empty? &amp;&amp; !VALID_THEMES.include?(rq)
+      log("  WARNING line #{line_num}: unexpected theme '#{rq}'")
+    end
+
+    valid_rows &lt;&lt; parsed
+  end
+
+  log("  Validated: #{valid_rows.length} accepted, #{rejected} rejected")
+  valid_rows
+end</code></pre>
+
+      <p>Two design notes. Malformed lines are <em>rejected</em> (skipped, with a log entry pointing at the offending text). Unexpected theme values are <em>warned</em> — kept, but flagged. The asymmetry matters: a row with a slightly off theme is still data the researcher can review, but a row that can't even be parsed as CSV is just noise.</p>
+    </section>
+
+    <!-- Step 6: Main loop -->
+    <section id="main-loop" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-arrow-repeat text-primary me-2"></i>Step 6: Putting It Together</h2>
+
+      <p>The main loop is short. For each parsed filename: transcribe, read transcripts, send to LLM, dump the raw LLM output to a debug folder, validate, append valid rows to the master CSV.</p>
+
+      <pre><code class="language-ruby">entries.each do |entry|
+  sid       = entry[:narrator_id]
+  theme     = entry[:theme]
+  filepath  = entry[:filepath]
+  base_path = entry[:base_path]
+
+  log("Processing: #{File.basename(filepath)}  narrator=#{sid}  theme=#{theme}")
+
+  next unless transcribe(filepath, base_path)
+
+  raw = File.read("#{base_path}.raw.txt", encoding: "utf-8").strip
+  dia = File.read("#{base_path}.diarized.txt", encoding: "utf-8").strip
+  next if raw.empty?
+
+  csv_text = process_with_llm(raw, dia, sid, theme)
+  next if csv_text.nil? || csv_text.empty?
+
+  # Keep the raw LLM output for debugging.
+  File.write("#{DEBUG_DIR}/llm_output_#{sid}.csv", csv_text)
+
+  rows = validate_and_parse_rows(csv_text, sid, theme)
+  next if rows.empty?
+
+  CSV.open(OUTPUT_FILE, "a") { |csv| rows.each { |row| csv &lt;&lt; row } }
+  log("  SUCCESS: #{rows.length} rows for narrator #{sid}")
+end</code></pre>
+
+      <p>Three things make the loop forgiving:</p>
+      <ul>
+        <li>Per-file <code>next</code> on any failure — a single bad recording never blocks the rest of the batch.</li>
+        <li>Idempotent transcription — re-running the pipeline doesn't re-transcribe files that already have transcripts.</li>
+        <li>Raw LLM output dumped to <code>debug_output/llm_output_&lt;id&gt;.csv</code> — when validation rejects half the rows for one file, you can open the raw output and see what the LLM produced.</li>
+      </ul>
+
+      <p>A typical log line looks like:</p>
+
+      <pre><code>[2026-05-12 14:03:17] Processing: 1042_Migration.mp3  narrator=1042  theme=MIGRATION
+[2026-05-12 14:03:17]   Submitting for transcription...
+[2026-05-12 14:03:18]   Job ID: 8f3e2a91
+[2026-05-12 14:11:42]   Transcription complete.
+[2026-05-12 14:11:43]   Sending to LLM (raw: 18421 chars, diarized: 21770 chars)
+[2026-05-12 14:18:09]   LLM returned 184 lines
+[2026-05-12 14:18:09]   Validated: 182 rows accepted, 2 rejected
+[2026-05-12 14:18:09]   SUCCESS: 182 rows for narrator 1042</code></pre>
+    </section>
+
+    <!-- Sample Output -->
+    <section id="sample-output" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-table text-secondary me-2"></i>Sample Output</h2>
+
+      <p>A snippet of the master CSV (fabricated, from the oral history example):</p>
+
+      <pre><code class="language-csv">Narrator ID,Order,Type of Text,Text,Theme,Root Question
+1042,1,question,"Can you tell me about leaving home?",MIGRATION,Migration
+1042,2,response,"It was 1952. The papers came through in March.",MIGRATION,Migration
+1042,3,question,"And who travelled with you?",MIGRATION,Migration
+1042,4,response,"My mother, my two sisters, and me. My father had gone ahead.",MIGRATION,Migration
+1042,5,question,"What did you bring?",MIGRATION,Migration
+1042,6,response,"One trunk. My mother's sewing machine took up half of it.",MIGRATION,Migration
+1042,7,question,"Say more about the sewing machine.",MIGRATION,Migration
+1042,8,response,"It was a Singer treadle. She'd had it since she was married.",MIGRATION,Migration
+1051,1,question,"Tell me about your mother.",FAMILY,Family
+1051,2,response,"She kept the house and worked the garden. Eight of us, three rooms.",FAMILY,Family</code></pre>
+
+      <p>The shape is what the analysis tool wants. Every row stands alone: who said it, in what order, what kind of utterance, the verbatim text, the theme tag from the filename, and the topic code carried forward from the most recent question. From here, the researcher can group by theme and read every response on migration across all 40 narrators.</p>
+    </section>
+
+    <!-- What I'd do differently -->
+    <section id="next" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-arrow-up-right-circle text-info me-2"></i>What I'd Do Differently</h2>
+
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-stream me-2 text-success"></i>Stream the LLM call</h5>
+            <p class="mb-0 text-secondary">Right now the script waits for the full CSV response. Streaming would let validation start as soon as the first row arrives, and surface a hung generation sooner.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-file-earmark-code me-2 text-info"></i>Externalize the taxonomy</h5>
+            <p class="mb-0 text-secondary">The list of valid themes is hard-coded in the prompt and in the validator. A JSON file loaded by both would make it one edit instead of two.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-arrow-repeat me-2 text-warning"></i>Add a review pass</h5>
+            <p class="mb-0 text-secondary">A second LLM call that re-reads its own CSV against the raw transcript and flags rows where the speaker assignment looks wrong, before the human ever sees them.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-modern h-100 p-3">
+            <h5><i class="bi bi-database me-2 text-danger"></i>SQLite instead of CSV append</h5>
+            <p class="mb-0 text-secondary">Appending to a master CSV means re-running a file duplicates its rows. A SQLite table keyed on narrator ID would make re-runs idempotent end-to-end.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Links -->
+    <section id="links" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-link-45deg text-secondary me-2"></i>Links</h2>
+
+      <div class="list-group">
+        <a href="https://github.com/m-bain/whisperX" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-github me-2"></i>WhisperX</span>
+          <span class="badge bg-primary">Transcription</span>
+        </a>
+        <a href="https://github.com/pyannote/pyannote-audio" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-github me-2"></i>pyannote-audio</span>
+          <span class="badge bg-secondary">Diarization</span>
+        </a>
+        <a href="https://lmstudio.ai" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-box-arrow-up-right me-2"></i>LM Studio</span>
+          <span class="badge bg-dark">Local LLM host</span>
+        </a>
+        <a href="https://ai.google.dev/gemma" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-box-arrow-up-right me-2"></i>Gemma</span>
+          <span class="badge bg-info">Model</span>
+        </a>
+      </div>
+    </section>
+
+    <footer class="text-center text-secondary pt-4 border-top">
+      <p>Sample names, transcripts, and CSV rows in this write-up are fabricated for illustration.</p>
+    </footer>
+
+  </article>
+</div>

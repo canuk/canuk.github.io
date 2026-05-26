@@ -9,6 +9,21 @@
 # it anywhere in this file. Position in the file doesn't matter — sorting is
 # by `featured` then `date`.
 
+- slug: ididfive
+  title: I Did Five
+  description: "A private journal that asks for five lines a day and nothing else. Started on the web, rebuilt native for iPhone with SwiftUI, SwiftData, and CloudKit. Local-first, optional iCloud sync, no account."
+  date: 2026-05-25
+  thumb: ididfive-thumb.webp
+  badges:
+    - { color: "#F05138", icon: "bi-swift", text: "Swift" }
+    - { color: "#007AFF", icon: "bi-app", text: "SwiftUI" }
+    - { color: "#FF9500", icon: "bi-database-fill", text: "SwiftData" }
+    - { color: "#3478F7", icon: "bi-cloud-fill", text: "CloudKit" }
+    - { color: "#000000", icon: "bi-phone-fill", text: "iOS" }
+  buttons:
+    - { url: "/projects/ididfive/", icon: "bi-journal-code", label: "Build Notes" }
+    - { url: "https://ididfive.com", icon: "bi-box-arrow-up-right", label: "Visit Site", primary: true, target: "_blank" }
+
 - slug: build-a-bot
   title: Build-a-Bot
   description: "Chatbot building interface for learning about AI. Build AI to learn about AI."
@@ -77,6 +92,20 @@
     - { url: "/projects/rn-chatbot-camera/", icon: "bi-journal-code", label: "Build Notes" }
     - { url: "https://github.com/canuk/canuk.github.io/tree/master/projects/rn-chatbot-camera/app", icon: "bi-github", label: "Source", primary: true, target: "_blank" }
 
+- slug: aviatorwatch
+  title: AviatorWatch
+  description: "Turn your Apple Watch into an <em>Aviator</em> Watch. Sixteen complications that keep you feeling connected to flying when you glance at your wrist."
+  date: 2026-05-24
+  thumb: aviatorwatch-thumb.webp
+  badges:
+    - { color: "#F05138", icon: "bi-swift", text: "Swift" }
+    - { color: "#007AFF", icon: "bi-app", text: "SwiftUI" }
+    - { color: "#FF2D55", icon: "bi-grid-1x2-fill", text: "WidgetKit" }
+    - { color: "#000000", icon: "bi-smartwatch", text: "watchOS" }
+  buttons:
+    - { url: "/projects/aviatorwatch/", icon: "bi-journal-code", label: "Build Notes" }
+    - { url: "https://aviatorwatch.app", icon: "bi-box-arrow-up-right", label: "Visit Site", primary: true, target: "_blank" }
+
 - slug: efface
   title: Efface
   description: "Native macOS face anonymization app. Runs CenterFace on the Apple Neural Engine for hardware-accelerated blur, pixelate, and mask in photos and videos. Now on the Mac App Store."
@@ -114,3 +143,15 @@
   buttons:
     - { url: "https://classical-guitar-notes.web.app", icon: "bi-globe", label: "Try Web" }
     - { url: "https://apps.apple.com/us/app/classical-guitar-flash-cards/id6753901074", icon: "bi-apple", label: "App Store", primary: true, target: "_blank" }
+
+- slug: audio-to-structured-data
+  title: From Audio to Structured Data
+  description: "A Ruby pipeline that turns interview MP3s into a coded CSV using WhisperX, speaker diarization, and a local LLM."
+  date: 2026-05-22
+  thumb: audio-to-structured-data-thumb.webp
+  badges:
+    - { color: "#CC342D", icon: "bi-gem", text: "Ruby" }
+    - { color: "#4B8BBE", icon: "bi-soundwave", text: "WhisperX" }
+    - { color: "#1E1E1E", icon: "bi-cpu-fill", text: "LM Studio" }
+  buttons:
+    - { url: "/projects/audio-to-structured-data/", icon: "bi-journal-code", label: "Build Notes" }
