@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Moves AI Makes</title>
+<meta name="description" content="Maps the 26 research-backed learning principles from ABCs of How We Learn to AI bot concepts, and asks whether each genuinely needs agentic infrastructure or is just a prompt.">
+<meta name="tags" content="ai,education,agentic,learning,visualization">
+<meta name="created" content="2026-05-26">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Pedagogical category colors — soft, learning-oriented */
+  --constrain: #7B8EC8; --redirect: #6BA5C9; --model: #9B8ABF; --adapt: #C48B7A; --simulate: #C4A55A;
+  --constrain-soft: rgba(123,142,200,0.12); --redirect-soft: rgba(107,165,201,0.12);
+  --model-soft: rgba(155,138,191,0.12); --adapt-soft: rgba(196,139,122,0.12); --simulate-soft: rgba(196,165,90,0.12);
+
+  /* Agentic tier colors — no green/yellow/red value judgment */
+  --tier-none: #8B9DC3;      /* periwinkle — foundational, calm */
+  --tier-optional: #6BAFA8;  /* teal — growth, building */
+  --tier-required: #C08497;  /* dusty rose — complexity, alive */
+  --tier-none-soft: rgba(139,157,195,0.12);
+  --tier-optional-soft: rgba(107,175,168,0.12);
+  --tier-required-soft: rgba(192,132,151,0.12);
+
+  --ink: #1a1a2e; --ink-secondary: #4a4a6a; --ink-tertiary: #8888a0;
+  --surface: #f8f8f6; --surface-card: #ffffff; --border-light: rgba(0,0,0,0.07);
+  --graph-block: #5a8f63; /* green — infrastructure block nodes in the agentic graph */
+}
+* { box-sizing: border-box; }
+body { font-family: 'DM Sans', sans-serif; color: var(--ink); background: var(--surface); -webkit-font-smoothing: antialiased; font-size: 16px; }
+
+/* Hero */
+.hero { padding: 4.5rem 0 2rem; text-align: center; }
+.hero h1 {
+  font-family: 'DM Serif Display', serif; font-size: clamp(2.2rem, 5vw, 3.2rem);
+  line-height: 1.15; color: var(--ink); margin-bottom: 1.25rem; letter-spacing: -0.01em;
+}
+.hero h1 em {
+  font-style: italic; background: linear-gradient(135deg, var(--constrain), var(--simulate));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  padding-right: 0.12em;
+}
+.hero .lead { font-size: 1.15rem; color: var(--ink-secondary); max-width: 640px; margin: 0 auto; line-height: 1.75; }
+
+/* Insight bar */
+.insight-bar {
+  max-width: 680px; margin: 2.5rem auto 0; padding: 1.5rem 2rem;
+  background: var(--surface-card); border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04); border: 1px solid var(--border-light);
+  text-align: center;
+}
+.insight-title { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-tertiary); margin-bottom: 0.75rem; }
+.thirds-bar { display: flex; height: 32px; border-radius: 16px; overflow: hidden; gap: 2px; margin-bottom: 1rem; }
+.thirds-bar .seg {
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.25s;
+}
+.thirds-bar.filtered .seg { opacity: 0.2; }
+.thirds-bar.filtered .seg.active { opacity: 1; }
+.thirds-legend { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+.thirds-legend button {
+  background: none; border: 1px solid var(--border-light); font-size: 13px; color: var(--ink-secondary);
+  cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 20px; transition: all 0.2s;
+}
+.thirds-legend button:hover { border-color: rgba(0,0,0,0.2); }
+.thirds-legend button.active { color: #fff; border-color: transparent; }
+.thirds-legend .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.insight-text { font-size: 0.95rem; color: var(--ink-secondary); line-height: 1.65; margin-top: 1rem; text-align: center; }
+
+/* Building blocks info link */
+.blocks-info-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.85rem; color: var(--ink-tertiary); cursor: pointer;
+  margin-top: 0.75rem; text-decoration: none; border-bottom: 1px dashed var(--ink-tertiary);
+  transition: color 0.2s;
+}
+.blocks-info-link:hover { color: var(--ink-secondary); }
+
+/* Category sections */
+.category-section { padding: 2.5rem 0 0.5rem; }
+.category-header { display: flex; align-items: center; gap: 14px; margin-bottom: 0.5rem; justify-content: center; }
+.category-icon-wrap {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px;
+}
+.category-name { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--ink); }
+.category-desc {
+  font-size: 1rem; color: var(--ink-secondary); line-height: 1.7;
+  margin-bottom: 0.5rem; max-width: 640px; margin-left: auto; margin-right: auto; text-align: center;
+}
+.category-agentic-note {
+  font-size: 0.88rem; color: var(--ink-tertiary); text-align: center;
+  margin-bottom: 1.5rem; font-style: italic;
+}
+
+/* Grid */
+.category-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px;
+  max-width: 900px; margin: 0 auto;
+}
+
+/* Principle card */
+.principle-card {
+  background: var(--surface-card); border: 1.5px solid var(--border-light);
+  border-radius: 14px; padding: 1rem 1.1rem; cursor: pointer; transition: all 0.2s; position: relative;
+}
+.principle-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+.principle-card.selected { transform: translateY(-1px); }
+.principle-card.dimmed { opacity: 0.12; pointer-events: none; }
+.card-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+.card-letter { font-family: 'DM Serif Display', serif; font-size: 30px; line-height: 1; transition: color 0.2s; }
+.card-agentic-badge {
+  font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 10px;
+  color: #fff; letter-spacing: 0.03em; text-transform: uppercase;
+}
+.card-name { font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.35; }
+.card-subtitle { font-size: 11.5px; color: var(--ink-tertiary); line-height: 1.35; margin-top: 2px; }
+.card-blocks { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+.card-block-pip {
+  font-size: 9px; padding: 2px 6px; border-radius: 5px;
+  font-weight: 500; letter-spacing: 0.02em;
+}
+.card-block-pip.required { background: var(--tier-required-soft); color: var(--tier-required); }
+.card-block-pip.optional { background: var(--tier-optional-soft); color: var(--tier-optional); }
+
+/* Inline detail */
+.inline-detail {
+  grid-column: 1 / -1;
+  background: var(--surface-card);
+  border-radius: 16px;
+  box-shadow: 0 4px 28px rgba(0,0,0,0.07);
+  border: 1.5px solid var(--border-light);
+  overflow: hidden;
+  animation: expandIn 0.3s ease;
+  position: relative;
+  margin-top: 4px;
+}
+@keyframes expandIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.detail-arrow {
+  position: absolute; top: -8px; width: 16px; height: 16px;
+  background: var(--surface-card); border-top: 1.5px solid var(--border-light);
+  border-left: 1.5px solid var(--border-light); transform: rotate(45deg); z-index: 1;
+}
+.detail-inner { position: relative; z-index: 2; background: var(--surface-card); }
+.detail-top { padding: 1.5rem 2rem 1.25rem; display: flex; align-items: flex-start; gap: 1rem; }
+.detail-letter-wrap {
+  width: 56px; height: 56px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.detail-letter { font-family: 'DM Serif Display', serif; font-size: 2.2rem; line-height: 1; color: #fff; }
+.detail-meta { flex: 1; }
+.detail-title { font-family: 'DM Serif Display', serif; font-size: 1.4rem; line-height: 1.2; margin-bottom: 3px; }
+.detail-subtitle { font-size: 1rem; color: var(--ink-secondary); }
+.detail-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.badge-ped { font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 18px; color: #fff; display: inline-flex; align-items: center; gap: 5px; }
+.badge-agentic { font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 18px; color: #fff; }
+.detail-close {
+  position: absolute; top: 14px; right: 14px;
+  background: none; border: none; cursor: pointer;
+  color: var(--ink-tertiary); padding: 6px; border-radius: 8px; z-index: 3;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.detail-close:hover { background: rgba(0,0,0,0.05); color: var(--ink); }
+
+.detail-body { padding: 0 2rem 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 700px) { .detail-body { grid-template-columns: 1fr; } }
+.detail-section {}
+.detail-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-tertiary); margin-bottom: 6px;
+}
+.detail-text { font-size: 0.95rem; line-height: 1.7; color: var(--ink-secondary); }
+
+/* Building blocks checklist */
+.blocks-checklist { display: flex; flex-direction: column; gap: 1px; }
+.block-row {
+  display: flex; align-items: flex-start; gap: 10px; padding: 4px 2px;
+}
+.block-row.folded { opacity: 0.85; }
+.block-status {
+  width: 22px; height: 22px; border-radius: 6px; display: flex;
+  align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; font-weight: 600; margin-top: 1px;
+}
+.block-status.required { background: var(--tier-required-soft); color: var(--tier-required); }
+.block-status.optional { background: var(--tier-optional-soft); color: var(--tier-optional); }
+.block-status.none { background: rgba(0,0,0,0.04); color: var(--ink-tertiary); }
+.block-info { flex: 1; }
+.block-name { font-size: 13px; font-weight: 500; color: var(--ink); }
+.block-detail { font-size: 12px; color: var(--ink-tertiary); line-height: 1.45; margin-top: 1px; }
+.block-row.folded .block-status { margin-top: 0; }
+.folded-label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-tertiary); margin-bottom: 5px; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  display: inline-block; font-size: 11.5px; line-height: 1.5; padding: 1px 9px;
+  border-radius: 999px; background: rgba(0,0,0,0.05); color: var(--ink-tertiary);
+}
+.def { cursor: help; border-bottom: 1px dotted rgba(0,0,0,0.22); }
+.chip.def { border-bottom: none; }
+.def:hover, .def:focus { color: var(--ink); background: rgba(0,0,0,0.08); outline: none; }
+.block-name .def:hover, .block-name .def:focus { background: transparent; }
+#defPop {
+  position: fixed; z-index: 1000; max-width: 280px; background: var(--ink); color: #fff;
+  padding: 9px 12px; border-radius: 9px; font-size: 12px; line-height: 1.45;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.22); pointer-events: none; opacity: 0;
+  transition: opacity 0.1s ease; transform: translateY(2px);
+}
+#defPop.show { opacity: 1; transform: translateY(0); }
+
+.bot-concept { border-radius: 12px; padding: 1rem 1.25rem; margin-top: 0.75rem; }
+.bot-concept .detail-text { color: var(--ink); }
+
+/* Caution callout — full width below the two-column grid */
+.caution-callout {
+  display: flex; gap: 12px; padding: 1rem 1.25rem;
+  border-radius: 10px; background: rgba(180,160,120,0.08);
+  border-left: 3px solid #B8A070; margin: 0 2rem 1.5rem;
+}
+.caution-icon {
+  flex-shrink: 0; color: #B8A070; font-size: 15px; margin-top: 2px;
+}
+.caution-text { font-size: 0.88rem; line-height: 1.6; color: var(--ink-secondary); }
+.caution-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #A08850; margin-bottom: 3px; }
+
+/* Card caution dot */
+.card-caution-dot {
+  position: absolute; top: 8px; left: 8px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #B8A070; opacity: 0.6;
+}
+.detail-footer {
+  padding: 0.875rem 2rem; border-top: 1px solid var(--border-light);
+  display: flex; justify-content: flex-end; align-items: center;
+}
+.detail-footer a {
+  font-size: 13px; color: var(--ink-tertiary); text-decoration: none;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.detail-footer a:hover { color: var(--ink); }
+.see-graph-btn {
+  margin-top: 1.25rem; background: var(--ink); color: #fff; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  padding: 9px 16px; border-radius: 10px; display: inline-flex; align-items: center; gap: 7px;
+}
+.see-graph-btn:hover { opacity: 0.88; }
+
+/* Modal */
+.modal-backdrop-custom {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(26,26,46,0.4); z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.2s ease;
+  padding: 1rem;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-card {
+  background: var(--surface-card); border-radius: 18px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+  max-width: 580px; width: 100%; max-height: 90vh; overflow-y: auto;
+  animation: modalSlide 0.25s ease;
+}
+@keyframes modalSlide { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.modal-header-custom {
+  padding: 1.5rem 2rem 0.5rem; display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title-custom { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--ink); }
+.modal-close {
+  background: none; border: none; cursor: pointer; color: var(--ink-tertiary);
+  font-size: 20px; padding: 6px; border-radius: 8px;
+}
+.modal-close:hover { background: rgba(0,0,0,0.05); color: var(--ink); }
+.modal-body-custom { padding: 0.5rem 2rem 2rem; }
+/* Agentic graph modal */
+.graph-modal-backdrop {
+  position: fixed; inset: 0; background: rgba(26,26,46,0.5); z-index: 1100;
+  display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+  animation: fadeIn 0.2s ease;
+}
+.graph-modal-card {
+  background: var(--surface-card); border-radius: 18px; width: 100%; max-width: 1100px;
+  height: 88vh; display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18); animation: modalSlide 0.25s ease;
+}
+.graph-modal-header {
+  padding: 1.1rem 1.6rem; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border-light);
+}
+.graph-modal-titlewrap { display: flex; align-items: center; gap: 0.8rem; }
+.graph-letter {
+  width: 44px; height: 44px; border-radius: 12px; color: #fff; flex: none;
+  font-family: 'DM Serif Display', serif; font-size: 1.35rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.graph-title { font-family: 'DM Serif Display', serif; font-size: 1.35rem; color: var(--ink); line-height: 1.1; }
+.graph-subtitle { font-size: 0.82rem; color: var(--ink-tertiary); }
+.graph-modal-body { flex: 1; display: flex; min-height: 0; }
+.graph-canvas { flex: 1 1 70%; min-width: 0; position: relative; }
+.graph-svg { width: 100%; height: 100%; display: block; }
+.graph-info {
+  flex: 0 0 32%; max-width: 340px; border-left: 1px solid var(--border-light);
+  padding: 1.4rem; overflow-y: auto;
+}
+.graph-modal-footer {
+  padding: 0.9rem 1.6rem; border-top: 1px solid var(--border-light);
+  display: flex; align-items: center; gap: 1rem;
+}
+.glink { stroke: #cfc9c2; stroke-width: 1.5; }
+.gnode { cursor: pointer; }
+.gnode-label {
+  font: 600 11px 'DM Sans', sans-serif; fill: var(--ink); pointer-events: none;
+  paint-order: stroke; stroke: var(--surface-card); stroke-width: 3px;
+}
+.gcircle { transition: filter 0.2s ease, stroke-width 0.2s ease; stroke: transparent; stroke-width: 0; }
+.gnode.active-node .gcircle { stroke: #fff; stroke-width: 2.5px; filter: drop-shadow(0 0 7px rgba(192,132,151,0.9)); }
+.gpulse { fill: var(--tier-required); }
+.ginfo-kind { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-tertiary); margin-bottom: 6px; }
+.ginfo-name { font-family: 'DM Serif Display', serif; font-size: 1.15rem; color: var(--ink); margin-bottom: 8px; }
+.ginfo-note { font-size: 0.9rem; line-height: 1.6; color: var(--ink-secondary); }
+.ginfo-note.muted { color: var(--ink-tertiary); }
+.ginfo-hint { margin-top: 1rem; font-size: 0.82rem; line-height: 1.55; color: var(--ink-tertiary); }
+.glegend-row { display: flex; align-items: center; gap: 9px; font-size: 0.88rem; color: var(--ink-secondary); margin-bottom: 9px; }
+.glegend-dot { width: 13px; height: 13px; border-radius: 50%; flex: none; }
+.graph-play-btn, .graph-restart-btn {
+  background: var(--tier-required); color: #fff; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  padding: 9px 16px; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;
+}
+.graph-restart-btn { background: none; color: var(--ink-secondary); border: 1px solid var(--border-light); }
+.graph-step-counter { font-size: 0.82rem; color: var(--ink-tertiary); }
+.graph-noloop { font-size: 0.85rem; color: var(--ink-tertiary); font-style: italic; }
+@media (max-width: 720px){
+  .graph-modal-card { height: 94vh; max-width: 100%; }
+  .graph-modal-body { flex-direction: column; }
+  .graph-canvas { flex: 1 1 auto; min-height: 0; }
+  .graph-info {
+    flex: 0 0 auto; max-width: none; max-height: 34%;
+    border-left: none; border-top: 1px solid var(--border-light);
+  }
+  .graph-modal-backdrop { padding: 0; }
+}
+.modal-intro { font-size: 0.95rem; color: var(--ink-secondary); line-height: 1.7; margin-bottom: 1.5rem; }
+.block-def {
+  padding: 1rem 1.25rem; border-radius: 12px; background: var(--surface);
+  margin-bottom: 0.75rem;
+}
+.block-def-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.block-def-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+  background: rgba(139,157,195,0.15); color: var(--tier-none);
+}
+.block-def-name { font-size: 1rem; font-weight: 600; color: var(--ink); }
+.block-def-desc { font-size: 0.92rem; color: var(--ink-secondary); line-height: 1.6; margin-bottom: 6px; }
+.block-def-example {
+  font-size: 0.85rem; color: var(--ink-tertiary); line-height: 1.5; font-style: italic;
+  padding-left: 0.75rem; border-left: 2px solid var(--border-light);
+}
+
+/* Footer */
+.site-footer {
+  padding: 3.5rem 0 4rem; text-align: center;
+  border-top: 1px solid var(--border-light);
+  margin-top: 2rem;
+}
+.footer-note {
+  font-size: 0.95rem; color: var(--ink-tertiary); line-height: 1.7;
+  max-width: 520px; margin: 0 auto 1.5rem;
+}
+.footer-note a { color: var(--ink-secondary); text-decoration: underline; text-underline-offset: 2px; }
+.footer-credit { font-size: 0.85rem; color: var(--ink-tertiary); }
+
+@media (max-width: 576px) {
+  .category-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  .hero { padding: 3rem 0 1.5rem; }
+  .detail-top { padding: 1.25rem; }
+  .detail-body { padding: 0 1.25rem 1.25rem; }
+  .caution-callout { margin-left: 1.25rem; margin-right: 1.25rem; }
+  .modal-header-custom, .modal-body-custom { padding-left: 1.25rem; padding-right: 1.25rem; }
+}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="container">
+    <h1>The moves AI makes<br><em>in service of learning</em></h1>
+    <p class="lead">
+      Everyone's talking about "agentic AI" in education. Most of the time they mean
+      the technical stuff: tool use, autonomous workflows, MCP servers. I think that misses the point.
+      The interesting question is what <strong>pedagogical decisions</strong> the AI is making,
+      and whether those decisions actually help people learn. I took the 26 research-backed
+      learning principles from
+      <a href="https://a.co/d/24XbTBY" target="_blank" rel="noopener" style="color:var(--ink);text-decoration:underline;text-underline-offset:2px"><em>ABCs of How We Learn</em></a>
+      and mapped each one to a bot concept,
+      then asked: does this thing actually need agentic infrastructure, or is it just a good prompt?
+    </p>
+  </div>
+</section>
+
+<div class="container">
+  <div id="insightBar"></div>
+  <div id="mainContent"></div>
+</div>
+
+<section class="site-footer">
+  <div class="container">
+    <p class="footer-note">
+      Based on the 26 learning principles from
+      <a href="https://a.co/d/24XbTBY" target="_blank" rel="noopener"><em>ABCs of How We Learn</em></a>
+      by Daniel L. Schwartz, Jessica M. Tsang, and Kristen P. Blair.
+    </p>
+    <p class="footer-credit">
+      Bot concepts and agentic analysis by Reuben Thiessen
+    </p>
+  </div>
+</section>
+
+<!-- Modal container -->
+<div id="modalContainer"></div>
+
+<script>
+var CAT_ICONS = { constrain:"bi-slash-circle", redirect:"bi-reply", model:"bi-eye", adapt:"bi-sliders", simulate:"bi-mask" };
+
+var CATEGORIES = [
+  { id:"constrain", name:"Constrain",
+    desc:"The AI is intentionally designed so it doesn't take shortcuts that would rob the learner of productive struggle. It's not about the AI refusing to help — it's about making sure the hard parts stay hard, because that's where the learning actually happens.",
+    agenticNote:"Almost none of these need agentic infrastructure. They're powerful because of what they don't do.",
+    letters:["Q","K","B","N","Y"] },
+  { id:"redirect", name:"Redirect",
+    desc:"Instead of explaining the answer, the AI changes what the learner is looking at. It puts two examples side by side and asks what's different. It asks 'explain that to me' instead of explaining. The cognitive work stays with the learner.",
+    agenticNote:"Mostly just good prompt engineering. A few get better with a domain-specific content library, but the core move is conversational.",
+    letters:["C","S","U","E","A"] },
+  { id:"model", name:"Model",
+    desc:"The AI shows what expert thinking looks like by doing it out loud. Not just the clean final answer, but the false starts, the decision points, the moments where an expert notices something a novice would miss.",
+    agenticNote:"Basic versions are prompt-driven. Richer ones that track mastery or generate visuals need some tooling.",
+    letters:["O","W","V","H"] },
+  { id:"adapt", name:"Adapt",
+    desc:"The AI changes what it does based on this specific learner right now. It picks a harder problem because you just nailed the last three. It waits to explain because you haven't struggled enough yet. This is where you actually need technical capability.",
+    agenticNote:"Every one of these needs at least one agentic building block. This is the category that earns the 'agentic' label.",
+    letters:["F","D","G","J","R","Z"] },
+  { id:"simulate", name:"Simulate",
+    desc:"The AI plays a role or builds a scenario. It's a confused student you have to teach, or a historical figure with an agenda, or a mentor who gradually hands you more responsibility. You learn by doing things inside the simulation.",
+    agenticNote:"Most of these are just good prompt engineering with a character.",
+    letters:["I","T","P","L","X","M"] },
+];
+
+var BLOCKS = {
+  skill:    { name:"Skill",        icon:"bi-box-seam",         desc:"A packaged set of instructions the agent fires when it recognizes a matching request. It has three parts: a description (when to use it), instructions (what to do), and supporting files.", example:"A 'Socratic Tutor' skill that activates whenever a student asks a direct factual question and redirects them through guided inquiry instead." },
+  tool:     { name:"MCP Tool",     icon:"bi-wrench",           desc:"Something the AI can actually do — query a database, call an API, run a calculation, write to a file. This is what separates 'agentic' from 'just a chatbot.'", example:"A tool that queries a problem bank, filters by topic and difficulty, and returns a practice problem matched to the learner's level." },
+  resource: { name:"MCP Resource", icon:"bi-database",         desc:"Data the AI can read but not change. Student records, rubrics, curriculum maps, performance histories. This is how the AI knows something about the specific learner in front of it.", example:"A student performance record showing which sub-skills they've mastered, which they're struggling with, and when they last practiced." },
+  prompt:   { name:"MCP Prompt",   icon:"bi-chat-square-text", desc:"A reusable prompt template the agent picks from based on context. Instead of one fixed system prompt, the agent chooses between different pedagogical approaches.", example:"A library of scenario templates for historical simulations — the agent picks 'Cold War diplomacy' or 'French Revolution' based on the curriculum unit." },
+  workflow: { name:"Workflow",     icon:"bi-diagram-3",        desc:"A multi-step sequence that mixes LLM calls with regular code. The AI doesn't do everything in one shot — it follows a structured process where some steps are deterministic and some are generative.", example:"Assess weakness \u2192 query problem bank \u2192 generate worked example \u2192 deliver problem \u2192 evaluate response \u2192 update record." }
+};
+var BLOCK_KEYS = ["skill","tool","resource","prompt","workflow"];
+
+// Agentic capabilities — what the system can DO (vs. infrastructure it's built WITH)
+var CAPS = {
+  autonomous: { name:"Autonomous decisions", icon:"bi-signpost-split", desc:"The AI decides what to do next without a human triggering it — which problem to give, when to speak, what to show." },
+  planning:   { name:"Planning / decomposition", icon:"bi-list-task", desc:"The AI breaks a goal into ordered steps it works out itself, instead of following a script someone wrote in advance." },
+  tooluse:    { name:"Tool use / orchestration", icon:"bi-tools", desc:"The AI chooses a tool, runs it, reads the result, and picks the next move based on what comes back." },
+  loops:      { name:"Loops / iteration",    icon:"bi-arrow-repeat",  desc:"The AI iterates on its own: it acts, judges the result, and acts again with no human turn in between, until it hits the goal. Drafting and re-drafting before showing you anything, or chaining tool calls until one works. Turn-by-turn conversation isn't a loop." },
+  selfeval:   { name:"Self-evaluation",       icon:"bi-check2-square", desc:"The AI assesses its own output before delivering it. Did this feedback actually address the weakness, or did it miss?" },
+  memory:     { name:"Memory / state",        icon:"bi-journal-text",  desc:"The AI remembers things across sessions. It knows what you did last time and adjusts accordingly." },
+  scheduling: { name:"Scheduling / triggers", icon:"bi-clock-history", desc:"The AI acts on a timer or event, not just in response to a conversation turn. It pings you three days later because that's the optimal interval." },
+  delegation: { name:"Delegation / multi-agent", icon:"bi-people", desc:"The AI hands parts of a job to other agents and coordinates their results, instead of doing everything in one thread." }
+};
+var CAP_KEYS = ["autonomous","planning","tooluse","loops","selfeval","memory","scheduling","delegation"];
+
+var ABCS = [
+  { letter:"A", name:"Analogy", bot:"Analogy Annie", subtitle:"Finding the general principle", category:"redirect", tier:"optional",
+    blocks:{skill:null,tool:null,resource:"optional",prompt:null,workflow:null},
+    blockNotes:{resource:"Learner interest profile for personalized analogies"},
+    caps:{memory:"optional",selfeval:"optional"},
+    capNotes:{memory:"Remember which source domains have clicked for this learner, and reach for those wells first",selfeval:"Before offering a lens, check it won't import a misconception (infinity isn't just 'very big')"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"annie", label:"Analogy Annie", kind:"agent" },
+        { id:"profile", label:"Interest profile", kind:"block", block:"resource", note:"Learner interest profile for personalized analogies" },
+        { id:"memory", label:"Wells that clicked", kind:"cap", cap:"memory", note:"Remember which source domains have clicked for this learner, and reach for those wells first" },
+        { id:"selfeval", label:"Misconception check", kind:"cap", cap:"selfeval", note:"Before offering a lens, check it won’t import a misconception (infinity isn’t just ‘very big’)" }
+      ],
+      edges:[ ["learner","annie"],["annie","profile"],["annie","memory"],["annie","selfeval"] ],
+      loop:[
+        { node:"profile", label:"Read interests", text:"Looks at what this learner already knows well" },
+        { node:"selfeval", label:"Pick a safe lens", text:"Chooses a source domain and checks it won’t import a misconception" },
+        { node:"learner", label:"Hand over the mapping", text:"Names the lens and asks the learner to find the parallels themselves" }
+      ]
+    },
+    reasoning:"The pedagogical move is redirection \u2014 reframing an unfamiliar concept through a familiar lens. A well-crafted prompt handles this. An MCP Resource with learner interests makes analogies more personally resonant, but isn't required.",
+    caution:"The power of analogy is in the learner mapping the structural relationships between domains, not in receiving a polished comparison. If the AI delivers finished analogies, it does the cognitive work the learner needs to do.",
+    botIdea:"A tutor that names a source domain the learner knows and asks them to find the parallels: 'How is cell division like a factory assembly line? Where does the analogy break down?' The AI proposes the lens but the learner builds the mapping." },
+  { letter:"B", name:"Belonging", bot:"Belonging Buddy", subtitle:"Silencing anxiety and buying in", category:"constrain", tier:"none",
+    blocks:{skill:null,tool:null,resource:null,prompt:null,workflow:null}, blockNotes:{}, caps:{memory:"optional"},
+    capNotes:{memory:"Recall the learner's own past wins and the groups they already belong to, so it reflects their belonging back instead of asserting it"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"buddy", label:"Belonging Buddy", kind:"agent" },
+        { id:"memory", label:"Past wins", kind:"cap", cap:"memory", note:"Recall the learner’s own past wins and the groups they already belong to, so it reflects belonging back instead of asserting it" }
+      ],
+      edges:[ ["learner","buddy"],["buddy","memory"] ]
+    },
+    reasoning:"Pure prompt constraint. The AI creates welcoming framing and normalizes struggle, but it's designed not to overstep into diagnosing emotions or making judgments about the learner's state. The constraint is intentional — some things need a human.",
+    botIdea:"A bot that affirms the learner's presence and contributions, uses inclusive language, and explicitly normalizes struggle \u2014 but never diagnoses or labels emotional states." },
+  { letter:"C", name:"Contrasting cases", bot:"Contrast Carl", subtitle:"Discerning critical information", category:"redirect", tier:"optional",
+    blocks:{skill:null,tool:null,resource:"optional",prompt:null,workflow:null},
+    blockNotes:{resource:"Content library of domain-specific case pairs"},
+    caps:{tooluse:"optional",selfeval:"optional",memory:"optional"},
+    capNotes:{tooluse:"Pull validated near-miss case pairs from a library",selfeval:"Check the pair varies only the one feature that matters, holding the rest constant",memory:"Remember which distinctions the learner has nailed, so it advances to finer ones"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"carl", label:"Contrast Carl", kind:"agent" },
+        { id:"library", label:"Case-pair library", kind:"block", block:"resource", note:"Content library of domain-specific case pairs" },
+        { id:"selfeval", label:"One-feature check", kind:"cap", cap:"selfeval", note:"Check the pair varies only the one feature that matters, holding the rest constant" },
+        { id:"memory", label:"Distinctions nailed", kind:"cap", cap:"memory", note:"Remember which distinctions the learner has nailed, so it advances to finer ones" }
+      ],
+      edges:[ ["learner","carl"],["carl","library"],["carl","selfeval"],["carl","memory"] ],
+      loop:[
+        { node:"library", label:"Pull a pair", text:"Draws a validated near-miss case pair from the library" },
+        { node:"selfeval", label:"Check the contrast", text:"Confirms the pair varies only the one feature that matters" },
+        { node:"learner", label:"Ask the difference", text:"Sets the pair side by side and asks what difference matters" }
+      ]
+    },
+    reasoning:"The AI redirects attention by presenting carefully constructed pairs. The core move \u2014 arranging evidence so the learner discovers the critical feature \u2014 is prompt engineering. A content library of validated case pairs makes it richer.",
+    botIdea:"A bot that presents two carefully constructed examples side by side and asks 'what's the difference that matters?' \u2014 refusing to explain until the learner articulates it." },
+  { letter:"D", name:"Deliberate practice", bot:"Deliberate Dana", subtitle:"Becoming an expert", category:"adapt", tier:"required",
+    blocks:{skill:null,tool:"required",resource:"required",prompt:null,workflow:"required"},
+    blockNotes:{tool:"Retrieve problems from bank, record results",resource:"Performance history, skill decomposition",workflow:"Assess weakness \u2192 select problem \u2192 deliver \u2192 record"},
+    caps:{autonomous:"required",planning:"optional",tooluse:"required",loops:"optional",selfeval:"optional",memory:"required",scheduling:"optional"},
+    capNotes:{autonomous:"Picks the next drill at the edge of ability, the item the learner didn't ask for",planning:"Could chart a path through sub-skills from current weakness toward the target",tooluse:"Queries the problem bank and records each result",loops:"Draft a drill, check it targets the weak sub-skill, regenerate if not, before the learner sees it",selfeval:"Could verify a delivered drill actually isolated the intended sub-skill",memory:"Hold a per-sub-skill mastery map, so each session resumes at the exact edge of ability",scheduling:"Could space sessions so practice lands before the skill decays"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"dana", label:"Deliberate Dana", kind:"agent" },
+        { id:"bank", label:"Problem bank", kind:"block", block:"tool", note:"Retrieve problems from the bank and record results" },
+        { id:"history", label:"Performance history", kind:"block", block:"resource", note:"Per-sub-skill mastery and skill decomposition the agent reads" },
+        { id:"workflow", label:"Run loop", kind:"block", block:"workflow", note:"Assess weakness → select problem → deliver → record" },
+        { id:"memory", label:"Mastery map", kind:"cap", cap:"memory", note:"Holds a per-sub-skill mastery map, so each session resumes at the exact edge of ability" },
+        { id:"autonomy", label:"Picks next drill", kind:"cap", cap:"autonomous", note:"Picks the next drill at the edge of ability — the item the learner didn't ask for" }
+      ],
+      edges:[ ["learner","dana"],["dana","bank"],["dana","history"],["dana","workflow"],["dana","memory"],["dana","autonomy"] ],
+      loop:[
+        { node:"history", label:"Assess weakness", text:"Reads the mastery map to find the weakest sub-skill" },
+        { node:"bank", label:"Select drill", text:"Pulls a problem at the edge of ability from the bank" },
+        { node:"learner", label:"Deliver", text:"Presents the drill and waits for the attempt" },
+        { node:"history", label:"Record", text:"Writes the result back, updating the mastery map" }
+      ]
+    },
+    reasoning:"True deliberate practice requires identifying specific weaknesses and selecting targeted exercises at the edge of ability. The most clearly agentic bot \u2014 it needs a problem bank (Tool), performance history (Resource), and a multi-step loop (Workflow).",
+    botIdea:"A practice coach that pulls from a problem library, tracks which sub-skills the learner struggles with, and generates increasingly targeted drills at the edge of their ability." },
+  { letter:"E", name:"Elaboration", bot:"Elaboration Eddie", subtitle:"Making memories meaningful", category:"redirect", tier:"none",
+    blocks:{skill:null,tool:null,resource:null,prompt:null,workflow:null}, blockNotes:{}, caps:{memory:"optional"},
+    capNotes:{memory:"Remember what this learner already knows and cares about, so every 'how does this connect?' reaches for their real prior knowledge"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"eddie", label:"Elaboration Eddie", kind:"agent" },
+        { id:"memory", label:"Prior knowledge", kind:"cap", cap:"memory", note:"Remember what this learner already knows and cares about, so every ‘how does this connect?’ reaches for their real prior knowledge" }
+      ],
+      edges:[ ["learner","eddie"],["eddie","memory"] ]
+    },
+    reasoning:"Pure conversational prompting. The AI redirects the learner's processing by asking 'why does that make sense?' and 'how does this connect to what you already know?' No tools \u2014 just good follow-up questions.",
+    botIdea:"A 'curious friend' bot that responds to every explanation with genuine-sounding follow-ups: 'wait, so if that's true, then what about...?'" },
+  { letter:"F", name:"Feedback", bot:"Feedback Fran", subtitle:"Supporting self-improvement", category:"adapt", tier:"required",
+    blocks:{skill:null,tool:"optional",resource:"required",prompt:null,workflow:"required"},
+    blockNotes:{tool:"Access student's previous drafts",resource:"Rubrics, exemplars, assessment criteria",workflow:"Assess work \u2192 select feedback layer \u2192 deliver"},
+    caps:{autonomous:"required",planning:"optional",tooluse:"optional",loops:"optional",selfeval:"required",memory:"required"},
+    capNotes:{autonomous:"Decides which dimension to surface next from the work, not from being asked",planning:"Could order the dimensions across drafts (structure first, then evidence)",tooluse:"Could pull the learner's earlier drafts to ground feedback in their trajectory",loops:"Draft the feedback, then revise it against the rubric before delivering",selfeval:"Before delivering, check the feedback gives a next action, not just a verdict",memory:"Track what was already advised and what the learner did with it, so it never repeats"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"fran", label:"Feedback Fran", kind:"agent" },
+        { id:"drafts", label:"Previous drafts", kind:"block", block:"tool", note:"Access the student’s previous drafts" },
+        { id:"rubrics", label:"Rubrics", kind:"block", block:"resource", note:"Rubrics, exemplars, assessment criteria" },
+        { id:"workflow", label:"Run loop", kind:"block", block:"workflow", note:"Assess work → select feedback layer → deliver" },
+        { id:"autonomy", label:"Picks the dimension", kind:"cap", cap:"autonomous", note:"Decides which dimension to surface next from the work, not from being asked" },
+        { id:"selfeval", label:"Next-action check", kind:"cap", cap:"selfeval", note:"Before delivering, check the feedback gives a next action, not just a verdict" },
+        { id:"memory", label:"What was advised", kind:"cap", cap:"memory", note:"Track what was already advised and what the learner did with it, so it never repeats" }
+      ],
+      edges:[ ["learner","fran"],["fran","drafts"],["fran","rubrics"],["fran","workflow"],["fran","autonomy"],["fran","selfeval"],["fran","memory"] ],
+      loop:[
+        { node:"rubrics", label:"Assess work", text:"Reads the work against the rubric and exemplars" },
+        { node:"autonomy", label:"Pick one layer", text:"Chooses the single dimension to surface next" },
+        { node:"selfeval", label:"Check it’s actionable", text:"Confirms the feedback gives a next action, not just a verdict" },
+        { node:"learner", label:"Deliver", text:"Frames the point as something the learner can do next" }
+      ]
+    },
+    reasoning:"Good feedback must be calibrated to the learner's current understanding and delivered at the right grain size. Needs rubrics (Resource), an assess-then-deliver workflow, and optionally access to previous work (Tool).",
+    caution:"Feedback that only evaluates ('your structure is weak') without giving the learner something to do next is assessment, not feedback. Research says effective feedback is actionable and forward-looking \u2014 it should change what the learner does, not just what they know about their work.",
+    botIdea:"A writing coach that focuses on one dimension at a time (structure, then argument, then evidence) and frames each point as a next action: 'Try reorganizing paragraphs 2 and 3 so your strongest evidence leads. Here's why that might work.' Never dumps all feedback at once." },
+  { letter:"G", name:"Generation", bot:"Generator Grace", subtitle:"Building lasting memories", category:"adapt", tier:"required",
+    blocks:{skill:null,tool:"required",resource:"required",prompt:null,workflow:"required"},
+    blockNotes:{tool:"Schedule and deliver retrieval prompts, record results",resource:"Item bank and per-item recall history",workflow:"Recall result → set the next interval → strip more of the cue → re-test"},
+    caps:{autonomous:"required",tooluse:"required",selfeval:"optional",memory:"required",scheduling:"required"},
+    capNotes:{autonomous:"Resurfaces items on its own schedule, not when the learner thinks to review",tooluse:"Runs the scheduler and the recall store, delivering each prompt and logging the result",selfeval:"Check the learner's recall is right before reinforcing, so it doesn't lock in a wrong memory",memory:"Hold per-item recall accuracy and timing; this history is the spacing schedule",scheduling:"Bring each item back at a widening interval, timed to the edge of forgetting"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"grace", label:"Generator Grace", kind:"agent" },
+        { id:"scheduler", label:"Scheduler", kind:"block", block:"tool", note:"Schedule and deliver retrieval prompts, record results" },
+        { id:"itembank", label:"Recall history", kind:"block", block:"resource", note:"Item bank and per-item recall history" },
+        { id:"workflow", label:"Run loop", kind:"block", block:"workflow", note:"Recall result → set the next interval → strip more of the cue → re-test" },
+        { id:"scheduling", label:"Widening intervals", kind:"cap", cap:"scheduling", note:"Bring each item back at a widening interval, timed to the edge of forgetting" },
+        { id:"memory", label:"Recall history", kind:"cap", cap:"memory", note:"Hold per-item recall accuracy and timing; this history is the spacing schedule" },
+        { id:"autonomy", label:"Resurfaces items", kind:"cap", cap:"autonomous", note:"Resurfaces items on its own schedule, not when the learner thinks to review" }
+      ],
+      edges:[ ["learner","grace"],["grace","scheduler"],["grace","itembank"],["grace","workflow"],["grace","scheduling"],["grace","memory"],["grace","autonomy"] ],
+      loop:[
+        { node:"scheduler", label:"Deliver cue", text:"Resurfaces an item with part of the cue stripped away" },
+        { node:"learner", label:"Recall attempt", text:"Asks the learner to produce the answer from the partial cue" },
+        { node:"itembank", label:"Set next interval", text:"Logs whether recall was right and widens the interval" },
+        { node:"scheduling", label:"Re-test later", text:"Brings the item back timed to the edge of forgetting" }
+      ]
+    },
+    reasoning:"Generation strengthens memory two ways, and your notes lean on both: retrieving an answer from a partial cue beats rereading it, and spacing those retrievals across days beats cramming them into one sitting. The molecule example is the tell — strip a few atoms, have the learner recall them, then strip more and come back later. The effective bot isn't one withheld answer; it tracks what's been recalled and reschedules each item at the edge of forgetting, which needs recall history (Resource), a scheduler (Tool), and a track-and-reschedule loop (Workflow).",
+    caution:"If the learner peeks before trying, or generates a wrong answer that goes unchecked, the practice backfires — it strengthens rereading, or strengthens the error. The bot has to make them attempt first and confirm the answer is right before reinforcing it.",
+    botIdea:"A spaced-retrieval coach that gives a partial cue and withholds the answer, checks whether the recall was right, then brings each item back at a widening interval, stripping more of the cue each time, until the learner can produce it from the bare prompt. It schedules the return so practice lands just as the memory starts to fade." },
+  { letter:"H", name:"Hands on", bot:"Hands-On Hank", subtitle:"Recruiting the body's intelligence", category:"model", tier:"optional",
+    blocks:{skill:null,tool:"optional",resource:null,prompt:null,workflow:null},
+    blockNotes:{tool:"Image input to check the learner's physical setup"},
+    caps:{tooluse:"optional",memory:"optional"},
+    capNotes:{tooluse:"Use image input to check the learner's physical setup",memory:"Remember which physical anchors the learner has felt, so new abstractions hang on experiences they've actually had"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"hank", label:"Hands-On Hank", kind:"agent" },
+        { id:"image", label:"Image input", kind:"block", block:"tool", note:"Image input to check the learner’s physical setup" },
+        { id:"tooluse", label:"See the setup", kind:"cap", cap:"tooluse", note:"Use image input to check the learner’s physical setup" },
+        { id:"memory", label:"Physical anchors", kind:"cap", cap:"memory", note:"Remember which physical anchors the learner has felt, so new abstractions hang on experiences they’ve actually had" }
+      ],
+      edges:[ ["learner","hank"],["hank","image"],["hank","tooluse"],["hank","memory"] ],
+      loop:[
+        { node:"learner", label:"Assign the experiment", text:"Sends the learner to feel a quick physical experiment with everyday objects" },
+        { node:"tooluse", label:"See the setup", text:"Uses image input to check the learner’s physical setup" },
+        { node:"memory", label:"Tie to the symbol", text:"Connects the felt sensation back to the formula and stores the anchor" }
+      ]
+    },
+    reasoning:"Hands-on learning gives abstract symbols meaning through the body: you feel angular momentum by pulling your arms in on a spinning stool before you ever see the equation. That perceptual-motor experience is the mechanism, which makes this one of the hardest moves for a text AI, since it has no body to lend the learner. The most it can do is send the learner to a physical experience, then help connect the sensation back to the symbol.",
+    caution:"If the AI describes the sensation instead of sending the learner to feel it, hands-on collapses back into telling. The body has to do the experiment.",
+    botIdea:"A coach that assigns a quick physical experiment with everyday objects ('hold a heavy book against your chest, then at arm's length, and notice where it's harder'), then ties what the learner felt to the formula for torque. Image input lets them show their setup." },
+  { letter:"I", name:"Imaginative play", bot:"Imagination Izzy", subtitle:"Developing cognitive control", category:"simulate", tier:"optional",
+    blocks:{skill:null,tool:null,resource:"optional",prompt:"optional",workflow:null},
+    blockNotes:{resource:"Historical context for accuracy",prompt:"Scenario templates for different contexts"},
+    caps:{memory:"optional"},
+    capNotes:{memory:"Carry the invented world and the learner's choices forward, so the pretend frame stays consistent and deepens"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"izzy", label:"Imagination Izzy", kind:"agent" },
+        { id:"context", label:"Historical context", kind:"block", block:"resource", note:"Historical context for accuracy" },
+        { id:"templates", label:"Scenario templates", kind:"block", block:"prompt", note:"Scenario templates for different contexts" },
+        { id:"memory", label:"World state", kind:"cap", cap:"memory", note:"Carry the invented world and the learner’s choices forward, so the pretend frame stays consistent and deepens" }
+      ],
+      edges:[ ["learner","izzy"],["izzy","context"],["izzy","templates"],["izzy","memory"] ],
+      loop:[
+        { node:"templates", label:"Set the scene", text:"Picks a scenario template and frames the crisis" },
+        { node:"context", label:"Ground it", text:"Pulls historical context so advisors stay accurate" },
+        { node:"learner", label:"Play it out", text:"Plays advisors with conflicting agendas and lets the learner decide" },
+        { node:"memory", label:"Carry it forward", text:"Holds the learner’s choices so the pretend frame deepens" }
+      ]
+    },
+    reasoning:"The AI creates a world with characters, constraints, and consequences. Rich prompt engineering at its core. Scenario templates and context documents make it more accurate and varied, but aren't required.",
+    botIdea:"A historical simulation where the learner is a decision-maker in a historical crisis. The bot plays advisors with conflicting agendas." },
+  { letter:"J", name:"Just-in-time telling", bot:"Just-in-Time Jane", subtitle:"Making lectures work", category:"adapt", tier:"required",
+    blocks:{skill:null,tool:null,resource:"required",prompt:null,workflow:"required"},
+    blockNotes:{resource:"Learner progress/readiness indicators",workflow:"Monitor \u2192 assess readiness \u2192 deliver or wait"},
+    caps:{autonomous:"required",memory:"required",selfeval:"optional"},
+    capNotes:{autonomous:"Decides the moment to speak, interjecting unprompted once the learner has struggled enough",memory:"Track what the learner has wrestled with across the arc, so readiness reflects more than this session",selfeval:"Could check it held back long enough for the telling to land"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"jane", label:"Just-in-Time Jane", kind:"agent" },
+        { id:"readiness", label:"Readiness data", kind:"block", block:"resource", note:"Learner progress / readiness indicators" },
+        { id:"workflow", label:"Run loop", kind:"block", block:"workflow", note:"Monitor → assess readiness → deliver or wait" },
+        { id:"autonomy", label:"Decides when to speak", kind:"cap", cap:"autonomous", note:"Decides the moment to speak, interjecting unprompted once the learner has struggled enough" },
+        { id:"memory", label:"What was wrestled with", kind:"cap", cap:"memory", note:"Track what the learner has wrestled with across the arc, so readiness reflects more than this session" }
+      ],
+      edges:[ ["learner","jane"],["jane","readiness"],["jane","workflow"],["jane","autonomy"],["jane","memory"] ],
+      loop:[
+        { node:"readiness", label:"Monitor", text:"Watches the learner’s attempt and reads readiness indicators" },
+        { node:"autonomy", label:"Assess readiness", text:"Judges whether the learner has struggled enough yet" },
+        { node:"learner", label:"Deliver or wait", text:"Stays silent, or delivers exactly the missing concept once ready" }
+      ]
+    },
+    reasoning:"Telling is most effective when the learner needs it. The AI must sense readiness \u2014 which requires progress data (Resource) and a monitoring-assessment loop (Workflow). The autonomous timing decision is genuinely agentic.",
+    botIdea:"A tutor that watches you struggle with a problem, stays silent until you've made a genuine attempt, then delivers exactly the concept you're missing \u2014 no more, no less." },
+  { letter:"K", name:"Knowledge", bot:"Knowledge Keeper", subtitle:"Efficiency and innovation", category:"constrain", tier:"optional",
+    blocks:{skill:null,tool:null,resource:"optional",prompt:null,workflow:"optional"},
+    blockNotes:{resource:"Library of invention tasks paired with their canonical solutions",workflow:"Pose invention task \u2192 learner attempts \u2192 reveal and contrast"},
+    caps:{tooluse:"optional",loops:"optional",selfeval:"optional",memory:"optional"},
+    capNotes:{tooluse:"Draw invention tasks and their canonical solutions from a library",loops:"Generate an invention prompt, check the efficient method would spoil it, rework until it truly requires inventing",selfeval:"Before revealing the standard solution, check the learner's attempt was genuine enough to contrast",memory:"Remember the solutions this learner has invented, so later topics call back to their own"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"keeper", label:"Knowledge Keeper", kind:"agent" },
+        { id:"library", label:"Invention-task library", kind:"block", block:"resource", note:"Library of invention tasks paired with their canonical solutions" },
+        { id:"workflow", label:"Run loop", kind:"block", block:"workflow", note:"Pose invention task → learner attempts → reveal and contrast" },
+        { id:"selfeval", label:"Genuine-attempt check", kind:"cap", cap:"selfeval", note:"Before revealing the standard solution, check the learner’s attempt was genuine enough to contrast" },
+        { id:"memory", label:"Own inventions", kind:"cap", cap:"memory", note:"Remember the solutions this learner has invented, so later topics call back to their own" }
+      ],
+      edges:[ ["learner","keeper"],["keeper","library"],["keeper","workflow"],["keeper","selfeval"],["keeper","memory"] ],
+      loop:[
+        { node:"library", label:"Pose the task", text:"Hands over a problem the textbook method would trivialize" },
+        { node:"learner", label:"Learner attempts", text:"Lets the learner invent and test their own rough solution" },
+        { node:"selfeval", label:"Check it’s genuine", text:"Confirms the attempt was real enough to contrast against" },
+        { node:"library", label:"Reveal and contrast", text:"Sets the standard solution beside the learner’s own" }
+      ]
+    },
+    reasoning:"K isn't one technique; it's the book's argument that expertise should be adaptive, not just efficient, and that you get there by sequence: let learners invent a rough solution before you hand them the polished one. Teach the density formula first and many never see that density is a ratio; let them try to invent a measure first and they do. The AI is constrained to hold back the efficient answer and protect the invention attempt.",
+    botIdea:"An invention-first coach that hands the learner a problem the textbook method would trivialize ('invent your own way to measure how spread out these numbers are') and won't reveal the standard solution until the learner has built and tested something. Then it sets the two side by side so the learner sees what the efficient method buys them." },
+  { letter:"L", name:"Listening & sharing", bot:"Listening Lucy", subtitle:"Learning together", category:"simulate", tier:"none",
+    blocks:{skill:null,tool:null,resource:null,prompt:null,workflow:null}, blockNotes:{}, caps:{memory:"optional"},
+    capNotes:{memory:"Remember each participant's earlier positions and contributions, so it surfaces tensions and makes sure quieter voices get picked up"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"lucy", label:"Listening Lucy", kind:"agent" },
+        { id:"memory", label:"Earlier positions", kind:"cap", cap:"memory", note:"Remember each participant’s earlier positions and contributions, so it surfaces tensions and makes sure quieter voices get picked up" }
+      ],
+      edges:[ ["learner","lucy"],["lucy","memory"] ]
+    },
+    reasoning:"The AI simulates a learning community \u2014 discussion partner or devil's advocate. Pure conversational prompting. No tools, no data.",
+    botIdea:"A discussion facilitator that poses a provocative question, lets learners respond, then highlights the tension between their positions without resolving it." },
+  { letter:"M", name:"Making", bot:"Maker Max", subtitle:"Producing practical knowledge", category:"simulate", tier:"optional",
+    blocks:{skill:null,tool:"optional",resource:null,prompt:null,workflow:null},
+    blockNotes:{tool:"Image input to 'see' work-in-progress"},
+    caps:{tooluse:"optional",memory:"optional"},
+    capNotes:{tooluse:"Use image input to see the work-in-progress",memory:"Track the project across iterations, so it can ask 'last time you tried X, what changed?' and grow the maker's interest"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"max", label:"Maker Max", kind:"agent" },
+        { id:"image", label:"Image input", kind:"block", block:"tool", note:"Image input to ‘see’ work-in-progress" },
+        { id:"tooluse", label:"See the work", kind:"cap", cap:"tooluse", note:"Use image input to see the work-in-progress" },
+        { id:"memory", label:"Project across iterations", kind:"cap", cap:"memory", note:"Track the project across iterations, so it can ask ‘last time you tried X, what changed?’ and grow the maker’s interest" }
+      ],
+      edges:[ ["learner","max"],["max","image"],["max","tooluse"],["max","memory"] ],
+      loop:[
+        { node:"tooluse", label:"See the build", text:"Uses image input to see the work-in-progress" },
+        { node:"learner", label:"Ask about choices", text:"Asks about design choices rather than suggesting fixes" },
+        { node:"memory", label:"Track iterations", text:"Holds the project across sessions to ask what changed since last time" }
+      ]
+    },
+    reasoning:"The AI simulates a collaborator who asks about design choices. Basic version is prompt engineering. Image input lets it actually see what the learner is building.",
+    botIdea:"A maker project coach that asks to see your work-in-progress, then asks questions about your design choices rather than suggesting improvements directly." },
+  { letter:"N", name:"Norms", bot:"Norms Nancy", subtitle:"Cultivating rules of the game", category:"constrain", tier:"none",
+    blocks:{skill:null,tool:null,resource:null,prompt:null,workflow:null}, blockNotes:{}, caps:{memory:"optional"},
+    capNotes:{memory:"Remember whether the learner is starting to back claims with evidence unprompted, so the norm can fade as it sticks"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"nancy", label:"Norms Nancy", kind:"agent" },
+        { id:"memory", label:"Norm taking hold", kind:"cap", cap:"memory", note:"Remember whether the learner is starting to back claims with evidence unprompted, so the norm can fade as it sticks" }
+      ],
+      edges:[ ["learner","nancy"],["nancy","memory"] ]
+    },
+    reasoning:"The AI is constrained to only engage with claims that meet a standard — evidence-based reasoning, supported assertions, intellectual rigor. If you make a claim without backing it up, the bot doesn't argue with you. It just asks for your evidence. The norm gets established by the constraint.",
+    botIdea:"A discussion bot that models scholarly norms: 'That's an interesting claim \u2014 what evidence supports it?' It refuses to engage with unsupported assertions." },
+  { letter:"O", name:"Observation", bot:"Observer Ollie", subtitle:"Imitating feelings and procedures", category:"model", tier:"none",
+    blocks:{skill:null,tool:null,resource:null,prompt:null,workflow:null}, blockNotes:{}, caps:{memory:"optional"},
+    capNotes:{memory:"Remember which expert moves the learner has already seen modeled, so the next think-aloud shows something new"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"ollie", label:"Observer Ollie", kind:"agent" },
+        { id:"memory", label:"Moves seen", kind:"cap", cap:"memory", note:"Remember which expert moves the learner has already seen modeled, so the next think-aloud shows something new" }
+      ],
+      edges:[ ["learner","ollie"],["ollie","memory"] ]
+    },
+    reasoning:"The AI models expert thinking by thinking aloud \u2014 narrating decision points, false starts, and self-corrections. A system prompt that instructs the LLM to show its work. No tools needed.",
+    caution:"A think-aloud without context is just a lecture with narration. The learner needs to have attempted the problem first \u2014 or at least have a reason to care about the expert's process. Observation works when it follows struggle, not when it replaces it.",
+    botIdea:"An expert thinker that waits until the learner has attempted a problem, then solves it out loud, narrating every decision point: 'I'm tempted to do X, but I notice Y, which tells me I should try Z instead.' The learner then tries again with that model in mind." },
+  { letter:"P", name:"Participation", bot:"Participation Pat", subtitle:"Getting into the game", category:"simulate", tier:"required",
+    blocks:{skill:null,tool:null,resource:"required",prompt:null,workflow:"required"},
+    blockNotes:{resource:"Track what the learner has taken on",workflow:"Assess readiness \u2192 transfer responsibility \u2192 update"},
+    caps:{autonomous:"required",planning:"optional",selfeval:"optional",memory:"required"},
+    capNotes:{autonomous:"Decides when to hand off the next piece, initiating the transfer rather than waiting",planning:"Could sequence which responsibilities to transfer and in what order",selfeval:"Could check it isn't fading support faster than the learner can absorb",memory:"Track exactly which parts the learner now owns, so support fades precisely and never snaps back"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"pat", label:"Participation Pat", kind:"agent" },
+        { id:"owned", label:"What learner owns", kind:"block", block:"resource", note:"Track what the learner has taken on" },
+        { id:"workflow", label:"Run loop", kind:"block", block:"workflow", note:"Assess readiness → transfer responsibility → update" },
+        { id:"autonomy", label:"Initiates the handoff", kind:"cap", cap:"autonomous", note:"Decides when to hand off the next piece, initiating the transfer rather than waiting" },
+        { id:"memory", label:"Parts owned", kind:"cap", cap:"memory", note:"Track exactly which parts the learner now owns, so support fades precisely and never snaps back" }
+      ],
+      edges:[ ["learner","pat"],["pat","owned"],["pat","workflow"],["pat","autonomy"],["pat","memory"] ],
+      loop:[
+        { node:"owned", label:"Assess readiness", text:"Reads which parts the learner already owns" },
+        { node:"autonomy", label:"Transfer a piece", text:"Hands off the next responsibility unprompted" },
+        { node:"memory", label:"Update", text:"Records the new ownership so support fades precisely and never snaps back" }
+      ]
+    },
+    reasoning:"Progressive responsibility transfer requires knowing what the learner has done (Resource) and a workflow that assesses readiness and hands off the next piece. Needs state across sessions \u2014 genuinely agentic.",
+    botIdea:"A mentorship simulation where the bot starts by doing most of the work, narrating its reasoning, then progressively assigns more tasks to the learner." },
+  { letter:"Q", name:"Question driven", bot:"Question Quinn", subtitle:"Creating a reason to inquire", category:"constrain", tier:"none",
+    blocks:{skill:null,tool:null,resource:null,prompt:null,workflow:null},
+    blockNotes:{},
+    caps:{memory:"optional"},
+    capNotes:{memory:"Carry the investigation across sessions, what's found and what's still open, so the question keeps pulling"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"quinn", label:"Question Quinn", kind:"agent" },
+        { id:"memory", label:"Open investigation", kind:"cap", cap:"memory", note:"Carry the investigation across sessions, what’s found and what’s still open, so the question keeps pulling" }
+      ],
+      edges:[ ["learner","quinn"],["quinn","memory"] ]
+    },
+    reasoning:"Question-driven learning hangs everything on a question the learner actually wants answered: 'how is noise pollution affecting the wildlife near our school?' The pull of the question builds curiosity, purpose, and connected memory. The AI is constrained to protect the inquiry: it helps shape an answerable driving question and map what the learner needs to find out, without collapsing the whole thing by handing over the answer.",
+    caution:"The move dies the moment the AI answers the driving question. Its job is to keep the question open and the learner hunting.",
+    botIdea:"An inquiry coach that turns a vague interest into a driving question, then helps the learner split it into what they already know, what they still need, and how they'd find it. It hands the investigation back rather than resolving it." },
+  { letter:"R", name:"Reward", bot:"Reward Remy", subtitle:"Motivating behavior", category:"adapt", tier:"required",
+    blocks:{skill:null,tool:"required",resource:"required",prompt:null,workflow:"required"},
+    blockNotes:{tool:"Track completions and deliver reinforcement",resource:"Performance history to set and raise the criterion",workflow:"Reinforce the current step → check mastery → raise the bar"},
+    caps:{autonomous:"required",planning:"optional",tooluse:"optional",memory:"required"},
+    capNotes:{autonomous:"Decides when to raise the criterion, moving the goalposts unprompted as the learner improves",planning:"Could lay out the full ladder of successive approximations up front",tooluse:"Could track completions and dispense reinforcement through a token system",memory:"Hold where the learner sits on the shaping ladder, so it reinforces the next step up, never one already mastered"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"remy", label:"Reward Remy", kind:"agent" },
+        { id:"tracker", label:"Completion tracker", kind:"block", block:"tool", note:"Track completions and deliver reinforcement" },
+        { id:"history", label:"Performance history", kind:"block", block:"resource", note:"Performance history to set and raise the criterion" },
+        { id:"workflow", label:"Run loop", kind:"block", block:"workflow", note:"Reinforce the current step → check mastery → raise the bar" },
+        { id:"autonomy", label:"Raises the bar", kind:"cap", cap:"autonomous", note:"Decides when to raise the criterion, moving the goalposts unprompted as the learner improves" },
+        { id:"memory", label:"Place on the ladder", kind:"cap", cap:"memory", note:"Hold where the learner sits on the shaping ladder, so it reinforces the next step up, never one already mastered" }
+      ],
+      edges:[ ["learner","remy"],["remy","tracker"],["remy","history"],["remy","workflow"],["remy","autonomy"],["remy","memory"] ],
+      loop:[
+        { node:"tracker", label:"Reinforce", text:"Reinforces the learner clearing the current step" },
+        { node:"history", label:"Check mastery", text:"Reads performance history to see if the step is solid" },
+        { node:"autonomy", label:"Raise the bar", text:"Ratchets the criterion to the next approximation once solid" }
+      ]
+    },
+    reasoning:"Reward shapes behavior: reinforce successive approximations until the learner reaches the target. A child who never finishes homework earns a star for turning in a page with just their name, then a star for one problem, then five. The agentic version tracks where the learner is and reinforces the next step toward the goal, raising the bar as they improve. It needs performance history (Resource), the comparison that decides what to reinforce (Tool), and the shaping loop itself (Workflow).",
+    caution:"Extrinsic rewards can undermine intrinsic motivation \u2014 the research is clear on this. An AI that dispenses praise, even specific praise, is still an authority figure evaluating from above. The goal should be helping learners notice their own growth, not making a better 'good job!' machine.",
+    botIdea:"A shaping coach that sets a low first bar and ratchets it as the learner clears each one: turn in a paragraph, then a structured one, then one backed by evidence, reinforcing every step. It raises the criterion only once the current one is solid, and tracks the trajectory across sessions." },
+  { letter:"S", name:"Self-explanation", bot:"Self-Explain Sam", subtitle:"Going beyond the given", category:"redirect", tier:"none",
+    blocks:{skill:null,tool:null,resource:null,prompt:null,workflow:null}, blockNotes:{}, caps:{memory:"optional"},
+    capNotes:{memory:"Track where this learner habitually skips the 'why', the connections they gloss, so prompts hit their blind spots"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"sam", label:"Self-Explain Sam", kind:"agent" },
+        { id:"memory", label:"Blind spots", kind:"cap", cap:"memory", note:"Track where this learner habitually skips the ‘why’, the connections they gloss, so prompts hit their blind spots" }
+      ],
+      edges:[ ["learner","sam"],["sam","memory"] ]
+    },
+    reasoning:"Self-explanation is the learner filling the gaps in a text or a worked example, out loud, to themselves. The AI redirects by withholding its own explanation and prompting instead: 'why does this step follow from the last? what would break if it weren't true?' Pure conversational prompting, and the mirror image of Teaching, where the learner explains to someone else.",
+    caution:"Self-explanation turns into parroting when the prompts become a checklist. The learner has to be building a mental model, not answering 'why' on autopilot.",
+    botIdea:"A reading companion that takes a passage or a solved problem and walks the learner through it line by line, asking them to explain each move. It never explains the material itself; the learner builds the meaning and the bot probes the gaps." },
+  { letter:"T", name:"Teaching", bot:"Teacher Tina", subtitle:"Responsibility for others' understanding", category:"simulate", tier:"none",
+    blocks:{skill:null,tool:null,resource:null,prompt:null,workflow:null}, blockNotes:{}, caps:{memory:"optional"},
+    capNotes:{memory:"Keep a record of what this learner has taught and where their explanations broke down, so the novice-bot returns to those shaky spots"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"tina", label:"Teacher Tina", kind:"agent" },
+        { id:"memory", label:"Shaky spots", kind:"cap", cap:"memory", note:"Keep a record of what this learner has taught and where their explanations broke down, so the novice-bot returns to those shaky spots" }
+      ],
+      edges:[ ["learner","tina"],["tina","memory"] ]
+    },
+    reasoning:"The AI simulates a novice learner who needs to be taught. Surprisingly simple \u2014 the LLM plays confused and asks questions. The learning happens because teaching forces deep processing.",
+    botIdea:"A 'teach me' bot that acts as a novice learner. It asks genuine-sounding questions and pushes the human teacher to check for understanding." },
+  { letter:"U", name:"Undoing", bot:"Unlearning Uma", subtitle:"Overcoming misconceptions", category:"redirect", tier:"optional",
+    blocks:{skill:null,tool:null,resource:"optional",prompt:null,workflow:"optional"},
+    blockNotes:{resource:"Domain-specific misconception database / diagnostic items",workflow:"Probe → infer the faulty rule → build the counter-model"},
+    caps:{tooluse:"optional",selfeval:"optional",memory:"optional"},
+    capNotes:{tooluse:"Pull diagnostic items from a misconception bank",selfeval:"After teaching the counter-model, check it replaced the misconception instead of masking it",memory:"Remember which misconceptions this learner has shown, since faulty models resurface, and watch for the old one creeping back"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"uma", label:"Unlearning Uma", kind:"agent" },
+        { id:"bank", label:"Misconception bank", kind:"block", block:"resource", note:"Domain-specific misconception database / diagnostic items" },
+        { id:"workflow", label:"Run loop", kind:"block", block:"workflow", note:"Probe → infer the faulty rule → build the counter-model" },
+        { id:"selfeval", label:"Replaced, not masked", kind:"cap", cap:"selfeval", note:"After teaching the counter-model, check it replaced the misconception instead of masking it" },
+        { id:"memory", label:"Faulty models resurface", kind:"cap", cap:"memory", note:"Remember which misconceptions this learner has shown, since faulty models resurface, and watch for the old one creeping back" }
+      ],
+      edges:[ ["learner","uma"],["uma","bank"],["uma","workflow"],["uma","selfeval"],["uma","memory"] ],
+      loop:[
+        { node:"bank", label:"Probe", text:"Pulls a diagnostic item engineered to expose the misconception" },
+        { node:"learner", label:"Infer the rule", text:"Infers the faulty rule the learner is running" },
+        { node:"workflow", label:"Build counter-model", text:"Builds the correct model against the learner’s own" },
+        { node:"selfeval", label:"Check it stuck", text:"Confirms the counter-model replaced the misconception, not masked it" }
+      ]
+    },
+    reasoning:"Undoing means finding the learner's own entrenched misconception and replacing it at the root, not papering over the symptom. The 13 − 7 = 14 error isn't carelessness; it's a belief that you subtract within each column on its own, so the fix is place value, not 'don't swap the digits.' The AI redirects by probing for the underlying faulty model, then building the competing one. A misconception database makes it domain-aware.",
+    caution:"Hunting misconceptions relentlessly can make a learner feel incompetent. And a clumsy fix can install a new misconception in place of the old one.",
+    botIdea:"A diagnostic tutor that gives problems engineered to expose a specific misconception, infers the faulty rule the learner is running, then builds the correct model against it: 'You treated each column on its own. Let's see what 13 actually is.'" },
+  { letter:"V", name:"Visualization", bot:"Visual Viv", subtitle:"Inventing structure for complexity", category:"model", tier:"required",
+    blocks:{skill:null,tool:"required",resource:null,prompt:null,workflow:null},
+    blockNotes:{tool:"Generate diagrams, concept maps"},
+    caps:{tooluse:"required",loops:"optional",selfeval:"optional",memory:"optional"},
+    capNotes:{tooluse:"Generate the diagram or concept map from the learner's description",loops:"Generate a map, check it matches the description, regenerate the mismatched parts before showing it",selfeval:"Check the visual reflects the learner's words, not its own assumptions",memory:"Keep the learner's evolving maps, so structure they built earlier gets extended, not redrawn"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"viv", label:"Visual Viv", kind:"agent" },
+        { id:"diagram", label:"Diagram generator", kind:"block", block:"tool", note:"Generate diagrams, concept maps" },
+        { id:"tooluse", label:"Generate the map", kind:"cap", cap:"tooluse", note:"Generate the diagram or concept map from the learner’s description" },
+        { id:"loops", label:"Regenerate mismatch", kind:"cap", cap:"loops", note:"Generate a map, check it matches the description, regenerate the mismatched parts before showing it" }
+      ],
+      edges:[ ["learner","viv"],["viv","diagram"],["viv","tooluse"],["viv","loops"] ],
+      loop:[
+        { node:"learner", label:"Describe relationships", text:"Asks the learner to describe how the ideas relate" },
+        { node:"tooluse", label:"Generate the map", text:"Produces a visual map from the learner’s words" },
+        { node:"loops", label:"Check and redraw", text:"Checks the map matches and regenerates the mismatched parts" },
+        { node:"learner", label:"Is this what you mean?", text:"Shows the map and asks the learner to confirm" }
+      ]
+    },
+    reasoning:"The coaching conversation is prompt engineering, but producing the actual visualization requires tool use. The AI needs to generate diagrams or maps (Tool) from the learner's descriptions.",
+    botIdea:"A concept-mapping coach that asks learners to describe relationships between ideas, then generates a visual map and asks 'is this what you mean?'" },
+  { letter:"W", name:"Worked examples", bot:"Walkthrough Will", subtitle:"Acquiring skills and procedures", category:"model", tier:"optional",
+    blocks:{skill:null,tool:null,resource:"optional",prompt:null,workflow:"optional"},
+    blockNotes:{resource:"Mastery level to calibrate fading",workflow:"Assess mastery \u2192 determine fade \u2192 generate"},
+    caps:{autonomous:"optional",loops:"optional",selfeval:"optional",memory:"optional"},
+    capNotes:{autonomous:"Could decide how many steps to fade next from the learner's responses",loops:"Generate a worked example, check the grain and fade level fit, rework before showing",selfeval:"Check the example models the reasoning behind each step, not just the mechanics",memory:"Track mastery so fading resumes at the right level across sessions, not fully worked again"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"will", label:"Walkthrough Will", kind:"agent" },
+        { id:"mastery", label:"Mastery level", kind:"block", block:"resource", note:"Mastery level to calibrate fading" },
+        { id:"workflow", label:"Run loop", kind:"block", block:"workflow", note:"Assess mastery → determine fade → generate" },
+        { id:"autonomy", label:"Decides the fade", kind:"cap", cap:"autonomous", note:"Could decide how many steps to fade next from the learner’s responses" },
+        { id:"memory", label:"Fade level across sessions", kind:"cap", cap:"memory", note:"Track mastery so fading resumes at the right level across sessions, not fully worked again" }
+      ],
+      edges:[ ["learner","will"],["will","mastery"],["will","workflow"],["will","autonomy"],["will","memory"] ],
+      loop:[
+        { node:"mastery", label:"Assess mastery", text:"Reads the mastery level to calibrate fading" },
+        { node:"autonomy", label:"Determine the fade", text:"Decides how many steps to fade for this learner" },
+        { node:"learner", label:"Generate and ask why", text:"Shows the faded example and asks the learner to fill and explain the gaps" }
+      ]
+    },
+    reasoning:"Generating worked examples is excellent prompt engineering. Progressive fading benefits from mastery tracking (Resource) and an assessment workflow, but a basic version works with manual difficulty selection.",
+    caution:"A worked example the learner passively watches is just a demonstration. The research is clear: worked examples are most effective when paired with self-explanation \u2014 the learner must explain why each step works, not just observe the steps happening.",
+    botIdea:"A worked-example tutor that shows a solved step, then pauses and asks 'why did I do that?' before continuing. As the learner demonstrates understanding, the bot progressively removes steps and asks the learner to fill them in, eventually showing only the problem and answer." },
+  { letter:"X", name:"eXcitement", bot:"eXcitement Xena", subtitle:"Turning up attention and arousal", category:"simulate", tier:"optional",
+    blocks:{skill:null,tool:null,resource:null,prompt:"optional",workflow:null},
+    blockNotes:{prompt:"Story, surprise, and variable-reward templates"},
+    caps:{autonomous:"optional",scheduling:"optional",memory:"optional"},
+    capNotes:{autonomous:"Could decide when to drop a surprise for effect",scheduling:"Could time energizer breaks through a long session, when arousal dips",memory:"Remember what energized this learner and what tipped into anxiety, so it calibrates arousal to them"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"xena", label:"eXcitement Xena", kind:"agent" },
+        { id:"templates", label:"Surprise templates", kind:"block", block:"prompt", note:"Story, surprise, and variable-reward templates" },
+        { id:"scheduling", label:"Time energizers", kind:"cap", cap:"scheduling", note:"Could time energizer breaks through a long session, when arousal dips" },
+        { id:"autonomy", label:"Drops a surprise", kind:"cap", cap:"autonomous", note:"Could decide when to drop a surprise for effect" },
+        { id:"memory", label:"Arousal calibration", kind:"cap", cap:"memory", note:"Remember what energized this learner and what tipped into anxiety, so it calibrates arousal to them" }
+      ],
+      edges:[ ["learner","xena"],["xena","templates"],["xena","scheduling"],["xena","autonomy"],["xena","memory"] ],
+      loop:[
+        { node:"scheduling", label:"Watch arousal", text:"Times the session and notices when arousal dips" },
+        { node:"autonomy", label:"Drop the jolt", text:"Decides when to drop a surprise or call an energizer break" },
+        { node:"learner", label:"Hit the hard one", text:"Channels the charge into the moment that matters most" }
+      ]
+    },
+    reasoning:"Excitement works through physiological arousal: a jolt of surprise, a burst of activity, a variable reward, and attention sharpens while memory strengthens. The book notes the arousal need not even relate to the content. Narrative tension is one route; so are surprise, stakes, and energizers. The AI generates that charge through prompting.",
+    caution:"Past a point, arousal flips to anxiety and the learner chokes. And arousal aimed at the packaging instead of the content makes the wrong thing memorable.",
+    botIdea:"A session that drops variable, unpredictable rewards and surprises into practice and calls energizer breaks ('stand up, ten seconds of this, then we hit the hard one'), saving its biggest jolt for the point that matters most." },
+  { letter:"Y", name:"Yes I can", bot:"Yes-I-Can Yara", subtitle:"Increasing self-efficacy", category:"constrain", tier:"optional",
+    blocks:{skill:null,tool:null,resource:"optional",prompt:null,workflow:null},
+    blockNotes:{resource:"Performance history to calibrate difficulty"},
+    caps:{autonomous:"optional",loops:"optional",memory:"optional"},
+    capNotes:{autonomous:"Could pick the next difficulty to hold the learner in the productive zone",loops:"Generate a challenge, check it's hard enough to matter yet achievable, recalibrate before serving",memory:"Remember the learner's hard-won successes and the strategies they named, to point back: 'you cracked something this tough before'"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"yara", label:"Yes-I-Can Yara", kind:"agent" },
+        { id:"history", label:"Performance history", kind:"block", block:"resource", note:"Performance history to calibrate difficulty" },
+        { id:"loops", label:"Recalibrate challenge", kind:"cap", cap:"loops", note:"Generate a challenge, check it’s hard enough to matter yet achievable, recalibrate before serving" },
+        { id:"memory", label:"Hard-won successes", kind:"cap", cap:"memory", note:"Remember the learner’s hard-won successes and the strategies they named, to point back: ‘you cracked something this tough before’" }
+      ],
+      edges:[ ["learner","yara"],["yara","history"],["yara","loops"],["yara","memory"] ],
+      loop:[
+        { node:"history", label:"Read the zone", text:"Reads performance history to find the productive difficulty" },
+        { node:"loops", label:"Calibrate the challenge", text:"Tunes a task hard enough to matter yet achievable before serving" },
+        { node:"learner", label:"Attribute the win", text:"After success, asks what strategy the learner used" }
+      ]
+    },
+    reasoning:"Self-efficacy comes from actually succeeding at something hard enough to matter. The AI constrains difficulty to keep the learner in a productive range — challenging enough to require real effort, achievable enough to build confidence. Performance history helps calibrate, but the basic version works through conversation.",
+    caution:"Making problems too easy and then praising the learner can actually undermine self-efficacy \u2014 the learner knows the task was trivial. Research says efficacy comes from mastery experiences (succeeding at something genuinely hard) and attribution (believing success came from effort and strategy, not ease).",
+    botIdea:"A difficulty-calibrating tutor that keeps the learner in their zone of proximal development \u2014 hard enough to require real effort, achievable enough to succeed. After success, it asks 'what strategy did you use there?' to help the learner connect outcomes to their own effort, not to easiness or luck." },
+  { letter:"Z", name:"ZZZs", bot:"Sleep Sage Zoe", subtitle:"Consolidating memories", category:"adapt", tier:"optional",
+    blocks:{skill:null,tool:"optional",resource:null,prompt:null,workflow:null},
+    blockNotes:{tool:"Timed nudge to review, then stop and sleep"},
+    caps:{scheduling:"optional",tooluse:"optional",memory:"optional"},
+    capNotes:{scheduling:"Could schedule a light review right before bed, when consolidation does its work",tooluse:"Could send the reminder to review, then rest",memory:"Remember what the learner studied today, so it can prompt that pre-sleep review"},
+    graph:{
+      nodes:[
+        { id:"learner", label:"Learner", kind:"learner" },
+        { id:"zoe", label:"Sleep Sage Zoe", kind:"agent" },
+        { id:"nudge", label:"Timed nudge", kind:"block", block:"tool", note:"Timed nudge to review, then stop and sleep" },
+        { id:"scheduling", label:"Pre-sleep review", kind:"cap", cap:"scheduling", note:"Could schedule a light review right before bed, when consolidation does its work" },
+        { id:"memory", label:"What was studied", kind:"cap", cap:"memory", note:"Remember what the learner studied today, so it can prompt that pre-sleep review" }
+      ],
+      edges:[ ["learner","zoe"],["zoe","nudge"],["zoe","scheduling"],["zoe","memory"] ],
+      loop:[
+        { node:"memory", label:"Spot the limit", text:"Notices diminishing returns from what the learner studied today" },
+        { node:"scheduling", label:"Time the review", text:"Schedules a light review for right before sleep" },
+        { node:"nudge", label:"Review then rest", text:"Sends the nudge to review once, then stop and sleep" }
+      ]
+    },
+    reasoning:"Z is about sleep. Memories consolidate and connect during sleep, which is why cramming all night backfires and why 'sleep on it' works on a stuck problem. There's almost nothing for an AI to do here except protect the condition: it won't keep you grinding past the point of return, and it sends you to review-then-sleep, or to rest when you're stuck.",
+    botIdea:"A study companion that spots diminishing returns and ends the session: 'You've drilled this two hours. Review it once now, then sleep. Come back tomorrow.' For a stuck problem it prescribes a break and sleep instead of more effort." },
+];
+
+// State
+var selectedLetter = null;
+var filterTier = null;
+
+var tierCounts = { none:0, optional:0, required:0 };
+ABCS.forEach(function(a) { tierCounts[a.tier]++; });
+
+function getCat(id) { return CATEGORIES.find(function(c) { return c.id === id; }); }
+function cc(catId) { return getComputedStyle(document.documentElement).getPropertyValue('--' + catId).trim(); }
+
+// Modal
+function showBlocksModal() {
+  var mc = document.getElementById('modalContainer');
+  var html = '<div class="modal-backdrop-custom" onclick="if(event.target===this)closeModal()">' +
+    '<div class="modal-card">' +
+      '<div class="modal-header-custom">' +
+        '<div class="modal-title-custom">Agentic Building Blocks</div>' +
+        '<button class="modal-close" onclick="closeModal()"><i class="bi bi-x-lg"></i></button>' +
+      '</div>' +
+      '<div class="modal-body-custom">' +
+        '<div class="modal-intro">These are the technical pieces that make an AI system actually "agentic" — able to do things beyond just generating text. The vocabulary comes from CMU LearnLab\'s <strong>Skills, MCP servers, and Workflows</strong> framing, which is the most concrete definition of agentic AI for educators I\'ve seen. Most of the bot concepts on this page don\'t need any of them.</div>';
+
+  BLOCK_KEYS.forEach(function(k) {
+    var b = BLOCKS[k];
+    html +=
+      '<div class="block-def">' +
+        '<div class="block-def-header">' +
+          '<div class="block-def-icon"><i class="' + b.icon + '"></i></div>' +
+          '<div class="block-def-name">' + b.name + '</div>' +
+        '</div>' +
+        '<div class="block-def-desc">' + b.desc + '</div>' +
+        '<div class="block-def-example">Example: ' + b.example + '</div>' +
+      '</div>';
+  });
+
+  html += '<div style="margin-top:1.5rem"><div class="modal-title-custom" style="font-size:1.2rem;margin-bottom:0.75rem">Agentic Capabilities</div>' +
+    '<div class="modal-intro" style="margin-bottom:1rem">These are the things the system can <em>do</em> that go beyond responding to a single conversation turn. The building blocks above are what you build with; these capabilities are what you get.</div>';
+
+  CAP_KEYS.forEach(function(k) {
+    var c = CAPS[k];
+    html +=
+      '<div class="block-def">' +
+        '<div class="block-def-header">' +
+          '<div class="block-def-icon"><i class="' + c.icon + '"></i></div>' +
+          '<div class="block-def-name">' + c.name + '</div>' +
+        '</div>' +
+        '<div class="block-def-desc">' + c.desc + '</div>' +
+      '</div>';
+  });
+
+  html += '</div></div></div></div>';
+  mc.innerHTML = html;
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('modalContainer').innerHTML = '';
+  document.body.style.overflow = '';
+}
+var GRAPH_SIM = null, GRAPH_PLAY = null;
+function cvar(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function showGraphModal(letter){
+  var a = ABCS.find(function(x){ return x.letter === letter; });
+  if(!a || !a.graph) return;
+  closeGraphModal(); // tear down any prior sim/interval so re-entry can't leak
+  var catColor = cc(a.category);
+  var tierColors = { none:"var(--tier-none)", optional:"var(--tier-optional)", required:"var(--tier-required)" };
+  var tierLabels = { none:"Just a prompt", optional:"Enhanced by infrastructure", required:"Needs agentic blocks" };
+  document.getElementById('modalContainer').innerHTML =
+    '<div class="graph-modal-backdrop" onclick="if(event.target===this)closeGraphModal()">' +
+      '<div class="graph-modal-card">' +
+        '<div class="graph-modal-header">' +
+          '<div class="graph-modal-titlewrap">' +
+            '<span class="graph-letter" style="background:' + catColor + '">' + a.letter + '</span>' +
+            '<div><div class="graph-title">' + a.name + '</div><div class="graph-subtitle">' + a.subtitle + '</div></div>' +
+            '<span class="badge-agentic" style="background:' + tierColors[a.tier] + '">' + tierLabels[a.tier] + '</span>' +
+          '</div>' +
+          '<button class="modal-close" onclick="closeGraphModal()"><i class="bi bi-x-lg"></i></button>' +
+        '</div>' +
+        '<div class="graph-modal-body">' +
+          '<div class="graph-canvas" id="graphCanvas"></div>' +
+          '<div class="graph-info" id="graphInfo"></div>' +
+        '</div>' +
+        '<div class="graph-modal-footer" id="graphFooter"></div>' +
+      '</div>' +
+    '</div>';
+  document.body.style.overflow = 'hidden';
+  buildGraphSim(a, catColor);
+}
+
+function closeGraphModal(){
+  if(GRAPH_PLAY){ clearInterval(GRAPH_PLAY); GRAPH_PLAY = null; }
+  if(GRAPH_SIM){ GRAPH_SIM.stop(); GRAPH_SIM = null; }
+  document.getElementById('modalContainer').innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+function nodeRadius(n, small){
+  if(n.kind === 'agent') return small ? 34 : 46;
+  if(n.kind === 'cap')   return small ? 18 : 24;
+  return small ? 24 : 30;
+}
+function nodeColor(n, catColor){
+  if(n.kind === 'agent')   return catColor;
+  if(n.kind === 'learner') return cvar('--redirect');
+  if(n.kind === 'cap')     return cvar('--tier-required');
+  return cvar('--graph-block');
+}
+
+function buildGraphSim(a, catColor){
+  var canvas = document.getElementById('graphCanvas');
+  var w = canvas.clientWidth, h = canvas.clientHeight;
+  var small = window.innerWidth < 720;
+  var nodes = a.graph.nodes.map(function(n){ var c = {}; for(var k in n) c[k] = n[k]; return c; });
+  var byId = {}; nodes.forEach(function(n){ byId[n.id] = n; });
+  var links = a.graph.edges.map(function(e){ return { source:e[0], target:e[1] }; });
+
+  var svg = d3.select(canvas).append('svg').attr('class','graph-svg').attr('width', w).attr('height', h);
+  var linkSel = svg.append('g').selectAll('line').data(links).enter().append('line').attr('class','glink');
+  var nodeSel = svg.append('g').selectAll('g.gnode').data(nodes).enter().append('g').attr('class','gnode')
+    .on('click', function(ev, d){ ev.stopPropagation(); pauseGraphPlay(); selectGraphNode(d); })
+    .call(d3.drag()
+      .on('start', function(ev, d){ if(!ev.active) GRAPH_SIM.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag',  function(ev, d){ d.fx = ev.x; d.fy = ev.y; })
+      .on('end',   function(ev, d){ if(!ev.active) GRAPH_SIM.alphaTarget(0); if(d.kind !== 'agent'){ d.fx = null; d.fy = null; } }));
+  nodeSel.append('circle').attr('class','gcircle')
+    .attr('r', function(d){ return nodeRadius(d, small); })
+    .attr('fill', function(d){ return nodeColor(d, catColor); });
+  nodeSel.append('text').attr('class','gnode-label').attr('text-anchor','middle')
+    .attr('y', function(d){ return nodeRadius(d, small) + 14; })
+    .text(function(d){ return d.label; });
+
+  var agent = nodes.find(function(n){ return n.kind === 'agent'; });
+  if(agent){ agent.fx = w/2; agent.fy = h/2; }
+
+  GRAPH_SIM = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(function(d){ return d.id; }).distance(small ? 95 : 135).strength(0.55))
+    .force('charge', d3.forceManyBody().strength(small ? -320 : -680))
+    .force('center', d3.forceCenter(w/2, h/2))
+    .force('collide', d3.forceCollide().radius(function(d){ return nodeRadius(d, small) + 10; }))
+    .on('tick', function(){
+      linkSel.attr('x1', function(d){ return d.source.x; }).attr('y1', function(d){ return d.source.y; })
+             .attr('x2', function(d){ return d.target.x; }).attr('y2', function(d){ return d.target.y; });
+      nodeSel.attr('transform', function(d){ return 'translate(' + d.x + ',' + d.y + ')'; });
+    });
+  GRAPH_SIM._svg = svg; GRAPH_SIM._byId = byId; GRAPH_SIM._nodeSel = nodeSel; GRAPH_SIM._linkSel = linkSel; GRAPH_SIM._small = small;
+
+  renderGraphInfoDefault(a);
+  renderGraphFooter(a, byId);
+}
+function selectGraphNode(d){
+  var info = document.getElementById('graphInfo');
+  var kindLabel = { agent:'The agent', learner:'Learner', block:'Infrastructure block', cap:'Agentic capability' }[d.kind] || '';
+  info.innerHTML =
+    '<div class="ginfo-kind">' + kindLabel + '</div>' +
+    '<div class="ginfo-name">' + d.label + '</div>' +
+    (d.note ? '<div class="ginfo-note">' + d.note + '</div>' : '<div class="ginfo-note muted">No extra detail — this node is part of the wiring.</div>');
+  if(GRAPH_SIM && GRAPH_SIM._nodeSel){
+    GRAPH_SIM._nodeSel.classed('active-node', function(n){ return n.id === d.id; });
+  }
+}
+function pauseGraphPlay(){ if(GRAPH_PLAY){ clearInterval(GRAPH_PLAY); GRAPH_PLAY = null; } }
+function renderGraphInfoDefault(a){
+  var info = document.getElementById('graphInfo');
+  function row(color, label){ return '<div class="glegend-row"><span class="glegend-dot" style="background:' + color + '"></span>' + label + '</div>'; }
+  info.innerHTML =
+    '<div class="ginfo-kind">Legend</div>' +
+    row(cc(a.category), 'The agent') +
+    row(cvar('--graph-block'), 'Infrastructure block') +
+    row(cvar('--tier-required'), 'Agentic capability') +
+    row(cvar('--redirect'), 'Learner') +
+    '<div class="ginfo-hint">Click any node to see what it does.' +
+      (a.graph.loop ? ' Or press “Play the loop” to watch the agent run.' : ' This bot runs in a single turn — there’s no agentic loop.') +
+    '</div>';
+  if(GRAPH_SIM && GRAPH_SIM._nodeSel){ GRAPH_SIM._nodeSel.classed('active-node', false); }
+}
+function renderGraphFooter(a, byId){
+  var f = document.getElementById('graphFooter');
+  if(a.graph.loop && a.graph.loop.length){
+    f.innerHTML =
+      '<button class="graph-play-btn" id="graphPlayBtn"><i class="bi bi-play-fill"></i> Play the loop</button>' +
+      '<button class="graph-restart-btn" id="graphRestartBtn" style="display:none"><i class="bi bi-arrow-counterclockwise"></i> Restart</button>' +
+      '<span class="graph-step-counter" id="graphStepCounter"></span>';
+    document.getElementById('graphPlayBtn').addEventListener('click', function(){ startGraphPlay(a, byId); });
+    document.getElementById('graphRestartBtn').addEventListener('click', function(){ startGraphPlay(a, byId); });
+  } else {
+    f.innerHTML = '<span class="graph-noloop">One-turn exchange &mdash; no agentic loop to play.</span>';
+  }
+}
+
+function startGraphPlay(a, byId){
+  pauseGraphPlay();
+  var steps = a.graph.loop;
+  var info = document.getElementById('graphInfo');
+  var counter = document.getElementById('graphStepCounter');
+  document.getElementById('graphRestartBtn').style.display = '';
+  function show(idx){
+    var s = steps[idx];
+    if(GRAPH_SIM && GRAPH_SIM._nodeSel){
+      GRAPH_SIM._nodeSel.classed('active-node', function(n){ return n.id === s.node; });
+    }
+    info.innerHTML =
+      '<div class="ginfo-kind">Step ' + (idx + 1) + ' of ' + steps.length + '</div>' +
+      '<div class="ginfo-name">' + s.label + '</div>' +
+      '<div class="ginfo-note">' + s.text + '</div>';
+    counter.textContent = (idx + 1) + ' / ' + steps.length;
+    if(idx > 0){ pulseEdge(byId[steps[idx - 1].node], byId[s.node]); }
+  }
+  var i = 0;
+  show(0);
+  GRAPH_PLAY = setInterval(function(){
+    i = (i + 1) % steps.length;
+    show(i);
+  }, 2200);
+}
+
+function pulseEdge(from, to){
+  if(!from || !to || !GRAPH_SIM || !GRAPH_SIM._svg) return;
+  var c = GRAPH_SIM._svg.append('circle').attr('class','gpulse').attr('r', 5)
+    .attr('cx', from.x).attr('cy', from.y);
+  c.transition().duration(700).attr('cx', to.x).attr('cy', to.y)
+    .on('end', function(){ c.remove(); });
+}
+
+function renderInsightBar() {
+  var el = document.getElementById('insightBar');
+  var tierColors = { none:"var(--tier-none)", optional:"var(--tier-optional)", required:"var(--tier-required)" };
+  var tierLabels = { none:"Just a prompt", optional:"Enhanced by infrastructure", required:"Needs agentic blocks" };
+  var tierDescs = {
+    none: "<strong>" + tierCounts.none + " of 26</strong> are just system prompts. No tools, no workflows, no data. A well-written prompt is the whole thing.",
+    optional: "<strong>" + tierCounts.optional + " of 26</strong> work fine as prompts but get noticeably better with some infrastructure — a content library, image input, or a learner profile to draw from.",
+    required: "<strong>" + tierCounts.required + " of 26</strong> actually need agentic building blocks — MCP Tools, Resources, or Workflows — to do what they're supposed to do."
+  };
+
+  var barClass = filterTier !== null ? 'thirds-bar filtered' : 'thirds-bar';
+  var html = '<div class="insight-bar">' +
+    '<div class="insight-title">How many actually need agentic infrastructure?</div>' +
+    '<div class="' + barClass + '">';
+  ["none","optional","required"].forEach(function(t) {
+    html += '<div class="seg' + (filterTier===t?' active':'') + '" style="flex:' + tierCounts[t] + ';background:' + tierColors[t] + '" data-tier="' + t + '">' + tierCounts[t] + '</div>';
+  });
+  html += '</div><div class="thirds-legend">';
+  ["none","optional","required"].forEach(function(t) {
+    var active = filterTier === t;
+    var style = active ? 'background:'+tierColors[t]+';border-color:'+tierColors[t]+';color:#fff' : '';
+    html += '<button class="'+(active?'active':'')+'" data-tier="'+t+'" style="'+style+'"><span class="dot" style="background:'+tierColors[t]+'"></span>'+tierLabels[t]+'</button>';
+  });
+  html += '</div>';
+  var insight = filterTier ? tierDescs[filterTier] : 'It roughly splits into thirds. The pattern that jumped out: <strong>Constrain</strong> and <strong>Redirect</strong> bots almost never need agentic infrastructure. <strong>Adapt</strong> bots almost always do.';
+  html += '<div class="insight-text">' + insight + '</div>';
+  html += '<div style="text-align:center"><a class="blocks-info-link" onclick="showBlocksModal()"><i class="bi bi-info-circle" style="font-size:14px"></i> What counts as "agentic"?</a></div>';
+  html += '</div>';
+  el.innerHTML = html;
+
+  el.querySelectorAll('[data-tier]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var t = btn.getAttribute('data-tier');
+      filterTier = filterTier === t ? null : t;
+      selectedLetter = null;
+      render();
+    });
+  });
+}
+
+function buildDetailHTML(a) {
+  var cat = getCat(a.category);
+  var catColor = cc(a.category);
+  var tierColors = { none:"var(--tier-none)", optional:"var(--tier-optional)", required:"var(--tier-required)" };
+  var tierLabels = { none:"Just a prompt", optional:"Enhanced by infrastructure", required:"Needs agentic blocks" };
+
+  // Hover/tap definition popovers: wrap a name (or a chip) so it explains itself
+  function escA(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function defName(label, desc){ return '<span class="def" tabindex="0" data-def="' + escA(desc) + '">' + label + '</span>'; }
+  function defChip(label, desc){ return '<span class="chip def" tabindex="0" data-def="' + escA(desc) + '">' + label + '</span>'; }
+  var botSlug = (a.bot || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+  // Active infrastructure rows shown in full; everything "Not needed" folds into a row of chips
+  var blocksHtml = '<div class="blocks-checklist">';
+  var blocksNone = [];
+  BLOCK_KEYS.forEach(function(k) {
+    var status = a.blocks[k] || 'none';
+    if (status === 'none') { blocksNone.push(k); return; }
+    var icon = status === 'required' ? 'bi-check-lg' : 'bi-dash';
+    var label = status === 'required' ? 'Required' : 'Optional';
+    var detail = a.blockNotes[k] || '';
+    blocksHtml +=
+      '<div class="block-row">' +
+        '<div class="block-status ' + status + '"><i class="' + icon + '"></i></div>' +
+        '<div class="block-info">' +
+          '<div class="block-name">' + defName(BLOCKS[k].name, BLOCKS[k].desc) + ' <span style="font-weight:400;color:var(--ink-tertiary);font-size:12px">\u2014 ' + label + '</span></div>' +
+          (detail ? '<div class="block-detail">' + detail + '</div>' : '') +
+        '</div>' +
+      '</div>';
+  });
+  if (blocksNone.length) {
+    blocksHtml +=
+      '<div class="block-row folded">' +
+        '<div class="block-status none"><i class="bi-x"></i></div>' +
+        '<div class="block-info"><div class="folded-label">Not needed</div><div class="chip-row">' +
+          blocksNone.map(function(k){ return defChip(BLOCKS[k].name, BLOCKS[k].desc); }).join('') +
+        '</div></div>' +
+      '</div>';
+  }
+  blocksHtml += '</div>';
+
+  // Build capabilities HTML — always shown, mirroring the infrastructure checklist
+  var capNotes = a.capNotes || {};
+  var capsHtml = '<div class="detail-label" style="margin-top:1.25rem">Agentic capabilities (what it can do)</div><div class="blocks-checklist">';
+  var capsNone = [];
+  CAP_KEYS.forEach(function(k) {
+    var raw = a.caps ? a.caps[k] : null;
+    var status = raw === true ? 'required' : ((raw === false || raw == null) ? 'none' : raw);
+    if (status === 'none') { capsNone.push(k); return; }
+    var icon = status === 'required' ? 'bi-check-lg' : 'bi-dash';
+    var label = status === 'required' ? 'Used' : 'Could be used';
+    var detail = capNotes[k] || '';
+    capsHtml +=
+      '<div class="block-row">' +
+        '<div class="block-status ' + status + '"><i class="' + icon + '"></i></div>' +
+        '<div class="block-info">' +
+          '<div class="block-name"><i class="' + CAPS[k].icon + '" style="font-size:12px;margin-right:4px;color:var(--ink-tertiary)"></i>' + defName(CAPS[k].name, CAPS[k].desc) + ' <span style="font-weight:400;color:var(--ink-tertiary);font-size:12px">— ' + label + '</span></div>' +
+          (detail ? '<div class="block-detail">' + detail + '</div>' : '') +
+        '</div>' +
+      '</div>';
+  });
+  if (capsNone.length) {
+    capsHtml +=
+      '<div class="block-row folded">' +
+        '<div class="block-status none"><i class="bi-x"></i></div>' +
+        '<div class="block-info"><div class="folded-label">Not used</div><div class="chip-row">' +
+          capsNone.map(function(k){ return defChip(CAPS[k].name, CAPS[k].desc); }).join('') +
+        '</div></div>' +
+      '</div>';
+  }
+  capsHtml += '</div>';
+
+  return '<div class="detail-inner">' +
+    '<button class="detail-close" onclick="selectedLetter=null;render();"><i class="bi bi-x-lg"></i></button>' +
+    '<div class="detail-top">' +
+      '<div class="detail-letter-wrap" style="background:' + catColor + '">' +
+        '<div class="detail-letter">' + a.letter + '</div>' +
+      '</div>' +
+      '<div class="detail-meta">' +
+        '<div class="detail-title">' + a.name + '</div>' +
+        '<div class="detail-subtitle">' + a.subtitle + '</div>' +
+        '<div class="detail-badges">' +
+          '<span class="badge-ped" style="background:' + catColor + '"><i class="' + CAT_ICONS[a.category] + '" style="font-size:13px"></i> ' + cat.name + '</span>' +
+          '<span class="badge-agentic" style="background:' + tierColors[a.tier] + '">' + tierLabels[a.tier] + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="detail-body">' +
+      '<div class="detail-section">' +
+        '<div class="detail-label">The pedagogical move</div>' +
+        '<div class="detail-text">' + a.reasoning + '</div>' +
+        '<div class="detail-label" style="margin-top:1.25rem">Bot concept</div>' +
+        '<div class="bot-concept" style="background:var(--' + a.category + '-soft)">' +
+          '<div class="detail-text">' + a.botIdea + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="detail-section">' +
+        '<div class="detail-label">Agentic infrastructure (what you build with)</div>' +
+        blocksHtml +
+        capsHtml +
+        (a.graph ? '<button class="see-graph-btn" onclick="showGraphModal(\'' + a.letter + '\')"><i class="bi bi-diagram-3"></i> See how it works</button>' : '') +
+      '</div>' +
+    '</div>' +
+    (a.caution ? '<div class="caution-callout"><div class="caution-icon"><i class="bi bi-lightbulb"></i></div><div><div class="caution-label">Where AI could shortcut the learning</div><div class="caution-text">' + a.caution + '</div></div></div>' : '') +
+    '<div class="detail-footer">' +
+      '<a href="https://bot101.app/abcs?' + botSlug + '" target="_blank" rel="noopener">Try ' + a.bot + ' at bot101.app/abcs <i class="bi bi-box-arrow-up-right" style="font-size:12px"></i></a>' +
+    '</div>' +
+  '</div>';
+}
+
+function render() {
+  renderInsightBar();
+  var main = document.getElementById('mainContent');
+  main.innerHTML = '';
+
+  CATEGORIES.forEach(function(cat) {
+    var catColor = cc(cat.id);
+    var section = document.createElement('div');
+    section.className = 'category-section';
+
+    section.innerHTML =
+      '<div class="category-header">' +
+        '<div class="category-icon-wrap" style="background:var(--'+cat.id+'-soft);color:'+catColor+'"><i class="'+CAT_ICONS[cat.id]+'" style="font-size:20px"></i></div>' +
+        '<div class="category-name">' + cat.name + '</div>' +
+      '</div>' +
+      '<div class="category-desc">' + cat.desc + '</div>' +
+      '<div class="category-agentic-note">' + cat.agenticNote + '</div>';
+
+    var grid = document.createElement('div');
+    grid.className = 'category-grid';
+
+    cat.letters.forEach(function(l) {
+      var a = ABCS.find(function(x) { return x.letter === l; });
+      if (!a) return;
+      var isSelected = selectedLetter === a.letter;
+      var isDimmed = filterTier !== null && a.tier !== filterTier;
+      var tierColors = { none:"var(--tier-none)", optional:"var(--tier-optional)", required:"var(--tier-required)" };
+      var tierLabels = { none:"Prompt only", optional:"Enhanced", required:"Agentic" };
+
+      var card = document.createElement('div');
+      card.className = 'principle-card' + (isSelected ? ' selected' : '') + (isDimmed ? ' dimmed' : '');
+      if (isSelected) {
+        card.style.borderColor = catColor;
+        card.style.background = 'var(--' + a.category + '-soft)';
+        card.style.boxShadow = '0 0 0 1px ' + catColor;
+      }
+
+      var pips = '';
+      BLOCK_KEYS.forEach(function(k) {
+        if (a.blocks[k]) pips += '<span class="card-block-pip ' + a.blocks[k] + '">' + BLOCKS[k].name + '</span>';
+      });
+
+      card.innerHTML =
+        (a.caution ? '<div class="card-caution-dot" title="Where AI could shortcut the learning"></div>' : '') +
+        '<div class="card-top">' +
+          '<span class="card-letter" style="color:' + (isSelected ? catColor : 'var(--ink)') + '">' + a.letter + '</span>' +
+          '<span class="card-agentic-badge" style="background:' + tierColors[a.tier] + '">' + tierLabels[a.tier] + '</span>' +
+        '</div>' +
+        '<div class="card-name">' + a.name + '</div>' +
+        '<div class="card-subtitle">' + a.subtitle + '</div>' +
+        (pips ? '<div class="card-blocks">' + pips + '</div>' : '');
+
+      card.setAttribute('data-letter', a.letter);
+      card.onclick = function() {
+        if (isDimmed) return;
+        selectedLetter = selectedLetter === a.letter ? null : a.letter;
+        render();
+      };
+      grid.appendChild(card);
+    });
+
+    section.appendChild(grid);
+    main.appendChild(section);
+  });
+
+  // Insert the detail panel below the selected card's full row, then position arrow and scroll.
+  // Measuring layout first lets us drop the full-width panel after the row's last card instead
+  // of mid-row, so the surrounding cards don't reflow into different columns.
+  if (selectedLetter) {
+    var sel = ABCS.find(function(x) { return x.letter === selectedLetter; });
+    requestAnimationFrame(function() {
+      var card = document.querySelector('[data-letter="' + selectedLetter + '"]');
+      if (!card || !sel) return;
+      var grid = card.parentNode;
+
+      // Find the last card sharing the selected card's row (same offsetTop).
+      var rowTop = card.offsetTop;
+      var lastInRow = card;
+      grid.querySelectorAll('.principle-card').forEach(function(c) {
+        if (Math.abs(c.offsetTop - rowTop) < 2) lastInRow = c;
+      });
+
+      var detail = document.createElement('div');
+      detail.className = 'inline-detail';
+      detail.setAttribute('data-detail-for', selectedLetter);
+      detail.innerHTML = buildDetailHTML(sel);
+      grid.insertBefore(detail, lastInRow.nextSibling);
+
+      var cardRect = card.getBoundingClientRect();
+      var detailRect = detail.getBoundingClientRect();
+      var arrowLeft = (cardRect.left + cardRect.width / 2) - detailRect.left;
+      arrowLeft = Math.max(24, Math.min(arrowLeft, detailRect.width - 24));
+
+      var arrow = document.createElement('div');
+      arrow.className = 'detail-arrow';
+      arrow.style.left = arrowLeft + 'px';
+      detail.appendChild(arrow);
+
+      detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }
+}
+
+render();
+
+// Definition popover: one body-level element, positioned next to whatever [data-def] is hovered or focused.
+// Lives outside the detail panel so it isn't clipped by overflow:hidden, and uses delegation so it covers re-renders.
+(function() {
+  var pop = document.createElement('div');
+  pop.id = 'defPop';
+  document.body.appendChild(pop);
+  function show(el) {
+    var text = el.getAttribute('data-def');
+    if (!text) return;
+    pop.textContent = text;
+    pop.classList.add('show');
+    var r = el.getBoundingClientRect();
+    var pw = pop.offsetWidth, ph = pop.offsetHeight;
+    var left = Math.min(Math.max(8, r.left), window.innerWidth - pw - 8);
+    var top = r.top - ph - 8;
+    if (top < 8) top = r.bottom + 8;
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+  }
+  function hide() { pop.classList.remove('show'); }
+  document.addEventListener('mouseover', function(e) { var el = e.target.closest('[data-def]'); if (el) show(el); });
+  document.addEventListener('mouseout', function(e) { if (e.target.closest('[data-def]')) hide(); });
+  document.addEventListener('focusin', function(e) { var el = e.target.closest('[data-def]'); if (el) show(el); });
+  document.addEventListener('focusout', function(e) { if (e.target.closest('[data-def]')) hide(); });
+  window.addEventListener('scroll', hide, true);
+})();
+</script>
+</body>
+</html>
