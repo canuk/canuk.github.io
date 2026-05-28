@@ -486,7 +486,7 @@ var ABCS = [
         { id:"memory", label:"Wells that clicked", kind:"cap", cap:"memory", note:"Remember which source domains have clicked for this learner, and reach for those wells first" },
         { id:"selfeval", label:"Misconception check", kind:"cap", cap:"selfeval", note:"Before offering a lens, check it won’t import a misconception (infinity isn’t just ‘very big’)" }
       ],
-      edges:[ ["learner","annie"],["annie","profile"],["annie","memory"],["annie","selfeval"] ],
+      edges:[ ["learner","annie"],["annie","profile"],["annie","memory"],["annie","selfeval"],["memory","profile"] ],
       loop:[
         { node:"profile", label:"Read interests", text:"Looks at what this learner already knows well" },
         { node:"selfeval", label:"Pick a safe lens", text:"Chooses a source domain and checks it won’t import a misconception" },
@@ -522,7 +522,7 @@ var ABCS = [
         { id:"selfeval", label:"One-feature check", kind:"cap", cap:"selfeval", note:"Check the pair varies only the one feature that matters, holding the rest constant" },
         { id:"memory", label:"Distinctions nailed", kind:"cap", cap:"memory", note:"Remember which distinctions the learner has nailed, so it advances to finer ones" }
       ],
-      edges:[ ["learner","carl"],["carl","library"],["carl","selfeval"],["carl","memory"] ],
+      edges:[ ["learner","carl"],["carl","library"],["carl","selfeval"],["carl","memory"],["selfeval","library"] ],
       loop:[
         { node:"library", label:"Pull a pair", text:"Draws a validated near-miss case pair from the library" },
         { node:"selfeval", label:"Check the contrast", text:"Confirms the pair varies only the one feature that matters" },
@@ -546,7 +546,7 @@ var ABCS = [
         { id:"memory", label:"Mastery map", kind:"cap", cap:"memory", note:"Holds a per-sub-skill mastery map, so each session resumes at the exact edge of ability" },
         { id:"autonomy", label:"Picks next drill", kind:"cap", cap:"autonomous", note:"Picks the next drill at the edge of ability — the item the learner didn't ask for" }
       ],
-      edges:[ ["learner","dana"],["dana","bank"],["dana","history"],["dana","workflow"],["dana","memory"],["dana","autonomy"] ],
+      edges:[ ["learner","dana"],["dana","bank"],["dana","history"],["dana","workflow"],["dana","memory"],["dana","autonomy"],["memory","history"],["autonomy","bank"] ],
       loop:[
         { node:"history", label:"Assess weakness", text:"Reads the mastery map to find the weakest sub-skill" },
         { node:"bank", label:"Select drill", text:"Pulls a problem at the edge of ability from the bank" },
@@ -585,7 +585,7 @@ var ABCS = [
         { id:"selfeval", label:"Next-action check", kind:"cap", cap:"selfeval", note:"Before delivering, check the feedback gives a next action, not just a verdict" },
         { id:"memory", label:"What was advised", kind:"cap", cap:"memory", note:"Track what was already advised and what the learner did with it, so it never repeats" }
       ],
-      edges:[ ["learner","fran"],["fran","drafts"],["fran","rubrics"],["fran","workflow"],["fran","autonomy"],["fran","selfeval"],["fran","memory"] ],
+      edges:[ ["learner","fran"],["fran","drafts"],["fran","rubrics"],["fran","workflow"],["fran","autonomy"],["fran","selfeval"],["fran","memory"],["autonomy","rubrics"],["memory","drafts"] ],
       loop:[
         { node:"rubrics", label:"Assess work", text:"Reads the work against the rubric and exemplars" },
         { node:"autonomy", label:"Pick one layer", text:"Chooses the single dimension to surface next" },
@@ -612,7 +612,7 @@ var ABCS = [
         { id:"memory", label:"Recall history", kind:"cap", cap:"memory", note:"Hold per-item recall accuracy and timing; this history is the spacing schedule" },
         { id:"autonomy", label:"Resurfaces items", kind:"cap", cap:"autonomous", note:"Resurfaces items on its own schedule, not when the learner thinks to review" }
       ],
-      edges:[ ["learner","grace"],["grace","scheduler"],["grace","itembank"],["grace","workflow"],["grace","scheduling"],["grace","memory"],["grace","autonomy"] ],
+      edges:[ ["learner","grace"],["grace","scheduler"],["grace","itembank"],["grace","workflow"],["grace","scheduling"],["grace","memory"],["grace","autonomy"],["scheduling","scheduler"],["memory","itembank"],["autonomy","scheduler"] ],
       loop:[
         { node:"scheduler", label:"Deliver cue", text:"Resurfaces an item with part of the cue stripped away" },
         { node:"learner", label:"Recall attempt", text:"Asks the learner to produce the answer from the partial cue" },
@@ -636,7 +636,7 @@ var ABCS = [
         { id:"tooluse", label:"See the setup", kind:"cap", cap:"tooluse", note:"Use image input to check the learner’s physical setup" },
         { id:"memory", label:"Physical anchors", kind:"cap", cap:"memory", note:"Remember which physical anchors the learner has felt, so new abstractions hang on experiences they’ve actually had" }
       ],
-      edges:[ ["learner","hank"],["hank","image"],["hank","tooluse"],["hank","memory"] ],
+      edges:[ ["learner","hank"],["hank","image"],["hank","tooluse"],["hank","memory"],["tooluse","image"] ],
       loop:[
         { node:"learner", label:"Assign the experiment", text:"Sends the learner to feel a quick physical experiment with everyday objects" },
         { node:"tooluse", label:"See the setup", text:"Uses image input to check the learner’s physical setup" },
@@ -683,7 +683,7 @@ var ABCS = [
         { id:"autonomy", label:"Decides when to speak", kind:"cap", cap:"autonomous", note:"Decides the moment to speak, interjecting unprompted once the learner has struggled enough" },
         { id:"memory", label:"What was wrestled with", kind:"cap", cap:"memory", note:"Track what the learner has wrestled with across the arc, so readiness reflects more than this session" }
       ],
-      edges:[ ["learner","jane"],["jane","readiness"],["jane","workflow"],["jane","autonomy"],["jane","memory"] ],
+      edges:[ ["learner","jane"],["jane","readiness"],["jane","workflow"],["jane","autonomy"],["jane","memory"],["autonomy","readiness"],["memory","readiness"] ],
       loop:[
         { node:"readiness", label:"Monitor", text:"Watches the learner’s attempt and reads readiness indicators" },
         { node:"autonomy", label:"Assess readiness", text:"Judges whether the learner has struggled enough yet" },
@@ -706,7 +706,7 @@ var ABCS = [
         { id:"selfeval", label:"Genuine-attempt check", kind:"cap", cap:"selfeval", note:"Before revealing the standard solution, check the learner’s attempt was genuine enough to contrast" },
         { id:"memory", label:"Own inventions", kind:"cap", cap:"memory", note:"Remember the solutions this learner has invented, so later topics call back to their own" }
       ],
-      edges:[ ["learner","keeper"],["keeper","library"],["keeper","workflow"],["keeper","selfeval"],["keeper","memory"] ],
+      edges:[ ["learner","keeper"],["keeper","library"],["keeper","workflow"],["keeper","selfeval"],["keeper","memory"],["selfeval","library"] ],
       loop:[
         { node:"library", label:"Pose the task", text:"Hands over a problem the textbook method would trivialize" },
         { node:"learner", label:"Learner attempts", text:"Lets the learner invent and test their own rough solution" },
@@ -742,7 +742,7 @@ var ABCS = [
         { id:"tooluse", label:"See the work", kind:"cap", cap:"tooluse", note:"Use image input to see the work-in-progress" },
         { id:"memory", label:"Project across iterations", kind:"cap", cap:"memory", note:"Track the project across iterations, so it can ask ‘last time you tried X, what changed?’ and grow the maker’s interest" }
       ],
-      edges:[ ["learner","max"],["max","image"],["max","tooluse"],["max","memory"] ],
+      edges:[ ["learner","max"],["max","image"],["max","tooluse"],["max","memory"],["tooluse","image"] ],
       loop:[
         { node:"tooluse", label:"See the build", text:"Uses image input to see the work-in-progress" },
         { node:"learner", label:"Ask about choices", text:"Asks about design choices rather than suggesting fixes" },
@@ -792,7 +792,7 @@ var ABCS = [
         { id:"autonomy", label:"Initiates the handoff", kind:"cap", cap:"autonomous", note:"Decides when to hand off the next piece, initiating the transfer rather than waiting" },
         { id:"memory", label:"Parts owned", kind:"cap", cap:"memory", note:"Track exactly which parts the learner now owns, so support fades precisely and never snaps back" }
       ],
-      edges:[ ["learner","pat"],["pat","owned"],["pat","workflow"],["pat","autonomy"],["pat","memory"] ],
+      edges:[ ["learner","pat"],["pat","owned"],["pat","workflow"],["pat","autonomy"],["pat","memory"],["autonomy","owned"],["memory","owned"] ],
       loop:[
         { node:"owned", label:"Assess readiness", text:"Reads which parts the learner already owns" },
         { node:"autonomy", label:"Transfer a piece", text:"Hands off the next responsibility unprompted" },
@@ -832,7 +832,7 @@ var ABCS = [
         { id:"autonomy", label:"Raises the bar", kind:"cap", cap:"autonomous", note:"Decides when to raise the criterion, moving the goalposts unprompted as the learner improves" },
         { id:"memory", label:"Place on the ladder", kind:"cap", cap:"memory", note:"Hold where the learner sits on the shaping ladder, so it reinforces the next step up, never one already mastered" }
       ],
-      edges:[ ["learner","remy"],["remy","tracker"],["remy","history"],["remy","workflow"],["remy","autonomy"],["remy","memory"] ],
+      edges:[ ["learner","remy"],["remy","tracker"],["remy","history"],["remy","workflow"],["remy","autonomy"],["remy","memory"],["autonomy","history"],["memory","history"] ],
       loop:[
         { node:"tracker", label:"Reinforce", text:"Reinforces the learner clearing the current step" },
         { node:"history", label:"Check mastery", text:"Reads performance history to see if the step is solid" },
@@ -883,7 +883,7 @@ var ABCS = [
         { id:"selfeval", label:"Replaced, not masked", kind:"cap", cap:"selfeval", note:"After teaching the counter-model, check it replaced the misconception instead of masking it" },
         { id:"memory", label:"Faulty models resurface", kind:"cap", cap:"memory", note:"Remember which misconceptions this learner has shown, since faulty models resurface, and watch for the old one creeping back" }
       ],
-      edges:[ ["learner","uma"],["uma","bank"],["uma","workflow"],["uma","selfeval"],["uma","memory"] ],
+      edges:[ ["learner","uma"],["uma","bank"],["uma","workflow"],["uma","selfeval"],["uma","memory"],["selfeval","bank"],["memory","bank"] ],
       loop:[
         { node:"bank", label:"Probe", text:"Pulls a diagnostic item engineered to expose the misconception" },
         { node:"learner", label:"Infer the rule", text:"Infers the faulty rule the learner is running" },
@@ -907,7 +907,7 @@ var ABCS = [
         { id:"tooluse", label:"Generate the map", kind:"cap", cap:"tooluse", note:"Generate the diagram or concept map from the learner’s description" },
         { id:"loops", label:"Regenerate mismatch", kind:"cap", cap:"loops", note:"Generate a map, check it matches the description, regenerate the mismatched parts before showing it" }
       ],
-      edges:[ ["learner","viv"],["viv","diagram"],["viv","tooluse"],["viv","loops"] ],
+      edges:[ ["learner","viv"],["viv","diagram"],["viv","tooluse"],["viv","loops"],["tooluse","diagram"],["loops","diagram"] ],
       loop:[
         { node:"learner", label:"Describe relationships", text:"Asks the learner to describe how the ideas relate" },
         { node:"tooluse", label:"Generate the map", text:"Produces a visual map from the learner’s words" },
@@ -931,7 +931,7 @@ var ABCS = [
         { id:"autonomy", label:"Decides the fade", kind:"cap", cap:"autonomous", note:"Could decide how many steps to fade next from the learner’s responses" },
         { id:"memory", label:"Fade level across sessions", kind:"cap", cap:"memory", note:"Track mastery so fading resumes at the right level across sessions, not fully worked again" }
       ],
-      edges:[ ["learner","will"],["will","mastery"],["will","workflow"],["will","autonomy"],["will","memory"] ],
+      edges:[ ["learner","will"],["will","mastery"],["will","workflow"],["will","autonomy"],["will","memory"],["autonomy","mastery"],["memory","mastery"] ],
       loop:[
         { node:"mastery", label:"Assess mastery", text:"Reads the mastery level to calibrate fading" },
         { node:"autonomy", label:"Determine the fade", text:"Decides how many steps to fade for this learner" },
@@ -955,7 +955,7 @@ var ABCS = [
         { id:"autonomy", label:"Drops a surprise", kind:"cap", cap:"autonomous", note:"Could decide when to drop a surprise for effect" },
         { id:"memory", label:"Arousal calibration", kind:"cap", cap:"memory", note:"Remember what energized this learner and what tipped into anxiety, so it calibrates arousal to them" }
       ],
-      edges:[ ["learner","xena"],["xena","templates"],["xena","scheduling"],["xena","autonomy"],["xena","memory"] ],
+      edges:[ ["learner","xena"],["xena","templates"],["xena","scheduling"],["xena","autonomy"],["xena","memory"],["autonomy","templates"] ],
       loop:[
         { node:"scheduling", label:"Watch arousal", text:"Times the session and notices when arousal dips" },
         { node:"autonomy", label:"Drop the jolt", text:"Decides when to drop a surprise or call an energizer break" },
@@ -978,7 +978,7 @@ var ABCS = [
         { id:"loops", label:"Recalibrate challenge", kind:"cap", cap:"loops", note:"Generate a challenge, check it’s hard enough to matter yet achievable, recalibrate before serving" },
         { id:"memory", label:"Hard-won successes", kind:"cap", cap:"memory", note:"Remember the learner’s hard-won successes and the strategies they named, to point back: ‘you cracked something this tough before’" }
       ],
-      edges:[ ["learner","yara"],["yara","history"],["yara","loops"],["yara","memory"] ],
+      edges:[ ["learner","yara"],["yara","history"],["yara","loops"],["yara","memory"],["loops","history"],["memory","history"] ],
       loop:[
         { node:"history", label:"Read the zone", text:"Reads performance history to find the productive difficulty" },
         { node:"loops", label:"Calibrate the challenge", text:"Tunes a task hard enough to matter yet achievable before serving" },
@@ -1001,7 +1001,7 @@ var ABCS = [
         { id:"scheduling", label:"Pre-sleep review", kind:"cap", cap:"scheduling", note:"Could schedule a light review right before bed, when consolidation does its work" },
         { id:"memory", label:"What was studied", kind:"cap", cap:"memory", note:"Remember what the learner studied today, so it can prompt that pre-sleep review" }
       ],
-      edges:[ ["learner","zoe"],["zoe","nudge"],["zoe","scheduling"],["zoe","memory"] ],
+      edges:[ ["learner","zoe"],["zoe","nudge"],["zoe","scheduling"],["zoe","memory"],["scheduling","nudge"] ],
       loop:[
         { node:"memory", label:"Spot the limit", text:"Notices diminishing returns from what the learner studied today" },
         { node:"scheduling", label:"Time the review", text:"Schedules a light review for right before sleep" },
@@ -1205,6 +1205,7 @@ function renderGraphFooter(a, byId){
 function startGraphPlay(a, byId){
   pauseGraphPlay();
   var steps = a.graph.loop;
+  var hub = (a.graph.nodes.filter(function(n){ return n.kind === 'agent'; })[0] || {}).id;
   var info = document.getElementById('graphInfo');
   var counter = document.getElementById('graphStepCounter');
   document.getElementById('graphRestartBtn').style.display = '';
@@ -1218,7 +1219,13 @@ function startGraphPlay(a, byId){
       '<div class="ginfo-name">' + s.label + '</div>' +
       '<div class="ginfo-note">' + s.text + '</div>';
     counter.textContent = (idx + 1) + ' / ' + steps.length;
-    if(idx > 0){ pulseEdge(byId[steps[idx - 1].node], byId[s.node]); }
+    if(idx > 0){
+      var from = steps[idx - 1].node, to = s.node;
+      var path = [from];
+      if(hub && from !== hub && to !== hub){ path.push(hub); }
+      path.push(to);
+      pulsePath(path.map(function(id){ return byId[id]; }));
+    }
   }
   var i = 0;
   show(0);
@@ -1228,12 +1235,21 @@ function startGraphPlay(a, byId){
   }, 2200);
 }
 
-function pulseEdge(from, to){
-  if(!from || !to || !GRAPH_SIM || !GRAPH_SIM._svg) return;
+function pulsePath(pts){
+  pts = pts.filter(Boolean);
+  if(pts.length < 2 || !GRAPH_SIM || !GRAPH_SIM._svg) return;
+  var legMs = 700 / (pts.length - 1);
   var c = GRAPH_SIM._svg.append('circle').attr('class','gpulse').attr('r', 5)
-    .attr('cx', from.x).attr('cy', from.y);
-  c.transition().duration(700).attr('cx', to.x).attr('cy', to.y)
-    .on('end', function(){ c.remove(); });
+    .attr('cx', pts[0].x).attr('cy', pts[0].y);
+  var leg = 0;
+  function next(){
+    leg++;
+    if(leg >= pts.length){ c.remove(); return; }
+    c.transition().duration(legMs).ease(d3.easeLinear)
+      .attr('cx', pts[leg].x).attr('cy', pts[leg].y)
+      .on('end', next);
+  }
+  next();
 }
 
 function renderInsightBar() {
