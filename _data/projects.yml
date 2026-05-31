@@ -9,6 +9,20 @@
 # it anywhere in this file. Position in the file doesn't matter — sorting is
 # by `featured` then `date`.
 
+- slug: note-reader
+  title: Note Reader
+  description: "A music-reading app for a choir and guitar teacher's students: tap any note to hear and name it, drill the staff with an 88-key piano or guitar fretboard reveal, and build melodies you can share by link. Vanilla JS, offline-first PWA, runs on school Chromebooks with the wifi off."
+  date: 2026-05-31
+  thumb: note-reader-thumb.webp
+  badges:
+    - { color: "#F7DF1E", icon: "bi-filetype-js", text: "Vanilla JS", text_dark: true }
+    - { color: "#7952B3", icon: "bi-bootstrap-fill", text: "Bootstrap" }
+    - { color: "#16223F", icon: "bi-music-note-beamed", text: "VexFlow" }
+    - { color: "#198754", icon: "bi-wifi-off", text: "Offline PWA" }
+  buttons:
+    - { url: "/projects/note-reader/", icon: "bi-journal-code", label: "Build Notes" }
+    - { url: "https://note-reader.web.app", icon: "bi-box-arrow-up-right", label: "Visit Site", primary: true, target: "_blank" }
+
 - slug: ididfive
   title: I Did Five
   description: "A private journal that asks for five lines a day and nothing else. Started on the web, rebuilt native for iPhone with SwiftUI, SwiftData, and CloudKit. Local-first, optional iCloud sync, no account."
