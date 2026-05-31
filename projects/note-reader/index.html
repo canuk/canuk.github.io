@@ -31,6 +31,8 @@ description: "Note Reader is an offline-first PWA for learning to read music: ta
         <li><a href="#click-to-place">Click-to-place notation</a></li>
         <li><a href="#glyphs">Sizing music glyphs</a></li>
         <li><a href="#guitar-octave">The guitar octave that broke the fretboard</a></li>
+        <li><a href="#library">A library of 45, and the bugs the audit caught</a></li>
+        <li><a href="#show-position">Showing where to play each note</a></li>
         <li><a href="#links">Links</a></li>
       </ol>
     </nav>
@@ -115,6 +117,36 @@ description: "Note Reader is an offline-first PWA for learning to read music: ta
       </div>
 
       <p>The keyboard had its own orientation problem. Showing all 88 keys is too small on a phone, so it shows a window around the drilled notes, and a window of white and black keys with no labels gives you nothing to anchor on. Labeling every C cluttered it, so only middle C is marked, with a faint tint and a "Middle C" label under it. From there you can count.</p>
+    </section>
+
+    <!-- Library -->
+    <section id="library" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-collection-fill text-primary me-2"></i>A library of 45, and the bugs the audit caught</h2>
+
+      <p>The library started with eight songs. The teacher wanted a real progression, so I expanded it to 45 public-domain melodies across three tiers: Easy (stepwise tunes in a small range, quarter and half notes), Intermediate (eighths, dotted rhythms, wider leaps), and Advanced (accidentals, minor keys, classical themes from Bach, Vivaldi, and Bizet). Fifteen per tier, single-line treble, the same JSON shape every other piece uses, with a <code>level</code> field for grouping.</p>
+
+      <p>Transcribing 45 melodies by hand is where errors hide, so I wrote a script that rendered every song offscreen and checked two things: that it drew without throwing, and that each measure's note durations summed to its time signature. The audit earned its keep on the first run.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-exclamation-octagon-fill me-2"></i>Every accidental was silently wrong</h6>
+        <p class="mb-0">I had written sharps and flats as <code>fs/4</code> and <code>bf/4</code>. VexFlow wants <code>f#/4</code> and <code>bb/4</code>, and it threw <code>Invalid key name: FS</code> on every song that used one. About a dozen of the intermediate and advanced songs failed to render until a one-line search-and-replace fixed the notation across the file.</p>
+      </div>
+
+      <p>The second check flagged 16 songs whose beats didn't divide into clean bars. Some were real pickup tunes, where a melody starts on an upbeat and my naive bar-splitter mis-divided everything after it. Others were my own miscounts, a measure with five beats in a four-four song. I reworked all 16 so every bar fills exactly, favoring a complete, readable measure over note-for-note fidelity to a particular recording. A few advanced themes came out simpler than their concert versions, which suits a tool a beginner reads from. The re-run came back clean: 45 songs, 15 per tier, zero render failures, zero short bars.</p>
+    </section>
+
+    <!-- Show position -->
+    <section id="show-position" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-pin-map-fill text-danger me-2"></i>Showing where to play each note</h2>
+
+      <p>Reading a note's name is one skill. Finding it on your instrument is another, and a student learning guitar or piano has to connect the two. So the player grew a "Show position" toggle. Turn it on and a diagram appears under the staff: a piano keyboard, or a guitar fretboard, depending on which instrument is selected. As a song plays, the diagram lights up where each note is played. Tap a single note and it shows that one spot.</p>
+
+      <p>The drills already had an 88-key piano and a horizontal fretboard, so the player reuses both modules instead of growing its own. Guitar shows the first-position fingering only, frets zero to four or an open string, which is what a beginner is taught to read first. The octave transposition I had fought through earlier paid off here: tap C on the staff and the fretboard marks the A string at the third fret, the spot that sounds a written C on a guitar.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-toggles me-2"></i>Off by default, separate from note names</h6>
+        <p class="mb-0">The staff stays clean unless a student asks for help. "Show position" and the existing "Show names while playing" are independent switches, both off to start, so you turn on the one aid you want. Building it into the shared player meant it showed up in the song library and the composition builder's Play mode from the same code.</p>
+      </div>
     </section>
 
     <!-- Links -->

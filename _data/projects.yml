@@ -11,7 +11,7 @@
 
 - slug: note-reader
   title: Note Reader
-  description: "A music-reading app for a choir and guitar teacher's students: tap any note to hear and name it, drill the staff with an 88-key piano or guitar fretboard reveal, and build melodies you can share by link. Vanilla JS, offline-first PWA, runs on school Chromebooks with the wifi off."
+  description: "A music-reading app for a choir and guitar teacher's students: a 45-song library across three levels, drills that reveal each note on an 88-key piano or guitar fretboard, and a builder for melodies you can share by link. Tap any note to hear it, name it, and see where to play it. Vanilla JS, offline-first PWA, runs on school Chromebooks with the wifi off."
   date: 2026-05-31
   thumb: note-reader-thumb.webp
   badges:
@@ -118,7 +118,8 @@
     - { color: "#000000", icon: "bi-smartwatch", text: "watchOS" }
   buttons:
     - { url: "/projects/aviatorwatch/", icon: "bi-journal-code", label: "Build Notes" }
-    - { url: "https://aviatorwatch.app", icon: "bi-box-arrow-up-right", label: "Visit Site", primary: true, target: "_blank" }
+    - { url: "https://aviatorwatch.app", icon: "bi-box-arrow-up-right", label: "Visit Site", target: "_blank" }
+    - { url: "https://apps.apple.com/us/app/aviatorwatch/id6754518858?platform=watch", icon: "bi-apple", label: "App Store", primary: true, target: "_blank" }
 
 - slug: efface
   title: Efface
