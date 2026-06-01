@@ -9,7 +9,6 @@
 <meta name="created" content="2026-05-26">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -300,8 +299,7 @@ body { font-family: 'DM Sans', sans-serif; color: var(--ink); background: var(--
 .graph-title { font-family: 'DM Serif Display', serif; font-size: 1.35rem; color: var(--ink); line-height: 1.1; }
 .graph-subtitle { font-size: 0.82rem; color: var(--ink-tertiary); }
 .graph-modal-body { flex: 1; display: flex; min-height: 0; }
-.graph-canvas { flex: 1 1 70%; min-width: 0; position: relative; }
-.graph-svg { width: 100%; height: 100%; display: block; }
+.graph-canvas { flex: 1 1 70%; min-width: 0; position: relative; display: flex; flex-direction: column; }
 .graph-info {
   flex: 0 0 32%; max-width: 340px; border-left: 1px solid var(--border-light);
   padding: 1.4rem; overflow-y: auto;
@@ -310,15 +308,96 @@ body { font-family: 'DM Sans', sans-serif; color: var(--ink); background: var(--
   padding: 0.9rem 1.6rem; border-top: 1px solid var(--border-light);
   display: flex; align-items: center; gap: 1rem;
 }
-.glink { stroke: #cfc9c2; stroke-width: 1.5; }
-.gnode { cursor: pointer; }
-.gnode-label {
-  font: 600 11px 'DM Sans', sans-serif; fill: var(--ink); pointer-events: none;
-  paint-order: stroke; stroke: var(--surface-card); stroke-width: 3px;
-}
-.gcircle { transition: filter 0.2s ease, stroke-width 0.2s ease; stroke: transparent; stroke-width: 0; }
-.gnode.active-node .gcircle { stroke: #fff; stroke-width: 2.5px; filter: drop-shadow(0 0 7px rgba(192,132,151,0.9)); }
+/* Console diagram: learner | agent (+ loop track) | infrastructure rack */
+.console { position: relative; display: flex; height: 100%; padding: 1.4rem 1.2rem; }
+.console-col { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.console-col-learner { flex: 0 0 20%; align-items: center; }
+.console-col-agent { flex: 1 1 auto; align-items: center; justify-content: center; padding: 0 1.4rem; }
+.console-col-rack { flex: 0 0 40%; }
+.console-col > *, .console-rack { position: relative; z-index: 1; }
+.console-wires { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.console-wire { stroke: #d8d3cc; stroke-width: 1.5; }
+.console-wire-main { stroke: var(--ink-tertiary); stroke-width: 2; opacity: 0.55; }
+.console-wire-loop { fill: none; stroke: var(--ink-tertiary); stroke-width: 1.5; opacity: 0.35; stroke-dasharray: 3 3; }
 .gpulse { fill: var(--tier-required); }
+
+.console-learner {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 14px; border-radius: 14px; cursor: pointer; min-width: 88px;
+  background: var(--redirect-soft); border: 1.5px solid transparent; transition: box-shadow 0.2s;
+}
+.console-figicon { font-size: 26px; color: var(--redirect); }
+.console-figlabel { font-size: 12px; font-weight: 600; color: var(--ink); text-align: center; }
+.console-learner.active { box-shadow: 0 0 0 3px rgba(107,165,201,0.45); }
+
+.console-agent {
+  width: 100%; max-width: 340px; border-radius: 16px; cursor: pointer; overflow: hidden;
+  background: var(--surface-card); border: 1.5px solid var(--border-light);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06); transition: box-shadow 0.2s;
+}
+.console-agent.active { box-shadow: 0 0 0 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.12); }
+.console-agent-head { padding: 9px 14px; display: flex; align-items: center; gap: 8px; }
+.console-agent-name { font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: #fff; line-height: 1.1; }
+.console-agent-body { padding: 16px 14px 14px; }
+.console-track { display: flex; align-items: center; justify-content: center; }
+.console-step {
+  width: 30px; height: 30px; border-radius: 50%; flex: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600; color: var(--ink-secondary);
+  background: var(--surface); border: 1.5px solid var(--border-light); transition: transform 0.2s;
+}
+.console-step.active { transform: scale(1.12); }
+.console-steplink { width: 20px; height: 2px; background: var(--border-light); flex: none; }
+.console-loopcap { margin-top: 10px; font-size: 11px; color: var(--ink-tertiary); text-align: center; letter-spacing: 0.02em; }
+.console-singleturn { font-size: 12px; color: var(--ink-tertiary); font-style: italic; text-align: center; line-height: 1.5; }
+
+.console-rack { display: flex; flex-direction: column; gap: 13px; }
+.console-rackgroup { display: flex; flex-direction: column; gap: 6px; }
+.console-rackhead { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-tertiary); }
+.console-row {
+  display: flex; align-items: center; gap: 9px; padding: 8px 11px; border-radius: 10px;
+  cursor: pointer; font-size: 12.5px; color: var(--ink); border: 1.5px solid transparent;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.console-rowicon { font-size: 14px; flex: none; }
+.console-rowname { font-weight: 500; line-height: 1.25; }
+.console-rowtag { margin-left: auto; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; opacity: 0.7; }
+.console-row.block.required { background: rgba(90,143,99,0.12); border-color: var(--graph-block); }
+.console-row.block.optional { border-color: rgba(90,143,99,0.45); border-style: dashed; color: var(--ink-secondary); }
+.console-row.block .console-rowicon { color: var(--graph-block); }
+.console-row.cap.required { background: var(--tier-required-soft); border-color: var(--tier-required); }
+.console-row.cap.optional { border-color: rgba(192,132,151,0.45); border-style: dashed; color: var(--ink-secondary); }
+.console-row.cap .console-rowicon { color: var(--tier-required); }
+.console-row.active { box-shadow: 0 0 0 3px rgba(192,132,151,0.32); transform: translateX(-2px); }
+.console-rackempty { font-size: 12px; color: var(--ink-tertiary); font-style: italic; line-height: 1.5; }
+
+/* Bot ⇄ Agent toggle + stage */
+.scene-toggle { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 12px 14px 4px; flex: 0 0 auto; }
+.scene-toggle-q { font-size: 13px; color: var(--ink-tertiary); }
+.scene-tab {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  padding: 6px 15px; border-radius: 999px; border: 1.5px solid var(--border-light);
+  background: var(--surface-card); color: var(--ink-secondary); transition: all 0.2s;
+}
+.scene-tab:hover { border-color: rgba(0,0,0,0.2); }
+.scene-tab.active { color: #fff; border-color: transparent; }
+.scene-tab[data-view="bot"].active { background: var(--redirect); }
+.scene-tab[data-view="agent"].active { background: var(--tier-required); }
+.scene-stage { position: relative; flex: 1 1 auto; min-height: 0; }
+
+/* Bot view: the AI box + the encircling "you are the loop" arc */
+.console-ai-aim { font-size: 12.5px; font-weight: 600; color: var(--ink-secondary); text-align: center; }
+.console-ai-aimline { font-size: 11.5px; color: var(--ink-tertiary); text-align: center; margin-top: 3px; font-style: italic; }
+.console-botloop { fill: none; stroke: var(--redirect); stroke-width: 2; opacity: 0.75; }
+.console-botloop-arrow { fill: var(--redirect); opacity: 0.85; }
+.console-botloop-label { fill: var(--redirect); font: 600 11px 'DM Sans', sans-serif; }
+
+/* Agent view: empty-loop state for prompt-only bots */
+.console-emptyloop {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  font-size: 12px; color: var(--ink-tertiary); font-style: italic; line-height: 1.5; padding: 4px 6px;
+}
 .ginfo-kind { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-tertiary); margin-bottom: 6px; }
 .ginfo-name { font-family: 'DM Serif Display', serif; font-size: 1.15rem; color: var(--ink); margin-bottom: 8px; }
 .ginfo-note { font-size: 0.9rem; line-height: 1.6; color: var(--ink-secondary); }
@@ -343,6 +422,13 @@ body { font-family: 'DM Sans', sans-serif; color: var(--ink); background: var(--
     border-left: none; border-top: 1px solid var(--border-light);
   }
   .graph-modal-backdrop { padding: 0; }
+  .graph-canvas { overflow-y: auto; }
+  .scene-stage { flex: 0 0 auto; }
+  .console { flex-direction: column; padding: 1rem; height: auto; min-height: 100%; }
+  .console-col { flex: 0 0 auto; width: 100%; align-items: center; }
+  .console-col-agent { padding: 6px 0; }
+  .console-agent { max-width: 420px; }
+  .console-rack { width: 100%; max-width: 420px; }
 }
 .modal-intro { font-size: 0.95rem; color: var(--ink-secondary); line-height: 1.7; margin-bottom: 1.5rem; }
 .block-def {
@@ -815,7 +901,7 @@ var ABCS = [
       edges:[ ["learner","quinn"],["quinn","memory"] ]
     },
     reasoning:"Question-driven learning hangs everything on a question the learner actually wants answered: 'how is noise pollution affecting the wildlife near our school?' The pull of the question builds curiosity, purpose, and connected memory. The AI is constrained to protect the inquiry: it helps shape an answerable driving question and map what the learner needs to find out, without collapsing the whole thing by handing over the answer.",
-    caution:"The move dies the moment the AI answers the driving question. Its job is to keep the question open and the learner hunting.",
+    caution:"The move dies the moment the AI answers the driving question. Its job is to keep the question open and the learner curious.",
     botIdea:"An inquiry coach that turns a vague interest into a driving question, then helps the learner split it into what they already know, what they still need, and how they'd find it. It hands the investigation back rather than resolving it." },
   { letter:"R", name:"Reward", bot:"Reward Remy", subtitle:"Motivating behavior", category:"adapt", tier:"required",
     blocks:{skill:null,tool:"required",resource:"required",prompt:null,workflow:"required"},
@@ -1070,7 +1156,7 @@ function closeModal() {
   document.getElementById('modalContainer').innerHTML = '';
   document.body.style.overflow = '';
 }
-var GRAPH_SIM = null, GRAPH_PLAY = null;
+var GRAPH_STATE = null, GRAPH_PLAY = null;
 function cvar(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 
 function showGraphModal(letter){
@@ -1099,157 +1185,391 @@ function showGraphModal(letter){
       '</div>' +
     '</div>';
   document.body.style.overflow = 'hidden';
-  buildGraphSim(a, catColor);
+  buildGraphScene(a, catColor);
 }
 
 function closeGraphModal(){
   if(GRAPH_PLAY){ clearInterval(GRAPH_PLAY); GRAPH_PLAY = null; }
-  if(GRAPH_SIM){ GRAPH_SIM.stop(); GRAPH_SIM = null; }
+  if(GRAPH_STATE && GRAPH_STATE.resize){ window.removeEventListener('resize', GRAPH_STATE.resize); }
+  GRAPH_STATE = null;
   document.getElementById('modalContainer').innerHTML = '';
   document.body.style.overflow = '';
 }
 
-function nodeRadius(n, small){
-  if(n.kind === 'agent') return small ? 34 : 46;
-  if(n.kind === 'cap')   return small ? 18 : 24;
-  return small ? 24 : 30;
+var SVGNS = 'http://www.w3.org/2000/svg';
+function consoleNodeIcon(node){
+  if(node.kind === 'block') return (BLOCKS[node.block] || {}).icon || 'bi-box';
+  if(node.kind === 'cap')   return (CAPS[node.cap] || {}).icon || 'bi-stars';
+  return '';
 }
-function nodeColor(n, catColor){
-  if(n.kind === 'agent')   return catColor;
-  if(n.kind === 'learner') return cvar('--redirect');
-  if(n.kind === 'cap')     return cvar('--tier-required');
-  return cvar('--graph-block');
+function consoleNodeStatus(a, node){
+  if(node.kind === 'block') return a.blocks[node.block] || 'optional';
+  if(node.kind === 'cap'){
+    var raw = a.caps ? a.caps[node.cap] : null;
+    return raw === true ? 'required' : (raw || 'optional');
+  }
+  return null;
 }
 
-function buildGraphSim(a, catColor){
+// The diagram has two views behind a Bot⇄Agent toggle. The only thing that changes between them
+// is WHERE THE LOOP LIVES: with the learner (bot — you drive every turn) or inside the system
+// (agent — it runs its own loop). Flipping the toggle reveals whether a given bot can even hand
+// the loop off, which is the whole "is this really agentic?" question.
+function buildGraphScene(a, catColor){
   var canvas = document.getElementById('graphCanvas');
-  var w = canvas.clientWidth, h = canvas.clientHeight;
-  var small = window.innerWidth < 720;
-  var nodes = a.graph.nodes.map(function(n){ var c = {}; for(var k in n) c[k] = n[k]; return c; });
-  var byId = {}; nodes.forEach(function(n){ byId[n.id] = n; });
-  var links = a.graph.edges.map(function(e){ return { source:e[0], target:e[1] }; });
+  canvas.innerHTML =
+    '<div class="scene-toggle">' +
+      '<span class="scene-toggle-q">Is this really a&nbsp;</span>' +
+      '<button class="scene-tab" data-view="bot"><i class="bi bi-chat-dots"></i> bot</button>' +
+      '<button class="scene-tab" data-view="agent"><i class="bi bi-cpu"></i> agent</button>' +
+      '<span class="scene-toggle-q">&nbsp;?</span>' +
+    '</div>' +
+    '<div class="scene-stage" id="sceneStage"></div>';
+  GRAPH_STATE = { a:a, catColor:catColor, view:null, canvas:canvas, stage:document.getElementById('sceneStage') };
+  canvas.querySelectorAll('.scene-tab').forEach(function(btn){
+    btn.addEventListener('click', function(){ setGraphView(btn.getAttribute('data-view')); });
+  });
+  GRAPH_STATE.resize = function(){ if(GRAPH_STATE && GRAPH_STATE.drawWires) GRAPH_STATE.drawWires(); };
+  window.addEventListener('resize', GRAPH_STATE.resize);
+  setGraphView('bot');
+}
 
-  var svg = d3.select(canvas).append('svg').attr('class','graph-svg').attr('width', w).attr('height', h);
-  var linkSel = svg.append('g').selectAll('line').data(links).enter().append('line').attr('class','glink');
-  var nodeSel = svg.append('g').selectAll('g.gnode').data(nodes).enter().append('g').attr('class','gnode')
-    .on('click', function(ev, d){ ev.stopPropagation(); pauseGraphPlay(); selectGraphNode(d); })
-    .call(d3.drag()
-      .on('start', function(ev, d){ if(!ev.active) GRAPH_SIM.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-      .on('drag',  function(ev, d){ d.fx = ev.x; d.fy = ev.y; })
-      .on('end',   function(ev, d){ if(!ev.active) GRAPH_SIM.alphaTarget(0); if(d.kind !== 'agent'){ d.fx = null; d.fy = null; } }));
-  nodeSel.append('circle').attr('class','gcircle')
-    .attr('r', function(d){ return nodeRadius(d, small); })
-    .attr('fill', function(d){ return nodeColor(d, catColor); });
-  nodeSel.append('text').attr('class','gnode-label').attr('text-anchor','middle')
-    .attr('y', function(d){ return nodeRadius(d, small) + 14; })
-    .text(function(d){ return d.label; });
+function setGraphView(view){
+  if(!GRAPH_STATE) return;
+  pauseGraphPlay();
+  GRAPH_STATE.view = view;
+  GRAPH_STATE.canvas.querySelectorAll('.scene-tab').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view') === view); });
+  if(view === 'bot') renderBotView(); else renderAgentView();
+}
 
-  var agent = nodes.find(function(n){ return n.kind === 'agent'; });
-  if(agent){ agent.fx = w/2; agent.fy = h/2; }
+// Fresh console wrap + wires svg in the stage; resets per-view element maps.
+function makeStageWrap(){
+  var stage = GRAPH_STATE.stage; stage.innerHTML = '';
+  var wrap = document.createElement('div'); wrap.className = 'console';
+  var svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'console-wires');
+  wrap.appendChild(svg); stage.appendChild(wrap);
+  GRAPH_STATE.wrap = wrap; GRAPH_STATE.svg = svg;
+  GRAPH_STATE.elById = {}; GRAPH_STATE.stepEls = []; GRAPH_STATE.agentEl = null; GRAPH_STATE.byId = {};
+  return { wrap: wrap, svg: svg };
+}
 
-  GRAPH_SIM = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(links).id(function(d){ return d.id; }).distance(small ? 95 : 135).strength(0.55))
-    .force('charge', d3.forceManyBody().strength(small ? -320 : -680))
-    .force('center', d3.forceCenter(w/2, h/2))
-    .force('collide', d3.forceCollide().radius(function(d){ return nodeRadius(d, small) + 10; }))
-    .on('tick', function(){
-      linkSel.attr('x1', function(d){ return d.source.x; }).attr('y1', function(d){ return d.source.y; })
-             .attr('x2', function(d){ return d.target.x; }).attr('y2', function(d){ return d.target.y; });
-      nodeSel.attr('transform', function(d){ return 'translate(' + d.x + ',' + d.y + ')'; });
+// BOT view: you ⇄ the AI, with a loop encircling BOTH — you are the loop.
+function renderBotView(){
+  var a = GRAPH_STATE.a, catColor = GRAPH_STATE.catColor;
+  var sw = makeStageWrap(), wrap = sw.wrap, svg = sw.svg;
+  var learner = a.graph.nodes.find(function(n){ return n.kind === 'learner'; });
+  var learnerNode = learner || { id:'learner', label:'Learner', kind:'learner' };
+
+  var colL = document.createElement('div'); colL.className = 'console-col console-col-learner';
+  var lEl = document.createElement('div'); lEl.className = 'console-learner';
+  lEl.innerHTML = '<i class="bi bi-person-fill console-figicon"></i><span class="console-figlabel">' + learnerNode.label + '</span>';
+  lEl.addEventListener('click', function(ev){ ev.stopPropagation(); inspectNode(learnerNode); });
+  colL.appendChild(lEl); GRAPH_STATE.elById[learnerNode.id] = lEl;
+
+  var colA = document.createElement('div'); colA.className = 'console-col console-col-agent';
+  var aiEl = document.createElement('div'); aiEl.className = 'console-agent console-ai';
+  aiEl.innerHTML =
+    '<div class="console-agent-head" style="background:' + catColor + '">' +
+      '<i class="bi bi-chat-dots" style="color:#fff;font-size:15px"></i>' +
+      '<span class="console-agent-name">the AI</span></div>' +
+    '<div class="console-agent-body">' +
+      '<div class="console-ai-aim">inference + a prompt</div>' +
+      '<div class="console-ai-aimline">its aim: ' + a.subtitle.toLowerCase() + '</div>' +
+    '</div>';
+  var aiNode = { id:'__ai', label:'the AI', kind:'agent',
+    note:'Just inference behind a prompt. It reacts to each message with intent — its aim — but it doesn’t act on its own. It waits for you.' };
+  aiEl.addEventListener('click', function(ev){ ev.stopPropagation(); inspectNode(aiNode); });
+  colA.appendChild(aiEl); GRAPH_STATE.elById[aiNode.id] = aiEl; GRAPH_STATE.agentEl = aiEl;
+
+  wrap.appendChild(colL); wrap.appendChild(colA);
+
+  GRAPH_STATE.drawWires = function(){
+    var cr = wrap.getBoundingClientRect();
+    svg.setAttribute('width', cr.width); svg.setAttribute('height', cr.height);
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    var lr = lEl.getBoundingClientRect(), ar = aiEl.getBoundingClientRect();
+    drawConnector(svg, ar, lr, cr, 'console-wire-main');
+    drawBotLoop(svg, [lr, ar], cr);
+  };
+  requestAnimationFrame(GRAPH_STATE.drawWires);
+  setTimeout(GRAPH_STATE.drawWires, 320);
+
+  renderBotInfo(a);
+  renderBotFooter();
+}
+
+// The encircling "you are the loop" arc around the learner + AI.
+function drawBotLoop(svg, rects, cr){
+  var pad = 24;
+  var minX = Math.min.apply(null, rects.map(function(r){ return r.left; })) - cr.left - pad;
+  var minY = Math.min.apply(null, rects.map(function(r){ return r.top; })) - cr.top - pad;
+  var maxX = Math.max.apply(null, rects.map(function(r){ return r.right; })) - cr.left + pad;
+  var maxY = Math.max.apply(null, rects.map(function(r){ return r.bottom; })) - cr.top + pad;
+  var x = minX, y = minY, w = maxX - minX, h = maxY - minY, r = 18, gap = 15;
+  if(w <= 0 || h <= 0) return;
+  var midX = x + w / 2;
+  var d = 'M ' + (midX + gap) + ' ' + y +
+    ' H ' + (x + w - r) + ' Q ' + (x + w) + ' ' + y + ' ' + (x + w) + ' ' + (y + r) +
+    ' V ' + (y + h - r) + ' Q ' + (x + w) + ' ' + (y + h) + ' ' + (x + w - r) + ' ' + (y + h) +
+    ' H ' + (x + r) + ' Q ' + x + ' ' + (y + h) + ' ' + x + ' ' + (y + h - r) +
+    ' V ' + (y + r) + ' Q ' + x + ' ' + y + ' ' + (x + r) + ' ' + y +
+    ' H ' + (midX - gap);
+  var p = document.createElementNS(SVGNS, 'path'); p.setAttribute('class', 'console-botloop'); p.setAttribute('d', d);
+  svg.appendChild(p);
+  var arrow = document.createElementNS(SVGNS, 'path'); arrow.setAttribute('class', 'console-botloop-arrow');
+  arrow.setAttribute('d', 'M ' + (midX + gap - 7) + ' ' + (y - 4) + ' L ' + (midX + gap + 1) + ' ' + y + ' L ' + (midX + gap - 7) + ' ' + (y + 4) + ' Z');
+  svg.appendChild(arrow);
+  var t = document.createElementNS(SVGNS, 'text'); t.setAttribute('class', 'console-botloop-label');
+  t.setAttribute('x', midX); t.setAttribute('y', y - 8); t.setAttribute('text-anchor', 'middle');
+  t.textContent = 'you keep it going';
+  svg.appendChild(t);
+}
+
+// AGENT view: the system holds an internal loop, resting on its rack. You set it going, see results.
+function renderAgentView(){
+  var a = GRAPH_STATE.a, catColor = GRAPH_STATE.catColor;
+  var sw = makeStageWrap(), wrap = sw.wrap, svg = sw.svg;
+  var nodes = a.graph.nodes;
+  var byId = {}; nodes.forEach(function(n){ byId[n.id] = n; }); GRAPH_STATE.byId = byId;
+  var learner = nodes.find(function(n){ return n.kind === 'learner'; });
+  var agent   = nodes.find(function(n){ return n.kind === 'agent'; });
+  var blocks  = nodes.filter(function(n){ return n.kind === 'block'; });
+  var caps    = nodes.filter(function(n){ return n.kind === 'cap'; });
+  var steps   = (a.graph.loop && a.graph.loop.length) ? a.graph.loop : null;
+  var elById = GRAPH_STATE.elById, stepEls = GRAPH_STATE.stepEls;
+
+  var colL = document.createElement('div'); colL.className = 'console-col console-col-learner';
+  if(learner){
+    var lEl = document.createElement('div'); lEl.className = 'console-learner';
+    lEl.innerHTML = '<i class="bi bi-person-fill console-figicon"></i><span class="console-figlabel">' + learner.label + '</span>';
+    lEl.addEventListener('click', function(ev){ ev.stopPropagation(); pauseGraphPlay(); inspectNode(learner); });
+    colL.appendChild(lEl); elById[learner.id] = lEl;
+  }
+
+  var colA = document.createElement('div'); colA.className = 'console-col console-col-agent';
+  var agEl = document.createElement('div'); agEl.className = 'console-agent';
+  var head = '<div class="console-agent-head" style="background:' + catColor + '">' +
+      '<i class="bi bi-cpu" style="color:#fff;font-size:15px"></i>' +
+      '<span class="console-agent-name">the system</span></div>';
+  var body = '<div class="console-agent-body">';
+  if(steps){
+    body += '<div class="console-track"></div>' +
+            '<div class="console-loopcap"><i class="bi bi-arrow-repeat"></i> it holds the loop — runs this on its own</div>';
+  } else {
+    body += '<div class="console-emptyloop"><i class="bi bi-slash-circle" style="font-size:15px"></i><div>No loop to hand over. Nothing here runs on its own — it stays a bot.</div></div>';
+  }
+  agEl.innerHTML = head + body + '</div>';
+  var agentNode = agent || { id:'__system', label:'the system', kind:'agent' };
+  agEl.addEventListener('click', function(ev){ ev.stopPropagation(); pauseGraphPlay(); inspectNode(agentNode); });
+  colA.appendChild(agEl); elById[agentNode.id] = agEl; GRAPH_STATE.agentEl = agEl;
+
+  if(steps){
+    var track = agEl.querySelector('.console-track');
+    steps.forEach(function(s, i){
+      if(i > 0){ var lk = document.createElement('span'); lk.className = 'console-steplink'; track.appendChild(lk); }
+      var pill = document.createElement('div'); pill.className = 'console-step'; pill.textContent = (i + 1);
+      pill.addEventListener('click', function(ev){ ev.stopPropagation(); pauseGraphPlay(); showStep(a, i); });
+      track.appendChild(pill); stepEls.push(pill);
     });
-  GRAPH_SIM._svg = svg; GRAPH_SIM._byId = byId; GRAPH_SIM._nodeSel = nodeSel; GRAPH_SIM._linkSel = linkSel; GRAPH_SIM._small = small;
+  }
 
-  renderGraphInfoDefault(a);
-  renderGraphFooter(a, byId);
+  var colR = document.createElement('div'); colR.className = 'console-col console-col-rack';
+  var rack = document.createElement('div'); rack.className = 'console-rack';
+  function addGroup(title, items, kind){
+    if(!items.length) return;
+    var g = document.createElement('div'); g.className = 'console-rackgroup';
+    g.innerHTML = '<div class="console-rackhead">' + title + '</div>';
+    items.forEach(function(n){
+      var status = consoleNodeStatus(a, n);
+      var row = document.createElement('div'); row.className = 'console-row ' + kind + ' ' + status;
+      row.innerHTML = '<i class="bi ' + consoleNodeIcon(n) + ' console-rowicon"></i>' +
+        '<span class="console-rowname">' + n.label + '</span>' +
+        '<span class="console-rowtag">' + (status === 'required' ? 'Required' : 'Optional') + '</span>';
+      row.addEventListener('click', function(ev){ ev.stopPropagation(); pauseGraphPlay(); inspectNode(n); });
+      g.appendChild(row); elById[n.id] = row;
+    });
+    rack.appendChild(g);
+  }
+  addGroup('What it runs on', blocks, 'block');
+  addGroup('Capabilities', caps, 'cap');
+  if(!blocks.length && !caps.length){
+    var empty = document.createElement('div'); empty.className = 'console-rackempty';
+    empty.textContent = 'Nothing to build — there’s no machinery to hand the loop to.';
+    rack.appendChild(empty);
+  }
+  colR.appendChild(rack);
+
+  wrap.appendChild(colL); wrap.appendChild(colA); wrap.appendChild(colR);
+
+  GRAPH_STATE.drawWires = function(){
+    var cr = wrap.getBoundingClientRect();
+    svg.setAttribute('width', cr.width); svg.setAttribute('height', cr.height);
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    if(!elById[agentNode.id]) return;
+    var aRect = elById[agentNode.id].getBoundingClientRect();
+    blocks.concat(caps).forEach(function(n){
+      var el = elById[n.id]; if(el) drawConnector(svg, aRect, el.getBoundingClientRect(), cr, 'console-wire');
+    });
+    if(learner && elById[learner.id]){
+      drawConnector(svg, aRect, elById[learner.id].getBoundingClientRect(), cr, 'console-wire-main');
+    }
+    if(stepEls.length > 1){
+      var f = stepEls[0].getBoundingClientRect(), l = stepEls[stepEls.length - 1].getBoundingClientRect();
+      var x1 = f.left + f.width / 2 - cr.left, x2 = l.left + l.width / 2 - cr.left;
+      var y = Math.max(f.bottom, l.bottom) - cr.top + 6;
+      var path = document.createElementNS(SVGNS, 'path'); path.setAttribute('class', 'console-wire-loop');
+      path.setAttribute('d', 'M ' + x2 + ' ' + y + ' C ' + x2 + ' ' + (y + 16) + ', ' + x1 + ' ' + (y + 16) + ', ' + x1 + ' ' + y);
+      svg.appendChild(path);
+    }
+  };
+  requestAnimationFrame(GRAPH_STATE.drawWires);
+  setTimeout(GRAPH_STATE.drawWires, 320);
+
+  renderAgentInfo(a);
+  renderAgentFooter(a);
+}
+
+function rectCenter(rect, cr){ return { x: rect.left + rect.width / 2 - cr.left, y: rect.top + rect.height / 2 - cr.top }; }
+function rectEdgeToward(rect, px, py, cr){
+  var cx = rect.left + rect.width / 2 - cr.left, cy = rect.top + rect.height / 2 - cr.top;
+  var dx = px - cx, dy = py - cy;
+  if(Math.abs(dx) >= Math.abs(dy)) return { x: dx >= 0 ? rect.right - cr.left : rect.left - cr.left, y: cy };
+  return { x: cx, y: dy >= 0 ? rect.bottom - cr.top : rect.top - cr.top };
+}
+function connectorEnds(aRect, tRect, cr){
+  var ac = rectCenter(aRect, cr), tc = rectCenter(tRect, cr);
+  return [ rectEdgeToward(aRect, tc.x, tc.y, cr), rectEdgeToward(tRect, ac.x, ac.y, cr) ];
+}
+function drawConnector(svg, aRect, tRect, cr, cls){
+  var ends = connectorEnds(aRect, tRect, cr);
+  var line = document.createElementNS(SVGNS, 'line');
+  line.setAttribute('class', cls);
+  line.setAttribute('x1', ends[0].x); line.setAttribute('y1', ends[0].y);
+  line.setAttribute('x2', ends[1].x); line.setAttribute('y2', ends[1].y);
+  svg.appendChild(line);
+}
+function clearConsoleActive(){
+  if(!GRAPH_STATE) return;
+  Object.keys(GRAPH_STATE.elById).forEach(function(id){ GRAPH_STATE.elById[id].classList.remove('active'); });
+  GRAPH_STATE.stepEls.forEach(function(p){ p.classList.remove('active'); p.style.background = ''; p.style.color = ''; p.style.borderColor = ''; });
+}
+function highlightNode(id){
+  if(GRAPH_STATE && GRAPH_STATE.elById[id]) GRAPH_STATE.elById[id].classList.add('active');
+}
+function inspectNode(node){
+  clearConsoleActive();
+  highlightNode(node.id);
+  selectGraphNode(node);
 }
 function selectGraphNode(d){
   var info = document.getElementById('graphInfo');
   var kindLabel = { agent:'The agent', learner:'Learner', block:'Infrastructure block', cap:'Agentic capability' }[d.kind] || '';
+  var fallback = {
+    agent:'The bot itself — it reads the learner on the left and reaches its infrastructure on the right.',
+    learner:'The person learning. Everything the agent does is in service of them.'
+  };
+  var body = d.note ? '<div class="ginfo-note">' + d.note + '</div>'
+    : (fallback[d.kind] ? '<div class="ginfo-note">' + fallback[d.kind] + '</div>'
+    : '<div class="ginfo-note muted">No extra detail — this node is part of the wiring.</div>');
   info.innerHTML =
     '<div class="ginfo-kind">' + kindLabel + '</div>' +
-    '<div class="ginfo-name">' + d.label + '</div>' +
-    (d.note ? '<div class="ginfo-note">' + d.note + '</div>' : '<div class="ginfo-note muted">No extra detail — this node is part of the wiring.</div>');
-  if(GRAPH_SIM && GRAPH_SIM._nodeSel){
-    GRAPH_SIM._nodeSel.classed('active-node', function(n){ return n.id === d.id; });
-  }
+    '<div class="ginfo-name">' + d.label + '</div>' + body;
 }
 function pauseGraphPlay(){ if(GRAPH_PLAY){ clearInterval(GRAPH_PLAY); GRAPH_PLAY = null; } }
-function renderGraphInfoDefault(a){
+function renderBotInfo(a){
   var info = document.getElementById('graphInfo');
-  function row(color, label){ return '<div class="glegend-row"><span class="glegend-dot" style="background:' + color + '"></span>' + label + '</div>'; }
   info.innerHTML =
-    '<div class="ginfo-kind">Legend</div>' +
-    row(cc(a.category), 'The agent') +
-    row(cvar('--graph-block'), 'Infrastructure block') +
-    row(cvar('--tier-required'), 'Agentic capability') +
-    row(cvar('--redirect'), 'Learner') +
-    '<div class="ginfo-hint">Click any node to see what it does.' +
-      (a.graph.loop ? ' Or press “Play the loop” to watch the agent run.' : ' This bot runs in a single turn — there’s no agentic loop.') +
-    '</div>';
-  if(GRAPH_SIM && GRAPH_SIM._nodeSel){ GRAPH_SIM._nodeSel.classed('active-node', false); }
+    '<div class="ginfo-kind">Bot — you hold the loop</div>' +
+    '<div class="ginfo-note">You and the AI take turns. It reacts to each message — with intent, because of its prompt (“' + a.subtitle.toLowerCase() + '”) — but it never acts on its own. <strong>You</strong> decide every next step; between your messages, nothing happens.</div>' +
+    '<div class="ginfo-hint">This is the baseline every AI feature starts from: inference + a good prompt. Flip to <strong>Agent</strong> to see whether this one can hand the loop to the system — or whether it stays a bot.</div>';
 }
-function renderGraphFooter(a, byId){
+function renderBotFooter(){
+  var f = document.getElementById('graphFooter');
+  f.innerHTML = '<span class="graph-noloop">The only loop here is the conversation &mdash; you advance it every turn.</span>';
+}
+function renderAgentInfo(a){
+  var info = document.getElementById('graphInfo');
+  var verdict = {
+    none:'<strong>Stays a bot.</strong> There’s no loop, and no machinery to hand one to. The loop can’t move off you — this is a prompt with a good aim.',
+    optional:'<strong>Can become an agent.</strong> The loop can move into the system <em>if</em> you build the dashed pieces — but it works fine as a bot without them.',
+    required:'<strong>It’s an agent.</strong> To do this at all, the loop has to live in the system, resting on the solid pieces. You only set the goal and see the result.'
+  }[a.tier] || '';
+  info.innerHTML =
+    '<div class="ginfo-kind">Agent — does the loop leave your hands?</div>' +
+    '<div class="ginfo-note">' + verdict + '</div>' +
+    '<div class="ginfo-hint"><strong>Filled</strong> = required, <strong>dashed</strong> = optional.' +
+      (a.graph.loop ? ' Press “Play the loop” to watch the system run it, or click any part to inspect it.' : '') +
+    '</div>';
+  if(GRAPH_STATE){ clearConsoleActive(); }
+}
+function renderAgentFooter(a){
   var f = document.getElementById('graphFooter');
   if(a.graph.loop && a.graph.loop.length){
     f.innerHTML =
       '<button class="graph-play-btn" id="graphPlayBtn"><i class="bi bi-play-fill"></i> Play the loop</button>' +
       '<button class="graph-restart-btn" id="graphRestartBtn" style="display:none"><i class="bi bi-arrow-counterclockwise"></i> Restart</button>' +
       '<span class="graph-step-counter" id="graphStepCounter"></span>';
-    document.getElementById('graphPlayBtn').addEventListener('click', function(){ startGraphPlay(a, byId); });
-    document.getElementById('graphRestartBtn').addEventListener('click', function(){ startGraphPlay(a, byId); });
+    document.getElementById('graphPlayBtn').addEventListener('click', function(){ startGraphPlay(a); });
+    document.getElementById('graphRestartBtn').addEventListener('click', function(){ startGraphPlay(a); });
   } else {
-    f.innerHTML = '<span class="graph-noloop">One-turn exchange &mdash; no agentic loop to play.</span>';
+    f.innerHTML = '<span class="graph-noloop">No self-run loop &mdash; nothing to play.</span>';
   }
 }
 
-function startGraphPlay(a, byId){
-  pauseGraphPlay();
-  var steps = a.graph.loop;
-  var hub = (a.graph.nodes.filter(function(n){ return n.kind === 'agent'; })[0] || {}).id;
+// Show one loop step: light its pill, light the zone item it reaches, narrate it, pulse the agent→item wire.
+function showStep(a, idx){
+  if(!GRAPH_STATE) return;
+  var steps = a.graph.loop; if(!steps) return;
+  var s = steps[idx];
+  clearConsoleActive();
+  var pill = GRAPH_STATE.stepEls[idx];
+  if(pill){ pill.classList.add('active'); pill.style.background = GRAPH_STATE.catColor; pill.style.color = '#fff'; pill.style.borderColor = GRAPH_STATE.catColor; }
+  if(GRAPH_STATE.byId[s.node]) highlightNode(s.node);
   var info = document.getElementById('graphInfo');
-  var counter = document.getElementById('graphStepCounter');
-  document.getElementById('graphRestartBtn').style.display = '';
-  function show(idx){
-    var s = steps[idx];
-    if(GRAPH_SIM && GRAPH_SIM._nodeSel){
-      GRAPH_SIM._nodeSel.classed('active-node', function(n){ return n.id === s.node; });
-    }
+  if(info){
     info.innerHTML =
       '<div class="ginfo-kind">Step ' + (idx + 1) + ' of ' + steps.length + '</div>' +
       '<div class="ginfo-name">' + s.label + '</div>' +
       '<div class="ginfo-note">' + s.text + '</div>';
-    counter.textContent = (idx + 1) + ' / ' + steps.length;
-    if(idx > 0){
-      var from = steps[idx - 1].node, to = s.node;
-      var path = [from];
-      if(hub && from !== hub && to !== hub){ path.push(hub); }
-      path.push(to);
-      pulsePath(path.map(function(id){ return byId[id]; }));
-    }
   }
-  var i = 0;
-  show(0);
-  GRAPH_PLAY = setInterval(function(){
-    i = (i + 1) % steps.length;
-    show(i);
-  }, 2200);
+  var counter = document.getElementById('graphStepCounter');
+  if(counter) counter.textContent = (idx + 1) + ' / ' + steps.length;
+  pulseToNode(s.node);
 }
 
-function pulsePath(pts){
-  pts = pts.filter(Boolean);
-  if(pts.length < 2 || !GRAPH_SIM || !GRAPH_SIM._svg) return;
-  var legMs = 700 / (pts.length - 1);
-  var c = GRAPH_SIM._svg.append('circle').attr('class','gpulse').attr('r', 5)
-    .attr('cx', pts[0].x).attr('cy', pts[0].y);
-  var leg = 0;
-  function next(){
-    leg++;
-    if(leg >= pts.length){ c.remove(); return; }
-    c.transition().duration(legMs).ease(d3.easeLinear)
-      .attr('cx', pts[leg].x).attr('cy', pts[leg].y)
-      .on('end', next);
+function startGraphPlay(a){
+  pauseGraphPlay();
+  var steps = a.graph.loop; if(!steps) return;
+  var restart = document.getElementById('graphRestartBtn');
+  if(restart) restart.style.display = '';
+  var i = 0;
+  showStep(a, 0);
+  GRAPH_PLAY = setInterval(function(){ i = (i + 1) % steps.length; showStep(a, i); }, 2200);
+}
+
+// Animate a pulse from the agent's edge to the zone item a step touches (left to the learner, right to the rack).
+function pulseToNode(nodeId){
+  if(!GRAPH_STATE) return;
+  var agentEl = GRAPH_STATE.agentEl, targetEl = GRAPH_STATE.elById[nodeId];
+  if(!agentEl || !targetEl) return;
+  var cr = GRAPH_STATE.wrap.getBoundingClientRect();
+  var ends = connectorEnds(agentEl.getBoundingClientRect(), targetEl.getBoundingClientRect(), cr);
+  var p1 = ends[0], p2 = ends[1];
+  var c = document.createElementNS(SVGNS, 'circle');
+  c.setAttribute('class', 'gpulse'); c.setAttribute('r', '5');
+  c.setAttribute('cx', p1.x); c.setAttribute('cy', p1.y);
+  GRAPH_STATE.svg.appendChild(c);
+  var start = null, dur = 650;
+  function step(ts){
+    if(!c.parentNode) return;
+    if(start === null) start = ts;
+    var t = Math.min(1, (ts - start) / dur);
+    c.setAttribute('cx', p1.x + (p2.x - p1.x) * t);
+    c.setAttribute('cy', p1.y + (p2.y - p1.y) * t);
+    if(t < 1) requestAnimationFrame(step);
+    else if(c.parentNode) c.parentNode.removeChild(c);
   }
-  next();
+  requestAnimationFrame(step);
 }
 
 function renderInsightBar() {
