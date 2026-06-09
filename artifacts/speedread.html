@@ -51,9 +51,9 @@
             top: 25%;
             /* Create notch using clip-path */
             clip-path: polygon(
-                0 0, 
-                calc(50% - 8px) 0, 
-                calc(50% - 8px) 100%, 
+                0 0,
+                calc(50% - 8px) 0,
+                calc(50% - 8px) 100%,
                 calc(50% - 2px) 100%,
                 calc(50% - 2px) 50%,
                 50% 0,
@@ -61,8 +61,8 @@
                 calc(50% + 2px) 100%,
                 calc(50% + 8px) 100%,
                 calc(50% + 8px) 0,
-                100% 0, 
-                100% 100%, 
+                100% 0,
+                100% 100%,
                 0 100%
             );
         }
@@ -71,9 +71,9 @@
             bottom: 25%;
             /* Inverted notch pointing up */
             clip-path: polygon(
-                0 0, 
-                calc(50% - 8px) 0, 
-                calc(50% - 8px) 100%, 
+                0 0,
+                calc(50% - 8px) 0,
+                calc(50% - 8px) 100%,
                 calc(50% - 2px) 100%,
                 calc(50% - 2px) 50%,
                 50% 100%,
@@ -81,8 +81,8 @@
                 calc(50% + 2px) 100%,
                 calc(50% + 8px) 100%,
                 calc(50% + 8px) 0,
-                100% 0, 
-                100% 100%, 
+                100% 0,
+                100% 100%,
                 0 100%
             );
         }
@@ -215,6 +215,134 @@
             color: var(--bs-danger);
             font-weight: 700;
         }
+
+        /* ===== Overview (mini view + click-to-jump + search) ===== */
+        .overview {
+            position: relative;
+            max-height: 260px;
+            overflow-y: auto;
+            line-height: 1.9;
+            font-size: 0.95rem;
+            scroll-behavior: smooth;
+        }
+
+        .overview .ow {
+            cursor: pointer;
+            border-radius: 3px;
+            padding: 0 1px;
+        }
+
+        .overview .ow:hover {
+            background: var(--bs-primary-bg-subtle);
+        }
+
+        .overview .ow.current {
+            background: var(--bs-danger);
+            color: #fff;
+        }
+
+        .overview .ow.match {
+            background: var(--bs-warning);
+            color: #000;
+        }
+
+        .overview .ow.match.active {
+            outline: 2px solid var(--bs-primary);
+            outline-offset: 1px;
+        }
+
+        /* ===== Table of contents ===== */
+        .toc-list {
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .toc-list .toc-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            border: none;
+            background: transparent;
+            color: var(--bs-body-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.9rem;
+        }
+
+        .toc-list .toc-item:hover {
+            background: var(--bs-primary-bg-subtle);
+        }
+
+        .time-remaining {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ===== Mobile toolbar ===== */
+        .mobile-toolbar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+        }
+
+        .mobile-toolbar .mt-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.15rem;
+            padding: 0.6rem 0.25rem;
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.85rem;
+            background: var(--bs-tertiary-bg);
+            color: var(--bs-secondary-color);
+            font-size: 0.72rem;
+            font-weight: 500;
+            line-height: 1;
+            transition: all 0.15s ease;
+        }
+
+        .mobile-toolbar .mt-btn i {
+            font-size: 1.2rem;
+        }
+
+        .mobile-toolbar .mt-btn.active {
+            background: var(--bs-primary);
+            border-color: var(--bs-primary);
+            color: #fff;
+        }
+
+        .mobile-toolbar .mt-btn:disabled {
+            opacity: 0.4;
+        }
+
+        /* On phones, the panels are toggled by the toolbar (hidden until opened). */
+        @media (max-width: 991.98px) {
+            .panel.panel-collapsed {
+                display: none !important;
+            }
+
+            main.container {
+                margin-top: 0.5rem !important;
+            }
+
+            /* Bigger, app-like primary controls */
+            .btn-control {
+                flex: 1 1 0;
+                min-width: 0;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            /* Keep playback controls on one tidy row */
+            .btn-control {
+                font-size: 0.85rem;
+                padding: 0.55rem 0.4rem;
+            }
+
+            .btn-control i {
+                margin-right: 0.15rem !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -234,16 +362,20 @@
         <div class="word-display mb-2" id="wordDisplay">
             <div class="guide-notch top"></div>
             <div class="guide-notch bottom"></div>
-            <span class="placeholder-text">Paste text below to begin</span>
+            <span class="placeholder-text">Paste text or upload a PDF to begin</span>
         </div>
 
         <!-- Progress Bar -->
-        <div class="progress mb-4" role="progressbar" aria-label="Reading progress">
+        <div class="progress mb-1" role="progressbar" aria-label="Reading progress">
             <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+        </div>
+        <div class="d-flex justify-content-between mb-4">
+            <small class="text-muted time-remaining" id="timeRemaining" style="display: none;"></small>
+            <small class="text-muted ms-auto" id="positionInfo"></small>
         </div>
 
         <!-- Playback Controls -->
-        <div class="d-flex justify-content-center gap-2 mb-4">
+        <div class="d-flex justify-content-center flex-wrap gap-2 mb-4">
             <button class="btn btn-primary btn-control" id="startBtn">
                 <i class="bi bi-play-fill me-1"></i>Start
             </button>
@@ -253,16 +385,80 @@
             <button class="btn btn-outline-secondary btn-control" id="resetBtn">
                 <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
             </button>
+            <button class="btn btn-outline-secondary btn-control" id="backBtn" title="Undo last jump" disabled>
+                <i class="bi bi-arrow-90deg-left me-1"></i>Back
+            </button>
+        </div>
+
+        <!-- Mobile toolbar: toggles the panels below (hidden on large screens) -->
+        <div class="mobile-toolbar d-lg-none mb-4" id="mobileToolbar">
+            <button type="button" class="mt-btn" data-target="textCard">
+                <i class="bi bi-file-earmark-text"></i><span>Text</span>
+            </button>
+            <button type="button" class="mt-btn" data-target="overviewCard">
+                <i class="bi bi-map"></i><span>Find</span>
+            </button>
+            <button type="button" class="mt-btn" data-target="tocCard" id="tocToolBtn" disabled>
+                <i class="bi bi-list-ol"></i><span>Contents</span>
+            </button>
+            <button type="button" class="mt-btn" data-target="settingsCard">
+                <i class="bi bi-sliders"></i><span>Settings</span>
+            </button>
+        </div>
+
+        <!-- Table of Contents (guessed) -->
+        <div class="card controls-card mb-4 panel" id="tocCard" style="display: none;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">
+                        <i class="bi bi-list-ol me-1"></i>Contents
+                        <span class="text-muted small fw-normal">(guessed)</span>
+                    </span>
+                    <button class="btn btn-sm btn-link text-body text-decoration-none p-0"
+                            data-bs-toggle="collapse" data-bs-target="#tocCollapse">
+                        Show / hide
+                    </button>
+                </div>
+                <div class="collapse show" id="tocCollapse">
+                    <div class="toc-list mt-2" id="tocList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overview / Search -->
+        <div class="card controls-card mb-4 panel" id="overviewCard">
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                    <span class="fw-semibold me-auto"><i class="bi bi-map me-1"></i>Overview</span>
+                    <div class="input-group input-group-sm" style="max-width: 300px;">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Find in text...">
+                        <button class="btn btn-outline-secondary" id="prevMatch" title="Previous match">
+                            <i class="bi bi-chevron-up"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" id="nextMatch" title="Next match">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <span class="small text-muted" id="matchInfo"></span>
+                </div>
+                <div class="overview border rounded p-2" id="overview">
+                    <span class="text-muted small">Load or paste text to see the overview. Click any word to start reading from there.</span>
+                </div>
+                <div class="small text-muted mt-1">
+                    Click any word to read from there. Use <strong>Back</strong> to undo an accidental jump.
+                </div>
+            </div>
         </div>
 
         <!-- Settings Card -->
-        <div class="card controls-card mb-4">
+        <div class="card controls-card mb-4 panel" id="settingsCard">
             <div class="card-body">
                 <!-- Speed Control -->
                 <div class="mb-4">
                     <label class="form-label fw-semibold">Reading Speed</label>
                     <div class="d-flex align-items-center gap-3">
-                        <input type="range" class="form-range flex-grow-1" id="speedSlider" 
+                        <input type="range" class="form-range flex-grow-1" id="speedSlider"
                                min="100" max="800" step="50" value="300">
                         <span class="speed-display" id="speedDisplay">300 WPM</span>
                     </div>
@@ -272,7 +468,7 @@
                     </div>
                 </div>
 
-                <!-- Punctuation Pauses -->
+                <!-- Toggles -->
                 <div class="row g-3">
                     <div class="col-sm-6">
                         <div class="form-check form-switch">
@@ -290,31 +486,58 @@
                             </label>
                         </div>
                     </div>
+                    <div class="col-sm-6">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="showTime">
+                            <label class="form-check-label" for="showTime">
+                                Show time remaining
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="autoClean" checked>
+                            <label class="form-check-label" for="autoClean">
+                                Auto-clean PDFs <span class="text-muted">(page #s, headers)</span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Text Input Card -->
-        <div class="card controls-card">
+        <div class="card controls-card panel mb-4" id="textCard">
             <div class="card-body">
-                <label for="textInput" class="form-label fw-semibold">Paste your text</label>
-                <textarea class="form-control" id="textInput" 
-                          placeholder="Paste or type the text you want to speed read here..."></textarea>
-                
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                    <label for="textInput" class="form-label fw-semibold mb-0 me-auto">Text</label>
+                    <input type="file" id="pdfInput" accept="application/pdf" class="d-none">
+                    <button class="btn btn-sm btn-outline-primary" id="uploadBtn">
+                        <i class="bi bi-filetype-pdf me-1"></i>Upload PDF
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" id="cleanBtn" title="Remove page numbers and repeated headers/footers">
+                        <i class="bi bi-eraser me-1"></i>Clean text
+                    </button>
+                </div>
+                <textarea class="form-control" id="textInput"
+                          placeholder="Paste or type the text you want to speed read here, or upload a PDF above..."></textarea>
+
                 <!-- Stats Bar -->
                 <div class="stats-bar d-flex justify-content-between mt-2 text-muted">
                     <span id="wordCount">0 words</span>
                     <span id="readTime">~0 min read</span>
                 </div>
+                <div class="small mt-1" id="pdfStatus"></div>
             </div>
         </div>
 
         <!-- Keyboard Hints -->
         <div class="text-center mt-3 keyboard-hint text-muted d-none d-md-block">
-            <kbd>Space</kbd> Play/Pause &nbsp;|&nbsp; 
-            <kbd>←</kbd> Previous &nbsp;|&nbsp; 
+            <kbd>Space</kbd> Play/Pause &nbsp;|&nbsp;
+            <kbd>←</kbd> Previous &nbsp;|&nbsp;
             <kbd>→</kbd> Next &nbsp;|&nbsp;
-            <kbd>R</kbd> Reset
+            <kbd>R</kbd> Reset &nbsp;|&nbsp;
+            <kbd>B</kbd> Back
         </div>
     </main>
 
@@ -324,31 +547,122 @@
         </div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
     <script>
+        // ===== PDF.js worker =====
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+                'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        }
+
         // ===== State =====
         const state = {
             words: [],
             currentIndex: 0,
             isPlaying: false,
-            timeoutId: null
+            timeoutId: null,
+            history: [],          // stack of previous positions (for "Back")
+            spans: null,          // NodeList of overview word spans
+            overviewBuilt: false,
+            currentSpan: null,
+            matches: [],          // indices matching the search query
+            matchPos: -1
         };
 
         // ===== DOM Elements =====
         const elements = {
             wordDisplay: document.getElementById('wordDisplay'),
             progressBar: document.getElementById('progressBar'),
+            timeRemaining: document.getElementById('timeRemaining'),
+            positionInfo: document.getElementById('positionInfo'),
             startBtn: document.getElementById('startBtn'),
             pauseBtn: document.getElementById('pauseBtn'),
             resetBtn: document.getElementById('resetBtn'),
+            backBtn: document.getElementById('backBtn'),
             speedSlider: document.getElementById('speedSlider'),
             speedDisplay: document.getElementById('speedDisplay'),
             pausePeriod: document.getElementById('pausePeriod'),
             pauseComma: document.getElementById('pauseComma'),
+            showTime: document.getElementById('showTime'),
+            autoClean: document.getElementById('autoClean'),
             textInput: document.getElementById('textInput'),
             wordCount: document.getElementById('wordCount'),
             readTime: document.getElementById('readTime'),
-            themeToggle: document.getElementById('themeToggle')
+            themeToggle: document.getElementById('themeToggle'),
+            overview: document.getElementById('overview'),
+            searchInput: document.getElementById('searchInput'),
+            prevMatch: document.getElementById('prevMatch'),
+            nextMatch: document.getElementById('nextMatch'),
+            matchInfo: document.getElementById('matchInfo'),
+            tocCard: document.getElementById('tocCard'),
+            tocList: document.getElementById('tocList'),
+            pdfInput: document.getElementById('pdfInput'),
+            uploadBtn: document.getElementById('uploadBtn'),
+            cleanBtn: document.getElementById('cleanBtn'),
+            pdfStatus: document.getElementById('pdfStatus'),
+            mobileToolbar: document.getElementById('mobileToolbar'),
+            tocToolBtn: document.getElementById('tocToolBtn')
         };
+
+        // ===== Responsive panels (mobile app behaviour) =====
+        const PANEL_IDS = ['textCard', 'overviewCard', 'tocCard', 'settingsCard'];
+        const mobileMQ = window.matchMedia('(max-width: 991.98px)');
+        const isMobile = () => mobileMQ.matches;
+
+        function setToolbarActive() {
+            document.querySelectorAll('.mt-btn').forEach(b => {
+                const el = document.getElementById(b.dataset.target);
+                const open = el && !el.classList.contains('panel-collapsed') &&
+                             el.style.display !== 'none';
+                b.classList.toggle('active', isMobile() && !!open);
+            });
+        }
+
+        function applyResponsive() {
+            PANEL_IDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (isMobile()) el.classList.add('panel-collapsed');
+                else el.classList.remove('panel-collapsed');
+            });
+            setToolbarActive();
+        }
+
+        function togglePanel(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const willOpen = el.classList.contains('panel-collapsed');
+            // Accordion: close everything first
+            PANEL_IDS.forEach(pid => {
+                const p = document.getElementById(pid);
+                if (p) p.classList.add('panel-collapsed');
+            });
+            if (willOpen) {
+                el.classList.remove('panel-collapsed');
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            setToolbarActive();
+        }
+
+        const NOTCHES = '<div class="guide-notch top"></div><div class="guide-notch bottom"></div>';
+
+        // ===== Helpers =====
+        function escapeHtml(s) {
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function debounce(fn, ms) {
+            let t;
+            return (...args) => {
+                clearTimeout(t);
+                t = setTimeout(() => fn(...args), ms);
+            };
+        }
+
+        function clamp(v, lo, hi) {
+            return Math.max(lo, Math.min(hi, v));
+        }
 
         // ===== Settings =====
         function getSettings() {
@@ -360,44 +674,36 @@
         }
 
         function getBaseDelay() {
-            const wpm = getSettings().wpm;
-            return 60000 / wpm; // milliseconds per word
+            return 60000 / getSettings().wpm;
         }
 
         function getDelayForWord(word) {
             const settings = getSettings();
             let delay = getBaseDelay();
-            
-            // Check for sentence-ending punctuation
             if (settings.pauseAtPeriod && /[.!?]$/.test(word)) {
                 delay *= 2.5;
-            }
-            // Check for clause punctuation
-            else if (settings.pauseAtComma && /[,;:]$/.test(word)) {
+            } else if (settings.pauseAtComma && /[,;:]$/.test(word)) {
                 delay *= 1.5;
             }
-            
             return delay;
         }
 
         // ===== Text Processing =====
         function processText(text) {
-            // Split by whitespace and filter empty strings
             return text.trim().split(/\s+/).filter(word => word.length > 0);
         }
 
         function updateStats() {
-            const text = elements.textInput.value;
-            const words = processText(text);
-            const count = words.length;
+            const count = state.words.length;
             const wpm = getSettings().wpm;
             const minutes = count / wpm;
-            
+
             elements.wordCount.textContent = `${count} word${count !== 1 ? 's' : ''}`;
-            
-            if (minutes < 1) {
-                const seconds = Math.round(minutes * 60);
-                elements.readTime.textContent = `~${seconds} sec read`;
+
+            if (count === 0) {
+                elements.readTime.textContent = '~0 min read';
+            } else if (minutes < 1) {
+                elements.readTime.textContent = `~${Math.round(minutes * 60)} sec read`;
             } else {
                 elements.readTime.textContent = `~${minutes.toFixed(1)} min read`;
             }
@@ -405,19 +711,13 @@
 
         // ===== Display =====
         function displayWord(word) {
-            // Keep the guide notches
-            const notches = `
-                <div class="guide-notch top"></div>
-                <div class="guide-notch bottom"></div>
-            `;
-            
             if (!word) {
-                elements.wordDisplay.innerHTML = notches + '<span class="placeholder-text">Paste text below to begin</span>';
+                elements.wordDisplay.innerHTML = NOTCHES +
+                    '<span class="placeholder-text">Paste text or upload a PDF to begin</span>';
                 return;
             }
 
-            // Find optimal recognition point (ORP)
-            // More sophisticated algorithm based on word length
+            // Optimal recognition point (ORP)
             let orpIndex;
             const len = word.length;
             if (len <= 1) orpIndex = 0;
@@ -425,15 +725,13 @@
             else if (len <= 9) orpIndex = 2;
             else if (len <= 13) orpIndex = 3;
             else orpIndex = 4;
-            
-            // Build the word with focal point highlighting
-            // Using spans to center on the focal letter
-            const before = word.substring(0, orpIndex);
-            const focal = word.charAt(orpIndex);
-            const after = word.substring(orpIndex + 1);
-            
+
+            const before = escapeHtml(word.substring(0, orpIndex));
+            const focal = escapeHtml(word.charAt(orpIndex));
+            const after = escapeHtml(word.substring(orpIndex + 1));
+
             elements.wordDisplay.innerHTML = `
-                ${notches}
+                ${NOTCHES}
                 <span class="word">
                     <span class="word-before">${before}</span><span class="focal-point">${focal}</span><span class="word-after">${after}</span>
                 </span>
@@ -443,10 +741,147 @@
         function updateProgress() {
             if (state.words.length === 0) {
                 elements.progressBar.style.width = '0%';
+                elements.positionInfo.textContent = '';
+            } else {
+                const progress = ((state.currentIndex + 1) / state.words.length) * 100;
+                elements.progressBar.style.width = `${progress}%`;
+                elements.positionInfo.textContent =
+                    `${Math.min(state.currentIndex + 1, state.words.length)} / ${state.words.length}`;
+            }
+            updateTimeRemaining();
+        }
+
+        function updateTimeRemaining() {
+            if (!elements.showTime.checked || state.words.length === 0) {
+                elements.timeRemaining.style.display = 'none';
                 return;
             }
-            const progress = ((state.currentIndex + 1) / state.words.length) * 100;
-            elements.progressBar.style.width = `${progress}%`;
+            const remainingWords = Math.max(0, state.words.length - state.currentIndex);
+            const secs = Math.round((remainingWords / getSettings().wpm) * 60);
+            const m = Math.floor(secs / 60);
+            const s = secs % 60;
+            elements.timeRemaining.style.display = '';
+            elements.timeRemaining.textContent =
+                `${m}:${s.toString().padStart(2, '0')} remaining`;
+        }
+
+        // ===== Overview (mini view) =====
+        function renderOverview() {
+            const c = elements.overview;
+            if (state.words.length === 0) {
+                c.innerHTML = '<span class="text-muted small">Load or paste text to see the overview. Click any word to start reading from there.</span>';
+                state.overviewBuilt = false;
+                state.spans = null;
+                state.currentSpan = null;
+                return;
+            }
+            c.innerHTML = state.words
+                .map((w, i) => `<span class="ow" data-i="${i}">${escapeHtml(w)}</span>`)
+                .join(' ');
+            state.spans = c.querySelectorAll('.ow');
+            state.overviewBuilt = true;
+            state.currentSpan = null;
+            updateOverviewCurrent(false);
+            applyMatchHighlights();
+        }
+
+        function updateOverviewCurrent(scroll = true) {
+            if (!state.overviewBuilt || !state.spans) return;
+            if (state.currentSpan) state.currentSpan.classList.remove('current');
+            const el = state.spans[state.currentIndex];
+            if (!el) { state.currentSpan = null; return; }
+            el.classList.add('current');
+            state.currentSpan = el;
+            if (scroll) {
+                const c = elements.overview;
+                c.scrollTop = el.offsetTop - c.clientHeight / 2 + el.offsetHeight / 2;
+            }
+        }
+
+        // ===== Search =====
+        function runSearch() {
+            const q = elements.searchInput.value.trim().toLowerCase();
+            clearMatchHighlights();
+            state.matches = [];
+            state.matchPos = -1;
+            if (q && state.words.length) {
+                for (let i = 0; i < state.words.length; i++) {
+                    if (state.words[i].toLowerCase().includes(q)) state.matches.push(i);
+                }
+            }
+            applyMatchHighlights();
+            updateMatchInfo();
+        }
+
+        function applyMatchHighlights() {
+            if (!state.overviewBuilt || !state.spans) return;
+            state.matches.forEach(i => {
+                if (state.spans[i]) state.spans[i].classList.add('match');
+            });
+            if (state.matchPos >= 0) {
+                const idx = state.matches[state.matchPos];
+                if (state.spans[idx]) state.spans[idx].classList.add('active');
+            }
+        }
+
+        function clearMatchHighlights() {
+            if (!state.spans) return;
+            state.spans.forEach(s => s.classList.remove('match', 'active'));
+        }
+
+        function updateMatchInfo() {
+            const q = elements.searchInput.value.trim();
+            if (!q) { elements.matchInfo.textContent = ''; return; }
+            if (state.matches.length === 0) {
+                elements.matchInfo.textContent = 'no matches';
+            } else {
+                elements.matchInfo.textContent =
+                    `${state.matchPos + 1} / ${state.matches.length}`;
+            }
+        }
+
+        function gotoMatch(pos) {
+            if (state.matches.length === 0) return;
+            // clear previous active
+            if (state.matchPos >= 0 && state.spans && state.spans[state.matches[state.matchPos]]) {
+                state.spans[state.matches[state.matchPos]].classList.remove('active');
+            }
+            state.matchPos = (pos % state.matches.length + state.matches.length) % state.matches.length;
+            const idx = state.matches[state.matchPos];
+            if (state.spans && state.spans[idx]) state.spans[idx].classList.add('active');
+            updateMatchInfo();
+            jumpTo(idx);
+        }
+
+        // ===== Jump / Back =====
+        function jumpTo(index, record = true) {
+            if (state.words.length === 0) return;
+            index = clamp(index, 0, state.words.length - 1);
+            if (record && index !== state.currentIndex) {
+                state.history.push(state.currentIndex);
+            }
+            state.currentIndex = index;
+            displayWord(state.words[index]);
+            updateProgress();
+            updateOverviewCurrent();
+            updateBackBtn();
+            updateButtonStates();
+
+            // If currently playing, restart the loop from the new position
+            if (state.isPlaying) {
+                if (state.timeoutId) clearTimeout(state.timeoutId);
+                showNextWord();
+            }
+        }
+
+        function undoJump() {
+            if (state.history.length === 0) return;
+            const prev = state.history.pop();
+            jumpTo(prev, false);
+        }
+
+        function updateBackBtn() {
+            elements.backBtn.disabled = state.history.length === 0;
         }
 
         // ===== Playback Controls =====
@@ -455,40 +890,28 @@
                 stop();
                 return;
             }
-
             const word = state.words[state.currentIndex];
             displayWord(word);
             updateProgress();
+            updateOverviewCurrent();
 
             const delay = getDelayForWord(word);
             state.currentIndex++;
-
             state.timeoutId = setTimeout(showNextWord, delay);
         }
 
         function start() {
-            const text = elements.textInput.value.trim();
-            
-            if (!text) {
-                const notches = `
-                    <div class="guide-notch top"></div>
-                    <div class="guide-notch bottom"></div>
-                `;
-                elements.wordDisplay.innerHTML = notches + '<span class="placeholder-text text-warning">Please paste some text first</span>';
+            if (state.words.length === 0) {
+                state.words = processText(elements.textInput.value);
+            }
+            if (state.words.length === 0) {
+                elements.wordDisplay.innerHTML = NOTCHES +
+                    '<span class="placeholder-text text-warning">Please paste some text first</span>';
                 return;
             }
-
-            // Initialize words if starting fresh
-            if (state.words.length === 0 || state.currentIndex === 0) {
-                state.words = processText(text);
-                state.currentIndex = 0;
-            }
-
             if (state.currentIndex >= state.words.length) {
-                // Restart if at the end
                 state.currentIndex = 0;
             }
-
             state.isPlaying = true;
             updateButtonStates();
             showNextWord();
@@ -505,33 +928,27 @@
 
         function stop() {
             pause();
-            state.isPlaying = false;
-            updateButtonStates();
-            
-            // Show completion message if finished
             if (state.currentIndex >= state.words.length && state.words.length > 0) {
-                const notches = `
-                    <div class="guide-notch top"></div>
-                    <div class="guide-notch bottom"></div>
-                `;
-                elements.wordDisplay.innerHTML = notches + '<span class="placeholder-text text-success">Done! Press Reset to read again</span>';
+                elements.wordDisplay.innerHTML = NOTCHES +
+                    '<span class="placeholder-text text-success">Done! Press Reset to read again</span>';
             }
         }
 
         function reset() {
             pause();
             state.currentIndex = 0;
-            state.words = [];
+            state.history = [];
             updateProgress();
-            displayWord(null);
+            displayWord(state.words.length ? state.words[0] : null);
+            updateOverviewCurrent();
+            updateBackBtn();
             updateButtonStates();
         }
 
         function updateButtonStates() {
             elements.startBtn.disabled = state.isPlaying;
             elements.pauseBtn.disabled = !state.isPlaying;
-            
-            // Update start button text based on state
+
             if (state.currentIndex > 0 && state.currentIndex < state.words.length && !state.isPlaying) {
                 elements.startBtn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Resume';
             } else {
@@ -545,29 +962,218 @@
             if (!state.isPlaying) {
                 displayWord(state.words[state.currentIndex]);
                 updateProgress();
+                updateOverviewCurrent();
             }
         }
 
         function skipForward() {
             if (state.words.length === 0) return;
-            state.currentIndex = Math.min(state.words.length - 1, state.currentIndex);
+            state.currentIndex = Math.min(state.words.length - 1, state.currentIndex + 1);
             if (!state.isPlaying) {
                 displayWord(state.words[state.currentIndex]);
                 updateProgress();
+                updateOverviewCurrent();
             }
+        }
+
+        // ===== Table of contents guessing =====
+        function isHeading(line) {
+            const t = line.trim();
+            const len = t.length;
+            if (len < 2 || len > 80) return false;
+            const wc = t.split(/\s+/).length;
+            if (wc > 12) return false;
+            if (/[,;:]$/.test(t)) return false;
+
+            if (/^(chapter|section|part|appendix|book|prologue|epilogue|introduction|conclusion|preface|foreword|contents|abstract|acknowledg)/i.test(t)) {
+                return true;
+            }
+            // Numbered headings: "1. Title", "2.3 Methods"
+            if (/^\d+(\.\d+)*\.?\s+[A-Za-z]/.test(t)) return true;
+            // ALL CAPS standalone line
+            const letters = t.replace(/[^A-Za-z]/g, '');
+            if (letters.length >= 2 && letters === letters.toUpperCase() && wc <= 10) return true;
+
+            return false;
+        }
+
+        function buildTOC(text) {
+            const lines = text.split('\n');
+            let idx = 0;
+            const toc = [];
+            for (const line of lines) {
+                const trimmed = line.trim();
+                const words = trimmed.length ? trimmed.split(/\s+/) : [];
+                if (words.length && isHeading(line)) {
+                    if (!toc.length || toc[toc.length - 1].title !== trimmed) {
+                        toc.push({ title: trimmed, index: idx });
+                    }
+                    if (toc.length >= 300) { idx += words.length; break; }
+                }
+                idx += words.length;
+            }
+
+            const hasToc = toc.length >= 2;
+            if (hasToc) {
+                elements.tocList.innerHTML = toc
+                    .map(e => `<button type="button" class="toc-item" data-i="${e.index}">${escapeHtml(e.title)}</button>`)
+                    .join('');
+                elements.tocCard.style.display = '';
+            } else {
+                elements.tocList.innerHTML = '';
+                elements.tocCard.style.display = 'none';
+            }
+            if (elements.tocToolBtn) elements.tocToolBtn.disabled = !hasToc;
+            setToolbarActive();
+        }
+
+        // ===== Text cleanup =====
+        const normLine = s => s.replace(/\d+/g, '#').replace(/\s+/g, ' ').trim().toLowerCase();
+        const isPageNumLine = t =>
+            /^\s*[\-–—•·]?\s*(\d{1,4}|[ivxlcdm]+)\s*[\-–—•·]?\s*$/i.test(t) ||
+            /^page\s+\d+(\s+of\s+\d+)?\s*$/i.test(t);
+
+        function cleanPlainText(text) {
+            const lines = text.split('\n');
+            // Lines that repeat many times are likely running headers/footers.
+            const freq = {};
+            lines.forEach(l => {
+                const k = normLine(l);
+                if (k) freq[k] = (freq[k] || 0) + 1;
+            });
+            const repeated = new Set(Object.keys(freq).filter(k => freq[k] >= 5));
+
+            const out = lines.filter(l => {
+                const t = l.trim();
+                if (!t) return true;
+                if (isPageNumLine(t)) return false;
+                if (repeated.has(normLine(t))) return false;
+                return true;
+            });
+            return out.join('\n')
+                .replace(/(\w)-\n(\w)/g, '$1$2')   // de-hyphenate across line breaks
+                .replace(/\n{3,}/g, '\n\n')
+                .trim();
+        }
+
+        // ===== PDF parsing =====
+        function itemsToLines(items) {
+            // Group text items into lines by their y-coordinate.
+            const rows = [];
+            items.forEach(it => {
+                if (!it.str || !it.str.trim()) return;
+                const y = Math.round(it.transform[5]);
+                const x = it.transform[4];
+                let row = rows.find(r => Math.abs(r.y - y) <= 3);
+                if (!row) { row = { y, items: [] }; rows.push(row); }
+                row.items.push({ x, str: it.str });
+            });
+            rows.sort((a, b) => b.y - a.y); // top to bottom (PDF y origin is bottom)
+            return rows.map(r => {
+                r.items.sort((a, b) => a.x - b.x);
+                return { y: r.y, text: r.items.map(i => i.str).join(' ').replace(/\s+/g, ' ').trim() };
+            }).filter(r => r.text);
+        }
+
+        function cleanPdfPages(pages, autoClean) {
+            let headerKeys = new Set();
+            if (autoClean) {
+                const freq = {};
+                pages.forEach(lines => {
+                    const cand = [...lines.slice(0, 2), ...lines.slice(-2)];
+                    cand.forEach(l => {
+                        const k = normLine(l.text);
+                        if (k) freq[k] = (freq[k] || 0) + 1;
+                    });
+                });
+                const threshold = Math.max(3, Math.floor(pages.length * 0.3));
+                headerKeys = new Set(Object.keys(freq).filter(k => freq[k] >= threshold));
+            }
+
+            const out = [];
+            pages.forEach(lines => {
+                lines.forEach((l, idx) => {
+                    const t = l.text.trim();
+                    if (!t) return;
+                    if (autoClean) {
+                        if (isPageNumLine(t)) return;
+                        const nearEdge = idx < 2 || idx >= lines.length - 2;
+                        if (nearEdge && headerKeys.has(normLine(t))) return;
+                    }
+                    out.push(t);
+                });
+                out.push(''); // blank line between pages
+            });
+
+            return out.join('\n')
+                .replace(/(\w)-\n(\w)/g, '$1$2')
+                .replace(/\n{3,}/g, '\n\n')
+                .trim();
+        }
+
+        async function loadPdf(file) {
+            if (!window.pdfjsLib) {
+                elements.pdfStatus.innerHTML =
+                    '<span class="text-danger">PDF library failed to load (check your connection).</span>';
+                return;
+            }
+            elements.pdfStatus.textContent = 'Reading PDF…';
+            elements.uploadBtn.disabled = true;
+            try {
+                const buf = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+                const pages = [];
+                for (let p = 1; p <= pdf.numPages; p++) {
+                    elements.pdfStatus.textContent = `Reading PDF… page ${p} / ${pdf.numPages}`;
+                    const page = await pdf.getPage(p);
+                    const tc = await page.getTextContent();
+                    pages.push(itemsToLines(tc.items));
+                }
+                const text = cleanPdfPages(pages, elements.autoClean.checked);
+                elements.textInput.value = text;
+                onTextChanged(true);
+                const cleanNote = elements.autoClean.checked ? ' (auto-cleaned)' : '';
+                elements.pdfStatus.innerHTML =
+                    `<span class="text-success">Loaded ${pdf.numPages} page${pdf.numPages !== 1 ? 's' : ''}${cleanNote}.</span>`;
+            } catch (err) {
+                console.error(err);
+                elements.pdfStatus.innerHTML =
+                    `<span class="text-danger">Could not read that PDF: ${escapeHtml(err.message || String(err))}</span>`;
+            } finally {
+                elements.uploadBtn.disabled = false;
+            }
+        }
+
+        // ===== Text changed pipeline =====
+        function applyTextChange() {
+            pause();
+            state.words = processText(elements.textInput.value);
+            state.currentIndex = 0;
+            state.history = [];
+            updateStats();
+            buildTOC(elements.textInput.value);
+            renderOverview();
+            runSearch();
+            updateProgress();
+            displayWord(null);
+            updateBackBtn();
+            updateButtonStates();
+        }
+
+        const applyTextChangeDebounced = debounce(applyTextChange, 250);
+
+        function onTextChanged(immediate) {
+            if (immediate) applyTextChange();
+            else applyTextChangeDebounced();
         }
 
         // ===== Theme Toggle =====
         function toggleTheme() {
             const html = document.documentElement;
-            const currentTheme = html.getAttribute('data-bs-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            const newTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-bs-theme', newTheme);
-            
-            const icon = elements.themeToggle.querySelector('i');
-            icon.className = newTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
-            
-            // Save preference
+            elements.themeToggle.querySelector('i').className =
+                newTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
             localStorage.setItem('theme', newTheme);
         }
 
@@ -575,62 +1181,119 @@
             const saved = localStorage.getItem('theme');
             if (saved) {
                 document.documentElement.setAttribute('data-bs-theme', saved);
-                const icon = elements.themeToggle.querySelector('i');
-                icon.className = saved === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+                elements.themeToggle.querySelector('i').className =
+                    saved === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
             }
         }
 
         // ===== Settings Persistence =====
         function saveSettings() {
-            const settings = {
+            localStorage.setItem('readerSettings', JSON.stringify({
                 wpm: elements.speedSlider.value,
                 pausePeriod: elements.pausePeriod.checked,
-                pauseComma: elements.pauseComma.checked
-            };
-            localStorage.setItem('readerSettings', JSON.stringify(settings));
+                pauseComma: elements.pauseComma.checked,
+                showTime: elements.showTime.checked,
+                autoClean: elements.autoClean.checked
+            }));
         }
 
         function loadSettings() {
             const saved = localStorage.getItem('readerSettings');
-            if (saved) {
-                const settings = JSON.parse(saved);
-                elements.speedSlider.value = settings.wpm;
-                elements.pausePeriod.checked = settings.pausePeriod;
-                elements.pauseComma.checked = settings.pauseComma;
-                elements.speedDisplay.textContent = `${settings.wpm} WPM`;
+            if (!saved) return;
+            const s = JSON.parse(saved);
+            if (s.wpm != null) {
+                elements.speedSlider.value = s.wpm;
+                elements.speedDisplay.textContent = `${s.wpm} WPM`;
             }
+            if (s.pausePeriod != null) elements.pausePeriod.checked = s.pausePeriod;
+            if (s.pauseComma != null) elements.pauseComma.checked = s.pauseComma;
+            if (s.showTime != null) elements.showTime.checked = s.showTime;
+            if (s.autoClean != null) elements.autoClean.checked = s.autoClean;
         }
 
         // ===== Event Listeners =====
         elements.startBtn.addEventListener('click', start);
         elements.pauseBtn.addEventListener('click', pause);
         elements.resetBtn.addEventListener('click', reset);
+        elements.backBtn.addEventListener('click', undoJump);
 
         elements.speedSlider.addEventListener('input', () => {
             elements.speedDisplay.textContent = `${elements.speedSlider.value} WPM`;
             updateStats();
+            updateTimeRemaining();
             saveSettings();
         });
 
         elements.pausePeriod.addEventListener('change', saveSettings);
         elements.pauseComma.addEventListener('change', saveSettings);
+        elements.showTime.addEventListener('change', () => {
+            updateTimeRemaining();
+            saveSettings();
+        });
+        elements.autoClean.addEventListener('change', saveSettings);
 
-        elements.textInput.addEventListener('input', () => {
-            updateStats();
-            // Reset state when text changes
-            if (state.words.length > 0) {
-                reset();
+        elements.textInput.addEventListener('input', () => onTextChanged(false));
+
+        // Overview click-to-jump (event delegation)
+        elements.overview.addEventListener('click', (e) => {
+            const span = e.target.closest('.ow');
+            if (span) jumpTo(parseInt(span.dataset.i, 10));
+        });
+
+        // TOC click
+        elements.tocList.addEventListener('click', (e) => {
+            const btn = e.target.closest('.toc-item');
+            if (btn) jumpTo(parseInt(btn.dataset.i, 10));
+        });
+
+        // Search
+        elements.searchInput.addEventListener('input', debounce(runSearch, 200));
+        elements.searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (state.matches.length) gotoMatch(state.matchPos + 1);
             }
+        });
+        elements.nextMatch.addEventListener('click', () => gotoMatch(state.matchPos + 1));
+        elements.prevMatch.addEventListener('click', () => gotoMatch(state.matchPos - 1));
+
+        // PDF upload
+        elements.uploadBtn.addEventListener('click', () => elements.pdfInput.click());
+        elements.pdfInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) loadPdf(file);
+            e.target.value = ''; // allow re-uploading same file
+        });
+
+        // Clean text button
+        elements.cleanBtn.addEventListener('click', () => {
+            const cleaned = cleanPlainText(elements.textInput.value);
+            elements.textInput.value = cleaned;
+            onTextChanged(true);
+            elements.pdfStatus.innerHTML =
+                '<span class="text-success">Cleaned: removed page numbers and repeated lines.</span>';
         });
 
         elements.themeToggle.addEventListener('click', toggleTheme);
 
+        // Mobile toolbar: toggle panels
+        elements.mobileToolbar.addEventListener('click', (e) => {
+            const btn = e.target.closest('.mt-btn');
+            if (!btn || btn.disabled) return;
+            togglePanel(btn.dataset.target);
+        });
+        mobileMQ.addEventListener('change', applyResponsive);
+
         // Keyboard shortcuts
+        function isTyping() {
+            const el = document.activeElement;
+            return el && (el.tagName === 'TEXTAREA' ||
+                (el.tagName === 'INPUT' && el.type !== 'range' && el.type !== 'checkbox'));
+        }
+
         document.addEventListener('keydown', (e) => {
-            // Don't trigger if typing in textarea
-            if (document.activeElement === elements.textInput) return;
-            
-            switch(e.code) {
+            if (isTyping()) return;
+            switch (e.code) {
                 case 'Space':
                     e.preventDefault();
                     state.isPlaying ? pause() : start();
@@ -647,13 +1310,18 @@
                     e.preventDefault();
                     reset();
                     break;
+                case 'KeyB':
+                    e.preventDefault();
+                    undoJump();
+                    break;
             }
         });
 
         // ===== Initialize =====
         loadTheme();
         loadSettings();
-        updateStats();
+        applyTextChange();
+        applyResponsive();
     </script>
 </body>
 </html>
