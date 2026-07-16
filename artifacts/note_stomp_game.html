@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Note Stomp — String 1 Trainer</title>
+<script src="https://cdn.jsdelivr.net/npm/vexflow@5.0.0/build/cjs/vexflow-bravura.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #1c1c1e;
+    background-image:
+      repeating-linear-gradient(135deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 2px, transparent 2px, transparent 8px);
+    color: #eee;
+    font-family: Arial, "Helvetica Neue", sans-serif;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  .badge {
+    text-align: center;
+    background: linear-gradient(180deg, #3a3a3d 0%, #2a2a2c 60%, #222 100%);
+    border: 1px solid #444;
+    border-radius: 14px;
+    padding: 14px 10px 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .badge h1 { margin: 0; font-size: 30px; font-weight: 900; letter-spacing: 3px; color: #f5f0e6; text-transform: uppercase; }
+  .badge p { margin: 4px 0 0; font-size: 13px; letter-spacing: 2px; color: #a8a8ac; text-transform: uppercase; }
+
+  .modeRow { display: flex; gap: 8px; margin-bottom: 12px; }
+  .modeBtn { flex: 1; padding: 10px 8px; background: #2a2a2c; border: 1px solid #444; border-radius: 8px; color: #ccc; font-weight: 700; letter-spacing: 1px; font-size: 13px; text-transform: uppercase; cursor: pointer; }
+  .modeBtn.active { background: #0a84ff; border-color: #0a84ff; color: #fff; }
+
+  .settingsRow { display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; font-size: 13px; color: #ccc; }
+  .toggleSwitch { position: relative; width: 42px; height: 24px; background: #444; border-radius: 12px; cursor: pointer; transition: background 0.15s; flex-shrink: 0; }
+  .toggleSwitch.on { background: #00c853; }
+  .toggleSwitch .knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: left 0.15s; }
+  .toggleSwitch.on .knob { left: 20px; }
+  .settingItem { display: flex; align-items: center; gap: 6px; }
+  .hintBtn { padding: 6px 12px; background: #3a3a3d; border: 1px solid #555; border-radius: 8px; color: #ffd400; font-size: 12px; font-weight: 700; cursor: pointer; text-transform: uppercase; }
+
+  .levelBadge { text-align: center; font-size: 12px; color: #0a84ff; font-weight: 700; letter-spacing: 1px; margin-bottom: 10px; text-transform: uppercase; }
+
+  .ampWindow {
+    background: #f5f0e6;
+    border: 6px solid #3a3630;
+    border-radius: 10px;
+    padding: 10px 6px 4px;
+    margin-bottom: 10px;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.25);
+    position: relative;
+    transition: box-shadow 0.15s ease;
+    overflow-x: auto;
+  }
+  .ampWindow.flashGood { box-shadow: inset 0 0 0 6px #00a651; }
+  .ampWindow.flashBad { box-shadow: inset 0 0 0 6px #ff3b30; animation: shake 0.3s; }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  #vfOutput { min-height: 150px; display: flex; align-items: center; justify-content: center; }
+  #vfOutput svg { display: block; }
+
+  .sprintOverlay {
+    position: absolute; inset: 0;
+    background: rgba(20,20,20,0.94);
+    border-radius: 6px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    z-index: 5;
+  }
+  .sprintOverlay.show { display: flex; }
+  .sprintOverlay h2 { margin: 0; color: #ffd400; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
+  .sprintOverlay p { margin: 0; color: #eee; font-size: 15px; text-align: center; }
+  .sprintOverlay .bigScore { font-size: 40px; font-weight: 900; color: #4dff88; font-family: "Courier New", monospace; }
+
+  .riffTrack { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin: 4px 0 6px; }
+  .riffDot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #999; opacity: 0.45; }
+  .riffDot.current { opacity: 1; box-shadow: 0 0 0 3px rgba(10,132,255,0.6); }
+  .riffDot.done { opacity: 1; }
+
+  .message { text-align: center; min-height: 20px; font-size: 14px; font-weight: 700; color: #ffd400; margin-bottom: 6px; }
+
+  .ledPanel { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .ledCard { flex: 1; min-width: 70px; background: #0c0c0d; border: 1px solid #333; border-radius: 8px; padding: 8px 6px; text-align: center; }
+  .ledLabel { font-size: 10px; letter-spacing: 1.5px; color: #888; text-transform: uppercase; margin-bottom: 2px; }
+  .ledValue { font-family: "Courier New", monospace; font-size: 24px; font-weight: 700; color: #4dff88; text-shadow: 0 0 8px rgba(77,255,136,0.6); }
+  .ledValue.timeGreen { color: #4dff88; text-shadow: 0 0 8px rgba(77,255,136,0.6); }
+  .ledValue.timeYellow { color: #ffd400; text-shadow: 0 0 8px rgba(255,212,0,0.6); }
+  .ledValue.timeRed { color: #ff3b30; text-shadow: 0 0 8px rgba(255,59,48,0.6); animation: pulse 0.6s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .comboTag { display: inline-block; margin-top: 2px; font-size: 10px; color: #1c1c1e; background: #ffd400; border-radius: 10px; padding: 1px 6px; font-weight: 900; }
+
+  .missRow { display: flex; gap: 10px; justify-content: center; margin-bottom: 12px; font-size: 12px; color: #999; }
+  .missRow span.hi { color: #ff3b30; font-weight: 700; }
+
+  .footswitches { display: flex; gap: 14px; justify-content: center; margin-bottom: 16px; }
+  .switch { width: 92px; height: 92px; border-radius: 50%; border: none; font-size: 28px; font-weight: 900; color: #1c1c1e; cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,0.35), inset 0 -4px 8px rgba(0,0,0,0.15), inset 0 4px 8px rgba(255,255,255,0.25); transition: transform 0.06s ease, box-shadow 0.06s ease; }
+  .switch:active { transform: translateY(5px); box-shadow: 0 1px 0 rgba(0,0,0,0.35), inset 0 -2px 6px rgba(0,0,0,0.2); }
+  .switch.red { background: #ff3b30; }
+  .switch.yellow { background: #ffd400; }
+  .switch.green { background: #00c853; }
+  .switch:disabled { opacity: 0.35; cursor: default; }
+
+  .controlsRow { display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .ctrlBtn { padding: 10px 16px; background: #2a2a2c; border: 1px solid #555; border-radius: 8px; color: #eee; font-size: 13px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; }
+  .ctrlBtn:hover { background: #35353a; }
+  .ctrlBtn.primary { background: #0a84ff; border-color: #0a84ff; color: #fff; }
+
+  .fretRef { margin-top: 10px; text-align: center; }
+  .fretRef svg { max-width: 420px; margin: 0 auto; }
+  .fretRef p { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin: 4px 0 0; }
+
+  .confettiLayer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+  .confettiBit { position: absolute; width: 8px; height: 8px; top: -10px; opacity: 0.9; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="badge">
+    <h1>Note Stomp</h1>
+    <p>String 1 note trainer &mdash; beginner guitar</p>
+  </div>
+
+  <div class="modeRow">
+    <button class="modeBtn active" id="modeDrillBtn">Note Drill</button>
+    <button class="modeBtn" id="modeRiffBtn">Riff Challenge</button>
+  </div>
+
+  <div class="settingsRow" id="drillSettings">
+    <div class="settingItem">
+      <div class="toggleSwitch" id="colorToggle"><div class="knob"></div></div>
+      <span>Note colors</span>
+    </div>
+    <button class="hintBtn" id="hintBtn">Hint</button>
+  </div>
+
+  <div class="levelBadge" id="levelBadge">Level 1 &middot; Notes in play: E, F</div>
+
+  <div class="ampWindow" id="ampWindow">
+    <div id="vfOutput"></div>
+    <div class="riffTrack" id="riffTrack" style="display:none;"></div>
+    <div class="sprintOverlay" id="sprintOverlay">
+      <h2>Time!</h2>
+      <div class="bigScore" id="overlayScore">0</div>
+      <p id="overlayDetail">Best streak: 0</p>
+      <button class="ctrlBtn primary" id="playAgainBtn">Play again</button>
+      <button class="ctrlBtn" id="closeOverlayBtn">Close</button>
+    </div>
+  </div>
+
+  <div class="message" id="message">&nbsp;</div>
+
+  <div class="ledPanel">
+    <div class="ledCard">
+      <div class="ledLabel">Score</div>
+      <div class="ledValue" id="scoreVal">0</div>
+    </div>
+    <div class="ledCard">
+      <div class="ledLabel">Streak</div>
+      <div class="ledValue" id="streakVal">0</div>
+      <div id="comboWrap"></div>
+    </div>
+    <div class="ledCard"><div class="ledLabel">Best</div><div class="ledValue" id="bestVal">0</div></div>
+    <div class="ledCard" id="timeCard" style="display:none;"><div class="ledLabel">Time</div><div class="ledValue timeGreen" id="timeVal">60</div></div>
+  </div>
+
+  <div class="missRow" id="missRow">Misses &mdash; E: 0 &nbsp; F: 0 &nbsp; G: 0</div>
+
+  <div class="footswitches">
+    <button class="switch red" data-note="E">E</button>
+    <button class="switch yellow" data-note="F">F</button>
+    <button class="switch green" data-note="G">G</button>
+  </div>
+
+  <div class="controlsRow" id="drillControls">
+    <button class="ctrlBtn primary" id="startSprintBtn">Start 60-second sprint</button>
+    <button class="ctrlBtn" id="resetBtn">Reset</button>
+  </div>
+
+  <div class="controlsRow" id="riffControls" style="display:none;">
+    <button class="ctrlBtn" id="riffSwitchBtn">Switch riff</button>
+    <button class="ctrlBtn" id="playRiffBtn">Play riff</button>
+    <button class="ctrlBtn" id="resetRiffBtn">Restart riff</button>
+  </div>
+
+  <div class="fretRef">
+    <svg id="fretSvg" viewBox="0 0 300 90"></svg>
+    <p>Open = E &middot; Fret 1 = F &middot; Fret 3 = G</p>
+  </div>
+
+</div>
+
+<script>
+const NOTES = {
+  E: { color: "#ff3b30", freq: 329.63, vexKey: "e/5" },
+  F: { color: "#ffd400", freq: 349.23, vexKey: "f/5" },
+  G: { color: "#00c853", freq: 392.00, vexKey: "g/5" }
+};
+const ALL_NOTE_ORDER = ["E", "F", "G"];
+
+let colorsOn = false;
+let unlockedNotes = ["E", "F"];
+let correctSinceUnlock = 0;
+const UNLOCK_THRESHOLD = 6;
+
+let missCounts = { E: 0, F: 0, G: 0 };
+let score = 0, streak = 0, best = 0, totalScore = 0;
+let hintActiveForCurrentNote = false;
+
+function drawFretRef() {
+  const y = 45, xNut = 30, xEnd = 270, nFrets = 4;
+  const fretXs = [];
+  for (let i = 0; i <= nFrets; i++) fretXs.push(xNut + (xEnd - xNut) * i / nFrets);
+  let s = `<line x1="${xNut}" y1="${y}" x2="${xEnd}" y2="${y}" stroke="#888" stroke-width="3"/>`;
+  fretXs.forEach((fx, i) => { s += `<line x1="${fx}" y1="${y-18}" x2="${fx}" y2="${y+18}" stroke="#888" stroke-width="${i===0 ? 5 : 1.5}"/>`; });
+  const marks = [ { name: "E", x: fretXs[0] - 14, open: true }, { name: "F", x: (fretXs[0]+fretXs[1])/2, open: false }, { name: "G", x: (fretXs[2]+fretXs[3])/2, open: false } ];
+  marks.forEach(m => {
+    const c = colorsOn ? NOTES[m.name].color : "#8a8378";
+    if (m.open) { s += `<circle cx="${m.x}" cy="${y}" r="9" fill="none" stroke="${c}" stroke-width="3.5" id="fretmark-${m.name}"/>`; }
+    else { s += `<circle cx="${m.x}" cy="${y}" r="9" fill="${c}" stroke="#1c1c1e" stroke-width="1.5" id="fretmark-${m.name}"/>`; }
+    s += `<text x="${m.x}" y="${y+32}" font-size="12" font-weight="700" fill="${c}" text-anchor="middle">${m.name}</text>`;
+  });
+  document.getElementById("fretSvg").innerHTML = s;
+}
+drawFretRef();
+
+function flashFretMark(noteName) {
+  const el = document.getElementById("fretmark-" + noteName);
+  if (!el) return;
+  el.style.filter = "drop-shadow(0 0 6px #0a84ff)";
+  let n = 0;
+  const iv = setInterval(() => {
+    el.setAttribute("r", el.getAttribute("r") === "9" ? "12" : "9");
+    n++;
+    if (n > 5) { clearInterval(iv); el.setAttribute("r", "9"); el.style.filter = "none"; }
+  }, 180);
+}
+
+function renderStaveWithNotes(vexNotesInfo, currentIdx) {
+  const container = document.getElementById("vfOutput");
+  container.innerHTML = "";
+  const VF = window.VexFlow;
+  if (!VF) { container.innerHTML = "<p style='color:#900;padding:20px;'>Notation engine did not load. Check your internet connection and reload.</p>"; return; }
+  const width = Math.max(260, 90 + vexNotesInfo.length * 46);
+  const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+  renderer.resize(width, 170);
+  const context = renderer.getContext();
+  const stave = new VF.Stave(10, 20, width - 20);
+  stave.addClef("treble", "default", "8vb");
+  stave.setContext(context).draw();
+
+  const staveNotes = vexNotesInfo.map((info, i) => {
+    const note = new VF.StaveNote({ keys: [NOTES[info.name].vexKey], duration: "q" });
+    if (info.colored) note.setStyle({ fillStyle: NOTES[info.name].color, strokeStyle: NOTES[info.name].color });
+    if (currentIdx !== undefined && i === currentIdx) note.setStyle({ fillStyle: "#0a84ff", strokeStyle: "#0a84ff" });
+    else if (currentIdx !== undefined && i < currentIdx) note.setStyle({ fillStyle: "#bbb", strokeStyle: "#bbb" });
+    return note;
+  });
+
+  const voice = new VF.Voice({ numBeats: staveNotes.length, beatValue: 4 });
+  voice.setStrict(false);
+  voice.addTickables(staveNotes);
+  new VF.Formatter().joinVoices([voice]).format([voice], width - 60);
+  voice.draw(context, stave);
+}
+
+let audioCtx = null;
+function ensureAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+function playTone(freq, duration, delay) {
+  delay = delay || 0;
+  const ctx = ensureAudio();
+  const startAt = ctx.currentTime + delay;
+  const osc = ctx.createOscillator(); const gain = ctx.createGain();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(freq, startAt);
+  gain.gain.setValueAtTime(0.0001, startAt);
+  gain.gain.exponentialRampToValueAtTime(0.25, startAt + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(startAt); osc.stop(startAt + duration + 0.02);
+}
+function playBuzz() {
+  const ctx = ensureAudio(); const startAt = ctx.currentTime;
+  const osc = ctx.createOscillator(); const gain = ctx.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(110, startAt);
+  gain.gain.setValueAtTime(0.15, startAt);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.25);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(startAt); osc.stop(startAt + 0.26);
+}
+function playLevelUp() {
+  playTone(NOTES.E.freq, 0.15, 0);
+  playTone(NOTES.F.freq, 0.15, 0.13);
+  playTone(NOTES.G.freq, 0.3, 0.26);
+}
+
+function spawnConfetti() {
+  const layer = document.createElement("div");
+  layer.className = "confettiLayer";
+  document.body.appendChild(layer);
+  const colors = ["#ff3b30", "#ffd400", "#00c853", "#0a84ff"];
+  for (let i = 0; i < 26; i++) {
+    const bit = document.createElement("div");
+    bit.className = "confettiBit";
+    bit.style.left = (Math.random() * 100) + "vw";
+    bit.style.background = colors[Math.floor(Math.random() * colors.length)];
+    bit.style.animationDuration = (1.2 + Math.random() * 1.2) + "s";
+    bit.style.borderRadius = Math.random() > 0.5 ? "50%" : "0";
+    layer.appendChild(bit);
+  }
+  setTimeout(() => layer.remove(), 2600);
+}
+
+function getMultiplier() {
+  if (streak >= 10) return 4;
+  if (streak >= 6) return 3;
+  if (streak >= 3) return 2;
+  return 1;
+}
+
+function updateLeds() {
+  document.getElementById("scoreVal").textContent = score;
+  document.getElementById("streakVal").textContent = streak;
+  document.getElementById("bestVal").textContent = best;
+  const mult = getMultiplier();
+  document.getElementById("comboWrap").innerHTML = mult > 1 ? `<span class="comboTag">x${mult}</span>` : "";
+  document.getElementById("missRow").innerHTML =
+    `Misses &mdash; <span class="${missCounts.E>2?'hi':''}">E: ${missCounts.E}</span> &nbsp; <span class="${missCounts.F>2?'hi':''}">F: ${missCounts.F}</span> &nbsp; <span class="${missCounts.G>2?'hi':''}">G: ${missCounts.G}</span>`;
+  const badgeText = totalScore >= 600 ? "Legend" : totalScore >= 300 ? "Shredder" : totalScore >= 100 ? "Riffer" : "Rookie";
+  const notesList = unlockedNotes.join(", ");
+  document.getElementById("levelBadge").textContent = badgeText + " \u00b7 Notes in play: " + notesList;
+}
+
+function flashAmp(good) {
+  const el = document.getElementById("ampWindow");
+  el.classList.remove("flashGood", "flashBad");
+  void el.offsetWidth;
+  el.classList.add(good ? "flashGood" : "flashBad");
+  setTimeout(() => el.classList.remove("flashGood", "flashBad"), 320);
+}
+function setMessage(text) { document.getElementById("message").textContent = text || "\u00A0"; }
+
+let mode = "drill";
+let currentDrillNote = null;
+let sprintActive = false, sprintTimeLeft = 60, sprintTimer = null;
+
+function maybeUnlock() {
+  if (unlockedNotes.length < ALL_NOTE_ORDER.length && correctSinceUnlock >= UNLOCK_THRESHOLD) {
+    const next = ALL_NOTE_ORDER[unlockedNotes.length];
+    unlockedNotes.push(next);
+    correctSinceUnlock = 0;
+    setMessage("New note unlocked: " + next + "!");
+    spawnConfetti();
+    playLevelUp();
+    updateLeds();
+    return true;
+  }
+  return false;
+}
+
+function pickDrillNote() {
+  const weights = unlockedNotes.map(n => 1 + missCounts[n] * 2);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  let chosen = unlockedNotes[0];
+  for (let i = 0; i < unlockedNotes.length; i++) {
+    if (r < weights[i]) { chosen = unlockedNotes[i]; break; }
+    r -= weights[i];
+  }
+  if (chosen === currentDrillNote && unlockedNotes.length > 1) {
+    const alt = unlockedNotes.filter(n => n !== currentDrillNote);
+    chosen = alt[Math.floor(Math.random() * alt.length)];
+  }
+  currentDrillNote = chosen;
+  hintActiveForCurrentNote = false;
+  renderStaveWithNotes([{ name: currentDrillNote, colored: colorsOn }]);
+}
+
+function handleDrillAnswer(letter) {
+  if (letter === currentDrillNote) {
+    const mult = getMultiplier();
+    const gained = hintActiveForCurrentNote ? 5 : 10 * mult;
+    score += gained; totalScore += gained; streak += 1; best = Math.max(best, streak);
+    correctSinceUnlock += 1;
+    flashAmp(true);
+    playTone(NOTES[letter].freq, 0.35);
+    setMessage(["Nice!", "Locked in.", "Clean.", "That's it.", "On the money."][Math.floor(Math.random()*5)]);
+    updateLeds();
+    const leveledUp = maybeUnlock();
+    setTimeout(pickDrillNote, leveledUp ? 900 : 260);
+  } else {
+    streak = 0;
+    missCounts[currentDrillNote] += 1;
+    flashAmp(false);
+    playBuzz();
+    setMessage("Not quite \u2014 try again.");
+    updateLeds();
+  }
+}
+
+const RIFFS = {
+  playground: { label: "The Playground Chant", sequence: ["G","G","E","G","G","E","G","G","E","G"], durations: [0.28,0.28,0.5,0.28,0.28,0.5,0.28,0.28,0.5,0.9] },
+  suspense: { label: "The Suspense Riff", sequence: ["E","F","E","F","E","F","E","F","E","F","E","F","E","F","E","F","G"], durations: [0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.16,0.16,0.16,0.16,0.16,0.16,0.16,0.16,1.1] }
+};
+let currentRiffKey = "playground";
+let riffIdx = 0;
+
+function renderRiffTrack() {
+  const track = document.getElementById("riffTrack");
+  const seq = RIFFS[currentRiffKey].sequence;
+  track.innerHTML = "";
+  seq.forEach((n, i) => {
+    const dot = document.createElement("div");
+    dot.className = "riffDot" + (i === riffIdx ? " current" : (i < riffIdx ? " done" : ""));
+    dot.style.background = NOTES[n].color;
+    track.appendChild(dot);
+  });
+}
+function renderRiff() {
+  const seq = RIFFS[currentRiffKey].sequence;
+  renderStaveWithNotes(seq.map(n => ({ name: n, colored: colorsOn })), riffIdx);
+  renderRiffTrack();
+}
+function handleRiffAnswer(letter) {
+  const seq = RIFFS[currentRiffKey].sequence;
+  if (letter === seq[riffIdx]) {
+    playTone(NOTES[letter].freq, 0.3);
+    flashAmp(true);
+    const mult = getMultiplier();
+    const gained = 10 * mult;
+    score += gained; totalScore += gained; streak += 1; best = Math.max(best, streak);
+    riffIdx += 1;
+    updateLeds();
+    if (riffIdx >= seq.length) {
+      setMessage("Riff complete! Great performance.");
+      score += 50; totalScore += 50;
+      updateLeds();
+      spawnConfetti();
+      setTimeout(() => { riffIdx = 0; renderRiff(); setMessage("Go again, or switch riffs."); }, 1500);
+    } else {
+      renderRiff();
+    }
+  } else {
+    streak = 0;
+    missCounts[seq[riffIdx]] += 1;
+    flashAmp(false);
+    playBuzz();
+    setMessage("Not quite \u2014 the riff continues from here.");
+    updateLeds();
+  }
+}
+function playFullRiff() {
+  const r = RIFFS[currentRiffKey];
+  let t = 0;
+  r.sequence.forEach((n, i) => { playTone(NOTES[n].freq, r.durations[i] * 0.9, t); t += r.durations[i]; });
+}
+
+document.querySelectorAll(".switch").forEach(btn => {
+  btn.addEventListener("click", () => {
+    ensureAudio();
+    const letter = btn.getAttribute("data-note");
+    if (mode === "drill") {
+      handleDrillAnswer(letter);
+    } else {
+      handleRiffAnswer(letter);
+    }
+  });
+});
+
+document.getElementById("modeDrillBtn").addEventListener("click", () => {
+  mode = "drill";
+  document.getElementById("modeDrillBtn").classList.add("active");
+  document.getElementById("modeRiffBtn").classList.remove("active");
+  document.getElementById("drillControls").style.display = "flex";
+  document.getElementById("riffControls").style.display = "none";
+  document.getElementById("riffTrack").style.display = "none";
+  document.getElementById("drillSettings").style.display = "flex";
+  setMessage("");
+  pickDrillNote();
+});
+document.getElementById("modeRiffBtn").addEventListener("click", () => {
+  mode = "riff";
+  document.getElementById("modeRiffBtn").classList.add("active");
+  document.getElementById("modeDrillBtn").classList.remove("active");
+  document.getElementById("riffControls").style.display = "flex";
+  document.getElementById("drillControls").style.display = "none";
+  document.getElementById("riffTrack").style.display = "flex";
+  document.getElementById("drillSettings").style.display = "flex";
+  riffIdx = 0;
+  setMessage("Name each note in order, then play it.");
+  renderRiff();
+});
+
+document.getElementById("colorToggle").addEventListener("click", () => {
+  colorsOn = !colorsOn;
+  document.getElementById("colorToggle").classList.toggle("on", colorsOn);
+  drawFretRef();
+  if (mode === "drill") renderStaveWithNotes([{ name: currentDrillNote, colored: colorsOn }]);
+  else renderRiff();
+});
+
+document.getElementById("hintBtn").addEventListener("click", () => {
+  if (mode !== "drill" || !currentDrillNote) return;
+  hintActiveForCurrentNote = true;
+  flashFretMark(currentDrillNote);
+  setMessage("Hint shown \u2014 this one's worth fewer points.");
+});
+
+document.getElementById("riffSwitchBtn").addEventListener("click", () => {
+  currentRiffKey = currentRiffKey === "playground" ? "suspense" : "playground";
+  riffIdx = 0;
+  setMessage("Now playing: " + RIFFS[currentRiffKey].label);
+  renderRiff();
+});
+document.getElementById("playRiffBtn").addEventListener("click", () => { ensureAudio(); playFullRiff(); });
+document.getElementById("resetRiffBtn").addEventListener("click", () => { riffIdx = 0; setMessage(""); renderRiff(); });
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  score = 0; streak = 0; best = 0; missCounts = { E: 0, F: 0, G: 0 };
+  unlockedNotes = ["E", "F"]; correctSinceUnlock = 0;
+  updateLeds(); setMessage("Reset. Good luck!"); pickDrillNote();
+});
+
+const timeCard = document.getElementById("timeCard");
+const timeVal = document.getElementById("timeVal");
+const sprintOverlay = document.getElementById("sprintOverlay");
+
+function startSprint() {
+  score = 0; streak = 0; sprintTimeLeft = 60; sprintActive = true;
+  sprintOverlay.classList.remove("show");
+  timeCard.style.display = "block";
+  timeVal.className = "ledValue timeGreen";
+  timeVal.textContent = sprintTimeLeft;
+  document.querySelectorAll(".switch").forEach(b => b.disabled = false);
+  updateLeds();
+  setMessage("Go!");
+  pickDrillNote();
+  clearInterval(sprintTimer);
+  sprintTimer = setInterval(() => {
+    sprintTimeLeft -= 1;
+    timeVal.textContent = sprintTimeLeft;
+    timeVal.className = "ledValue " + (sprintTimeLeft <= 10 ? "timeRed" : sprintTimeLeft <= 30 ? "timeYellow" : "timeGreen");
+    if (sprintTimeLeft <= 0) {
+      clearInterval(sprintTimer);
+      sprintActive = false;
+      document.querySelectorAll(".switch").forEach(b => b.disabled = true);
+      document.getElementById("overlayScore").textContent = score;
+      document.getElementById("overlayDetail").textContent = "Best streak: " + best;
+      sprintOverlay.classList.add("show");
+      setMessage("");
+    }
+  }, 1000);
+}
+document.getElementById("startSprintBtn").addEventListener("click", startSprint);
+document.getElementById("playAgainBtn").addEventListener("click", startSprint);
+document.getElementById("closeOverlayBtn").addEventListener("click", () => {
+  sprintOverlay.classList.remove("show");
+  timeCard.style.display = "none";
+  document.querySelectorAll(".switch").forEach(b => b.disabled = false);
+});
+
+window.addEventListener("load", () => {
+  pickDrillNote();
+  updateLeds();
+});
+</script>
+</body>
+</html>
