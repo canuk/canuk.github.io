@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Side by side — two takes on reading string 1</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #14141a; color: #e8e8ea;
+    display: flex; flex-direction: column;
+  }
+  header {
+    padding: 12px 18px; border-bottom: 1px solid #2e2e36; flex: none;
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  header h1 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.3px; }
+  header p { margin: 0; font-size: 13px; color: #8a8a95; }
+
+  .grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #2e2e36; min-height: 0; }
+  .panel { display: flex; flex-direction: column; background: #14141a; min-width: 0; min-height: 0; }
+  .panelBar {
+    flex: none; padding: 8px 14px; background: #1c1c24; border-bottom: 1px solid #2e2e36;
+    display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap;
+  }
+  .tag {
+    font: 700 11px/1 system-ui, sans-serif; letter-spacing: 1px;
+    padding: 4px 7px; border-radius: 4px; color: #14141a; flex: none;
+  }
+  .tag.a { background: #5ecf8f; }
+  .tag.b { background: #ffd400; }
+  .panelBar .name { font-weight: 600; font-size: 13px; }
+  .panelBar .file { font: 11px/1 ui-monospace, "SF Mono", Menlo, monospace; color: #6e6e7a; }
+  iframe { flex: 1; width: 100%; border: 0; background: #fff; min-height: 0; }
+
+  @media (max-width: 1000px) {
+    body { height: auto; }
+    .grid { grid-template-columns: 1fr; }
+    iframe { height: 88vh; flex: none; }
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <h1>Reading notes on string 1 — two takes, side by side</h1>
+    <p>Both are live and independent. Each panel scrolls on its own; sound works in either.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panelBar">
+        <span class="tag a">A</span>
+        <span class="name">Reading Notes on the High E String</span>
+        <span class="file">Note_Explorer_String1.html</span>
+      </div>
+      <iframe title="Take A — Reading Notes on the High E String"
+              srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+&lt;title&gt;Explorable: Reading Notes on the High E String&lt;/title&gt;
+&lt;script src=&quot;https://cdn.jsdelivr.net/npm/vexflow@5.0.0/build/cjs/vexflow-bravura.js&quot;&gt;&lt;/script&gt;
+&lt;style&gt;
+  * { box-sizing: border-box; }
+  body { font: 16px/1.6 system-ui, -apple-system, sans-serif; max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; color: #1a1a1a; background: #fcfcfa; }
+  h1 { font-size: 1.5rem; margin-bottom: 4px; }
+  .sub { color: #666; margin-top: 0; }
+  .explain { margin: 1rem 0; }
+  .stage { border: 1px solid #e2e2dc; border-radius: 12px; padding: 18px; margin: 18px 0; background: #fff; }
+  .stage h2 { font-size: 1.05rem; margin: 0 0 10px; letter-spacing: 0.3px; }
+  .hidden { display: none; }
+  button { padding: 9px 15px; border-radius: 8px; border: 1px solid #999; background: #f4f4f5; cursor: pointer; font: inherit; font-weight: 600; }
+  button:hover { background: #ececee; }
+  button.primary { background: #0a6; border-color: #0a6; color: #fff; }
+  button.primary:hover { background: #096; }
+  button:disabled { opacity: 0.4; cursor: default; }
+
+  /* the two linked representations sit side by side so the mapping is spatially obvious */
+  .mapping { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; margin: 8px 0; }
+  .repBox { text-align: center; }
+  .repBox .cap { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 2px; }
+  #staffOut svg, #fretOut svg { display:block; }
+  .arrow { font-size: 22px; color: #bbb; }
+
+  .letterBig { font-size: 2.4rem; font-weight: 800; line-height: 1; }
+  .pitchNote { font-size: 0.85rem; color: #888; }
+
+  .control { display: flex; align-items: center; gap: 12px; margin: 14px 0 6px; justify-content: center; flex-wrap: wrap; }
+  .control label { font-weight: 600; }
+  input[type=range] { width: 260px; }
+  .hint { font-size: 0.88rem; color: #777; }
+
+  .choices { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 10px 0; }
+  .choiceBtn { min-width: 88px; font-size: 1.05rem; padding: 14px 10px; }
+  .choiceBtn.correct { background: #0a6; border-color: #0a6; color: #fff; }
+  .choiceBtn.wrong { background: #d33; border-color: #d33; color: #fff; }
+
+  .feedback { text-align: center; min-height: 22px; font-weight: 600; margin: 8px 0; }
+  .feedback.good { color: #0a6; } .feedback.bad { color: #c00; }
+
+  textarea { width: 100%; font: inherit; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+  .scoreRow { display: flex; gap: 18px; justify-content: center; font-size: 0.95rem; color: #444; margin-top: 8px; }
+  .scoreRow b { color: #0a6; font-size: 1.15rem; }
+  .patternTable { margin: 6px auto; border-collapse: collapse; font-size: 0.95rem; }
+  .patternTable td, .patternTable th { border: 1px solid #ddd; padding: 4px 12px; text-align: center; }
+  .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+  .nav { text-align: center; margin-top: 10px; }
+  a.plain { color: #0a6; cursor: pointer; text-decoration: underline; }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Reading Notes on the High E String&lt;/h1&gt;
+  &lt;p class=&quot;sub&quot;&gt;An explorable for beginner guitar — find the pattern, then test yourself.&lt;/p&gt;
+
+  &lt;p class=&quot;explain&quot;&gt;Sheet music tells a guitarist two things at once: &lt;em&gt;which note to play&lt;/em&gt; and,
+  once you know the pattern, &lt;em&gt;where to put your finger&lt;/em&gt;. On the guitar&#x27;s 1st string (the thin high-E
+  string), the three starting notes are &lt;strong&gt;E, F, and G&lt;/strong&gt;. This page lets you play with the
+  connection between the dot on the staff and the spot on the string — until the pattern clicks.&lt;/p&gt;
+
+  &lt;!-- ============ STAGE 1: THE LIVING MAPPING (explorable example, worked -&gt; guided) ============ --&gt;
+  &lt;div class=&quot;stage&quot; id=&quot;mapStage&quot;&gt;
+    &lt;h2&gt;1 · Move the note. Watch everything move with it.&lt;/h2&gt;
+    &lt;p class=&quot;explain&quot;&gt;Drag the slider to move the note up and down the staff. Notice what happens to the
+    finger position on the string, the letter name, and the sound — &lt;strong&gt;all at the same time.&lt;/strong&gt;&lt;/p&gt;
+
+    &lt;div class=&quot;mapping&quot;&gt;
+      &lt;div class=&quot;repBox&quot;&gt;
+        &lt;div class=&quot;cap&quot;&gt;On the staff&lt;/div&gt;
+        &lt;div id=&quot;staffOut&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;arrow&quot; aria-hidden=&quot;true&quot;&gt;&amp;rarr;&lt;/div&gt;
+      &lt;div class=&quot;repBox&quot;&gt;
+        &lt;div class=&quot;cap&quot;&gt;On the string&lt;/div&gt;
+        &lt;div id=&quot;fretOut&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;arrow&quot; aria-hidden=&quot;true&quot;&gt;&amp;rarr;&lt;/div&gt;
+      &lt;div class=&quot;repBox&quot;&gt;
+        &lt;div class=&quot;cap&quot;&gt;Note&lt;/div&gt;
+        &lt;div class=&quot;letterBig&quot; id=&quot;letterOut&quot;&gt;E&lt;/div&gt;
+        &lt;div class=&quot;pitchNote&quot; id=&quot;fretText&quot;&gt;open string&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;control&quot;&gt;
+      &lt;label for=&quot;noteSlider&quot;&gt;Note height&lt;/label&gt;
+      &lt;input type=&quot;range&quot; id=&quot;noteSlider&quot; min=&quot;0&quot; max=&quot;2&quot; value=&quot;0&quot; step=&quot;1&quot; aria-describedby=&quot;liveState&quot;&gt;
+      &lt;button id=&quot;hearBtn&quot; type=&quot;button&quot;&gt;▶ Hear it&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;p class=&quot;hint&quot; style=&quot;text-align:center&quot;&gt;Lower on the staff = lower pitch = closer to the nut (open).
+      Higher on the staff = higher pitch = further up the string.&lt;/p&gt;
+    &lt;p id=&quot;liveState&quot; class=&quot;sr-only&quot; aria-live=&quot;polite&quot;&gt;&lt;/p&gt;
+
+    &lt;div class=&quot;nav&quot;&gt;&lt;button class=&quot;primary&quot; id=&quot;toPredict&quot; type=&quot;button&quot;&gt;I see the pattern — test me &amp;rarr;&lt;/button&gt;&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- ============ STAGE 2: PREDICT BEFORE REVEAL (discovery loop) ============ --&gt;
+  &lt;div class=&quot;stage hidden&quot; id=&quot;predictStage&quot;&gt;
+    &lt;h2&gt;2 · Predict first, then check&lt;/h2&gt;
+    &lt;p class=&quot;explain&quot;&gt;Here&#x27;s a note on the staff. &lt;strong&gt;Before&lt;/strong&gt; you hear it or see the answer,
+    predict its letter. A wrong guess is totally fine — it&#x27;s how the pattern locks in.&lt;/p&gt;
+
+    &lt;div class=&quot;mapping&quot;&gt;
+      &lt;div class=&quot;repBox&quot;&gt;
+        &lt;div class=&quot;cap&quot;&gt;What note is this?&lt;/div&gt;
+        &lt;div id=&quot;quizStaff&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;choices&quot; id=&quot;choiceRow&quot;&gt;
+      &lt;button class=&quot;choiceBtn&quot; data-note=&quot;E&quot; type=&quot;button&quot;&gt;E&lt;/button&gt;
+      &lt;button class=&quot;choiceBtn&quot; data-note=&quot;F&quot; type=&quot;button&quot;&gt;F&lt;/button&gt;
+      &lt;button class=&quot;choiceBtn&quot; data-note=&quot;G&quot; type=&quot;button&quot;&gt;G&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;p class=&quot;feedback&quot; id=&quot;quizFeedback&quot;&gt;&amp;nbsp;&lt;/p&gt;
+
+    &lt;!-- the reveal: after committing, show the SAME linked representations so prediction meets reality --&gt;
+    &lt;div class=&quot;hidden&quot; id=&quot;revealBox&quot;&gt;
+      &lt;div class=&quot;mapping&quot;&gt;
+        &lt;div class=&quot;repBox&quot;&gt;&lt;div class=&quot;cap&quot;&gt;On the string&lt;/div&gt;&lt;div id=&quot;quizFret&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;arrow&quot; aria-hidden=&quot;true&quot;&gt;&amp;rarr;&lt;/div&gt;
+        &lt;div class=&quot;repBox&quot;&gt;&lt;div class=&quot;cap&quot;&gt;Note&lt;/div&gt;&lt;div class=&quot;letterBig&quot; id=&quot;quizLetter&quot;&gt;E&lt;/div&gt;&lt;div class=&quot;pitchNote&quot; id=&quot;quizFretText&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;button id=&quot;quizHear&quot; type=&quot;button&quot;&gt;▶ Hear it&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;nav&quot;&gt;&lt;button class=&quot;primary&quot; id=&quot;nextQuiz&quot; type=&quot;button&quot;&gt;Next note &amp;rarr;&lt;/button&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;scoreRow&quot;&gt;
+      &lt;span&gt;Streak: &lt;b id=&quot;streak&quot;&gt;0&lt;/b&gt;&lt;/span&gt;
+      &lt;span&gt;Best: &lt;b id=&quot;best&quot;&gt;0&lt;/b&gt;&lt;/span&gt;
+      &lt;span&gt;Correct: &lt;b id=&quot;correct&quot;&gt;0&lt;/b&gt;/&lt;b id=&quot;attempts&quot;&gt;0&lt;/b&gt;&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;nav&quot; style=&quot;margin-top:14px&quot;&gt;
+      &lt;button id=&quot;toReflect&quot; class=&quot;hidden&quot; type=&quot;button&quot;&gt;I&#x27;ve got it — one last question &amp;rarr;&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- ============ STAGE 3: REFLECT (the Active-&gt;Constructive jump) ============ --&gt;
+  &lt;div class=&quot;stage hidden&quot; id=&quot;reflectStage&quot;&gt;
+    &lt;h2&gt;3 · Put the pattern in your own words&lt;/h2&gt;
+    &lt;p class=&quot;explain&quot;&gt;You just used the pattern a bunch of times. Now &lt;strong&gt;generate&lt;/strong&gt; it yourself —
+    this is the part that makes it stick. Fill in the rule you discovered:&lt;/p&gt;
+
+    &lt;table class=&quot;patternTable&quot;&gt;
+      &lt;tr&gt;&lt;th&gt;Note&lt;/th&gt;&lt;th&gt;Staff position&lt;/th&gt;&lt;th&gt;Fret&lt;/th&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;&lt;b&gt;E&lt;/b&gt;&lt;/td&gt;&lt;td&gt;top space&lt;/td&gt;&lt;td&gt;open (0)&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;&lt;b&gt;F&lt;/b&gt;&lt;/td&gt;&lt;td&gt;top line&lt;/td&gt;&lt;td&gt;1st fret&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;&lt;b&gt;G&lt;/b&gt;&lt;/td&gt;&lt;td&gt;just above the staff&lt;/td&gt;&lt;td&gt;3rd fret&lt;/td&gt;&lt;/tr&gt;
+    &lt;/table&gt;
+
+    &lt;p class=&quot;explain&quot;&gt;In one sentence: as a note moves &lt;em&gt;higher&lt;/em&gt; on the staff, the fret you play moves
+    ______ the string, and the pitch gets ______.&lt;/p&gt;
+    &lt;textarea id=&quot;reflectText&quot; rows=&quot;3&quot; placeholder=&quot;As a note gets higher on the staff, the fret moves… and the pitch gets…&quot;&gt;&lt;/textarea&gt;
+
+    &lt;div class=&quot;nav&quot; style=&quot;margin-top:14px&quot;&gt;
+      &lt;button class=&quot;primary&quot; id=&quot;toChallenge&quot; type=&quot;button&quot;&gt;Ready for the challenge &amp;rarr;&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- ============ STAGE 4: OPEN CHALLENGE (game framing, now that understanding is built) ============ --&gt;
+  &lt;div class=&quot;stage hidden&quot; id=&quot;challengeStage&quot;&gt;
+    &lt;h2&gt;4 · Speed challenge&lt;/h2&gt;
+    &lt;p class=&quot;explain&quot;&gt;Now that the pattern is yours, put it under a little pressure. Name as many notes as
+    you can in 60 seconds. Colors are &lt;strong&gt;off&lt;/strong&gt; — you&#x27;re reading real notation now.&lt;/p&gt;
+
+    &lt;div class=&quot;mapping&quot;&gt;
+      &lt;div class=&quot;repBox&quot;&gt;&lt;div class=&quot;cap&quot;&gt;Name this note&lt;/div&gt;&lt;div id=&quot;challengeStaff&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;choices&quot; id=&quot;challengeRow&quot;&gt;
+      &lt;button class=&quot;choiceBtn&quot; data-note=&quot;E&quot; type=&quot;button&quot;&gt;E&lt;/button&gt;
+      &lt;button class=&quot;choiceBtn&quot; data-note=&quot;F&quot; type=&quot;button&quot;&gt;F&lt;/button&gt;
+      &lt;button class=&quot;choiceBtn&quot; data-note=&quot;G&quot; type=&quot;button&quot;&gt;G&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;p class=&quot;feedback&quot; id=&quot;challengeFeedback&quot;&gt;&amp;nbsp;&lt;/p&gt;
+    &lt;div class=&quot;scoreRow&quot;&gt;
+      &lt;span&gt;Score: &lt;b id=&quot;cScore&quot;&gt;0&lt;/b&gt;&lt;/span&gt;
+      &lt;span&gt;Time: &lt;b id=&quot;cTime&quot;&gt;60&lt;/b&gt;s&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;nav&quot; style=&quot;margin-top:12px&quot;&gt;
+      &lt;button class=&quot;primary&quot; id=&quot;startChallenge&quot; type=&quot;button&quot;&gt;Start 60-second challenge&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;nav hidden&quot; id=&quot;challengeEnd&quot;&gt;
+      &lt;p class=&quot;feedback good&quot; id=&quot;finalMsg&quot;&gt;&lt;/p&gt;
+      &lt;button id=&quot;againChallenge&quot; type=&quot;button&quot;&gt;Play again&lt;/button&gt;
+      &lt;a class=&quot;plain&quot; id=&quot;backToMap&quot;&gt;↺ back to the mapping&lt;/a&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+&lt;script&gt;
+// ---------- the MODEL: one mapping shared by every representation ----------
+// index 0,1,2  &lt;-&gt;  E,F,G  &lt;-&gt;  fret 0,1,3  &lt;-&gt;  staff key  &lt;-&gt;  pitch
+const NOTES = [
+  { letter: &quot;E&quot;, fret: 0, fretLabel: &quot;open string (fret 0)&quot;, vexKey: &quot;e/5&quot;, freq: 329.63 },
+  { letter: &quot;F&quot;, fret: 1, fretLabel: &quot;1st fret&quot;,            vexKey: &quot;f/5&quot;, freq: 349.23 },
+  { letter: &quot;G&quot;, fret: 3, fretLabel: &quot;3rd fret&quot;,            vexKey: &quot;g/5&quot;, freq: 392.00 }
+];
+const byLetter = l =&gt; NOTES.find(n =&gt; n.letter === l);
+
+const VF = window.VexFlow;
+
+// ---------- audio ----------
+let actx = null;
+function tone(freq) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
+    o.type = &quot;triangle&quot;; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t + 0.62);
+  } catch (e) {}
+}
+
+// ---------- representation 1: the staff (VexFlow) ----------
+function drawStaff(containerId, note, colored) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = &quot;&quot;;
+  if (!VF) { el.innerHTML = &quot;&lt;p style=&#x27;color:#900;font-size:13px;padding:10px&#x27;&gt;Notation engine needs internet on first load. Reconnect and reload.&lt;/p&gt;&quot;; return; }
+  const r = new VF.Renderer(el, VF.Renderer.Backends.SVG);
+  r.resize(150, 150);
+  const ctx = r.getContext();
+  const stave = new VF.Stave(2, 12, 130);
+  stave.addClef(&quot;treble&quot;, &quot;default&quot;, &quot;8vb&quot;);
+  stave.setContext(ctx).draw();
+  const sn = new VF.StaveNote({ keys: [note.vexKey], duration: &quot;w&quot; });
+  if (colored) { const c = {E:&quot;#d33&quot;,F:&quot;#e8a800&quot;,G:&quot;#0a6&quot;}[note.letter]; sn.setStyle({ fillStyle: c, strokeStyle: c }); }
+  const v = new VF.Voice({ numBeats: 4, beatValue: 4 }); v.setStrict(false); v.addTickables([sn]);
+  new VF.Formatter().joinVoices([v]).format([v], 90);
+  v.draw(ctx, stave);
+}
+
+// ---------- representation 2: the fretboard (SVG) ----------
+function drawFret(containerId, note) {
+  const el = document.getElementById(containerId);
+  const W = 150, H = 90, y = 46, xNut = 22, xEnd = 138, nFrets = 4;
+  const fx = i =&gt; xNut + (xEnd - xNut) * i / nFrets;
+  let s = `&lt;svg width=&quot;${W}&quot; height=&quot;${H}&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;`;
+  s += `&lt;line x1=&quot;${xNut}&quot; y1=&quot;${y}&quot; x2=&quot;${xEnd}&quot; y2=&quot;${y}&quot; stroke=&quot;#333&quot; stroke-width=&quot;2.5&quot;/&gt;`;
+  for (let i = 0; i &lt;= nFrets; i++) s += `&lt;line x1=&quot;${fx(i)}&quot; y1=&quot;${y-14}&quot; x2=&quot;${fx(i)}&quot; y2=&quot;${y+14}&quot; stroke=&quot;#555&quot; stroke-width=&quot;${i===0?4:1.3}&quot;/&gt;`;
+  for (let i = 1; i &lt;= nFrets; i++) s += `&lt;text x=&quot;${fx(i-1)/1+ (fx(i)-fx(i-1))/2}&quot; y=&quot;${y+28}&quot; font-size=&quot;9&quot; fill=&quot;#aaa&quot; text-anchor=&quot;middle&quot;&gt;${i}&lt;/text&gt;`;
+  // marker for THIS note
+  const mx = note.fret === 0 ? fx(0) - 10 : (fx(note.fret-1) + fx(note.fret)) / 2;
+  if (note.fret === 0) s += `&lt;circle cx=&quot;${mx}&quot; cy=&quot;${y}&quot; r=&quot;8&quot; fill=&quot;#fff&quot; stroke=&quot;#0a6&quot; stroke-width=&quot;3&quot;/&gt;`;
+  else s += `&lt;circle cx=&quot;${mx}&quot; cy=&quot;${y}&quot; r=&quot;8&quot; fill=&quot;#0a6&quot; stroke=&quot;#064&quot; stroke-width=&quot;1.5&quot;/&gt;`;
+  s += `&lt;text x=&quot;${W/2}&quot; y=&quot;14&quot; font-size=&quot;9&quot; fill=&quot;#999&quot; text-anchor=&quot;middle&quot;&gt;high E string&lt;/text&gt;`;
+  s += `&lt;/svg&gt;`;
+  el.innerHTML = s;
+}
+
+// ================= STAGE 1: living mapping =================
+const slider = document.getElementById(&quot;noteSlider&quot;);
+function renderMapping() {
+  const note = NOTES[Number(slider.value)];
+  drawStaff(&quot;staffOut&quot;, note, true);
+  drawFret(&quot;fretOut&quot;, note);
+  document.getElementById(&quot;letterOut&quot;).textContent = note.letter;
+  document.getElementById(&quot;letterOut&quot;).style.color = {E:&quot;#d33&quot;,F:&quot;#e8a800&quot;,G:&quot;#0a6&quot;}[note.letter];
+  document.getElementById(&quot;fretText&quot;).textContent = note.fretLabel;
+  document.getElementById(&quot;liveState&quot;).textContent =
+    `${note.letter}, ${note.fretLabel}. Higher on the staff means higher on the string.`;
+}
+slider.addEventListener(&quot;input&quot;, renderMapping);
+document.getElementById(&quot;hearBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; tone(NOTES[Number(slider.value)].freq));
+
+// ================= STAGE navigation =================
+function show(id){ document.getElementById(id).classList.remove(&quot;hidden&quot;); }
+function hide(id){ document.getElementById(id).classList.add(&quot;hidden&quot;); }
+
+document.getElementById(&quot;toPredict&quot;).addEventListener(&quot;click&quot;, () =&gt; { hide(&quot;mapStage&quot;); show(&quot;predictStage&quot;); newQuiz(); });
+document.getElementById(&quot;toReflect&quot;).addEventListener(&quot;click&quot;, () =&gt; { hide(&quot;predictStage&quot;); show(&quot;reflectStage&quot;); });
+document.getElementById(&quot;toChallenge&quot;).addEventListener(&quot;click&quot;, () =&gt; { hide(&quot;reflectStage&quot;); show(&quot;challengeStage&quot;); });
+
+// ================= STAGE 2: predict-before-reveal =================
+let qNote = null, streak = 0, best = 0, correct = 0, attempts = 0, committed = false;
+function newQuiz() {
+  committed = false;
+  qNote = NOTES[Math.floor(Math.random()*3)];
+  drawStaff(&quot;quizStaff&quot;, qNote, false);            // colors OFF during prediction
+  document.getElementById(&quot;revealBox&quot;).classList.add(&quot;hidden&quot;);
+  document.getElementById(&quot;quizFeedback&quot;).textContent = &quot;\u00A0&quot;;
+  document.getElementById(&quot;quizFeedback&quot;).className = &quot;feedback&quot;;
+  document.querySelectorAll(&quot;#choiceRow .choiceBtn&quot;).forEach(b =&gt; { b.disabled = false; b.className = &quot;choiceBtn&quot;; });
+}
+document.querySelectorAll(&quot;#choiceRow .choiceBtn&quot;).forEach(btn =&gt; {
+  btn.addEventListener(&quot;click&quot;, () =&gt; {
+    if (committed) return;
+    committed = true; attempts++;
+    const guess = btn.dataset.note, right = guess === qNote.letter;
+    document.querySelectorAll(&quot;#choiceRow .choiceBtn&quot;).forEach(b =&gt; {
+      b.disabled = true;
+      if (b.dataset.note === qNote.letter) b.classList.add(&quot;correct&quot;);
+      else if (b === btn) b.classList.add(&quot;wrong&quot;);
+    });
+    const fb = document.getElementById(&quot;quizFeedback&quot;);
+    if (right) { correct++; streak++; best = Math.max(best, streak);
+      fb.textContent = &quot;Yes! &quot; + qNote.letter + &quot; — &quot; + qNote.fretLabel + &quot;.&quot;; fb.className = &quot;feedback good&quot;; }
+    else { streak = 0;
+      fb.textContent = &quot;Not this time — it&#x27;s &quot; + qNote.letter + &quot;. See how it lines up below.&quot;; fb.className = &quot;feedback bad&quot;; }
+    // REVEAL: same linked representations, so prediction meets reality
+    drawFret(&quot;quizFret&quot;, qNote);
+    document.getElementById(&quot;quizLetter&quot;).textContent = qNote.letter;
+    document.getElementById(&quot;quizLetter&quot;).style.color = {E:&quot;#d33&quot;,F:&quot;#e8a800&quot;,G:&quot;#0a6&quot;}[qNote.letter];
+    document.getElementById(&quot;quizFretText&quot;).textContent = qNote.fretLabel;
+    document.getElementById(&quot;revealBox&quot;).classList.remove(&quot;hidden&quot;);
+    tone(qNote.freq);
+    document.getElementById(&quot;streak&quot;).textContent = streak;
+    document.getElementById(&quot;best&quot;).textContent = best;
+    document.getElementById(&quot;correct&quot;).textContent = correct;
+    document.getElementById(&quot;attempts&quot;).textContent = attempts;
+    if (attempts &gt;= 4) document.getElementById(&quot;toReflect&quot;).classList.remove(&quot;hidden&quot;);
+  });
+});
+document.getElementById(&quot;quizHear&quot;).addEventListener(&quot;click&quot;, () =&gt; tone(qNote.freq));
+document.getElementById(&quot;nextQuiz&quot;).addEventListener(&quot;click&quot;, newQuiz);
+
+// ================= STAGE 4: timed challenge =================
+let cNote = null, cScore = 0, cTime = 60, cTimer = null, cActive = false;
+function newChallenge() {
+  cNote = NOTES[Math.floor(Math.random()*3)];
+  drawStaff(&quot;challengeStaff&quot;, cNote, false);
+  document.querySelectorAll(&quot;#challengeRow .choiceBtn&quot;).forEach(b =&gt; b.className = &quot;choiceBtn&quot;);
+}
+document.querySelectorAll(&quot;#challengeRow .choiceBtn&quot;).forEach(btn =&gt; {
+  btn.addEventListener(&quot;click&quot;, () =&gt; {
+    if (!cActive) return;
+    const fb = document.getElementById(&quot;challengeFeedback&quot;);
+    if (btn.dataset.note === cNote.letter) { cScore++; tone(cNote.freq); fb.textContent = &quot;✓&quot;; fb.className = &quot;feedback good&quot;; }
+    else { fb.textContent = &quot;✗ that was &quot; + cNote.letter; fb.className = &quot;feedback bad&quot;; }
+    document.getElementById(&quot;cScore&quot;).textContent = cScore;
+    newChallenge();
+  });
+});
+function startChallenge() {
+  cScore = 0; cTime = 60; cActive = true;
+  document.getElementById(&quot;cScore&quot;).textContent = 0;
+  document.getElementById(&quot;cTime&quot;).textContent = 60;
+  document.getElementById(&quot;startChallenge&quot;).classList.add(&quot;hidden&quot;);
+  document.getElementById(&quot;challengeEnd&quot;).classList.add(&quot;hidden&quot;);
+  newChallenge();
+  clearInterval(cTimer);
+  cTimer = setInterval(() =&gt; {
+    cTime--; document.getElementById(&quot;cTime&quot;).textContent = cTime;
+    if (cTime &lt;= 0) {
+      clearInterval(cTimer); cActive = false;
+      document.getElementById(&quot;challengeFeedback&quot;).textContent = &quot;\u00A0&quot;;
+      document.getElementById(&quot;finalMsg&quot;).textContent = &quot;Time! You named &quot; + cScore + &quot; notes.&quot;;
+      document.getElementById(&quot;challengeEnd&quot;).classList.remove(&quot;hidden&quot;);
+    }
+  }, 1000);
+}
+document.getElementById(&quot;startChallenge&quot;).addEventListener(&quot;click&quot;, startChallenge);
+document.getElementById(&quot;againChallenge&quot;).addEventListener(&quot;click&quot;, startChallenge);
+document.getElementById(&quot;backToMap&quot;).addEventListener(&quot;click&quot;, () =&gt; {
+  hide(&quot;challengeStage&quot;); show(&quot;mapStage&quot;);
+});
+
+// ---------- init ----------
+window.addEventListener(&quot;load&quot;, renderMapping);
+if (VF) renderMapping();
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+    </section>
+
+    <section class="panel">
+      <div class="panelBar">
+        <span class="tag b">B</span>
+        <span class="name">String One — where a note lives, and why</span>
+        <span class="file">string_one.html</span>
+      </div>
+      <iframe title="Take B — String One"
+              srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+&lt;title&gt;String One — how the staff maps to the string&lt;/title&gt;
+&lt;script src=&quot;https://cdn.jsdelivr.net/npm/vexflow@5.0.0/build/cjs/vexflow-bravura.js&quot;&gt;&lt;/script&gt;
+&lt;style&gt;
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #1c1c1e;
+    background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 8px);
+    color: #e8e8ea;
+    font: 16px/1.6 system-ui, &quot;Segoe UI&quot;, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 18px 16px 60px; }
+
+  .badge {
+    text-align: center;
+    background: linear-gradient(180deg, #3a3a3d 0%, #2a2a2c 60%, #222 100%);
+    border: 1px solid #444; border-radius: 14px;
+    padding: 12px 10px 14px; margin-bottom: 14px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .badge h1 { margin: 0; font-size: 26px; font-weight: 900; letter-spacing: 3px; color: #f5f0e6; text-transform: uppercase; }
+  .badge p { margin: 4px 0 0; font-size: 12px; letter-spacing: 2px; color: #a8a8ac; text-transform: uppercase; }
+
+  /* ---- step navigation ---- */
+  .stepNav { display: flex; gap: 6px; margin-bottom: 14px; }
+  .stepBtn {
+    flex: 1; padding: 9px 4px; background: #2a2a2c; border: 1px solid #444;
+    border-radius: 8px; color: #9a9a9e; font: 700 12px/1.2 inherit;
+    letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; text-align: center;
+  }
+  .stepBtn:hover:not(:disabled) { background: #35353a; color: #ddd; }
+  .stepBtn.active { background: #0a84ff; border-color: #0a84ff; color: #fff; }
+  .stepBtn.done { color: #6ee7a0; border-color: #2f6b4a; }
+  .stepBtn:disabled { opacity: 0.32; cursor: not-allowed; }
+  .stepBtn:focus-visible, .ctrlBtn:focus-visible, .switch:focus-visible,
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 3px solid #ffd400; outline-offset: 2px;
+  }
+
+  /* ---- prose ---- */
+  .prose { margin: 0 0 12px; color: #d6d6da; }
+  .prose strong { color: #fff; }
+  .prose .k { color: #ffd400; font-weight: 700; }
+  h2 { font-size: 18px; margin: 0 0 6px; color: #f5f0e6; letter-spacing: 0.5px; }
+  .stepLabel { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #0a84ff; font-weight: 700; margin-bottom: 2px; }
+
+  /* ---- the stage (amp window) ---- */
+  .ampWindow {
+    background: #f5f0e6; border: 6px solid #3a3630; border-radius: 10px;
+    padding: 6px; margin: 10px 0; position: relative;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.25);
+    transition: box-shadow 0.15s ease;
+  }
+  .ampWindow.flashGood { box-shadow: inset 0 0 0 6px #00a651; }
+  .ampWindow.flashBad  { box-shadow: inset 0 0 0 6px #ff3b30; animation: shake 0.3s; }
+  @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
+  #stage { display: block; width: 100%; height: auto; touch-action: none; }
+  #stage svg { display: block; width: 100%; height: auto; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ---- controls ---- */
+  .panel { background: #232326; border: 1px solid #3a3a3d; border-radius: 10px; padding: 12px 14px; margin: 10px 0; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+  .row label { font-size: 13px; color: #bdbdc2; }
+  input[type=range] { flex: 1; min-width: 160px; accent-color: #0a84ff; height: 26px; }
+  .ctrlBtn {
+    padding: 9px 15px; background: #2a2a2c; border: 1px solid #555; border-radius: 8px;
+    color: #eee; font: 700 13px inherit; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .ctrlBtn:hover:not(:disabled) { background: #35353a; }
+  .ctrlBtn.primary { background: #0a84ff; border-color: #0a84ff; color: #fff; }
+  .ctrlBtn.primary:hover:not(:disabled) { background: #3399ff; }
+  .ctrlBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .toggleWrap { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #bdbdc2; }
+  .toggleSwitch { position: relative; width: 42px; height: 24px; background: #444; border: 1px solid #555; border-radius: 12px; cursor: pointer; padding: 0; flex-shrink: 0; }
+  .toggleSwitch[aria-checked=&quot;true&quot;] { background: #00c853; border-color: #00c853; }
+  .toggleSwitch .knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: left 0.15s; }
+  .toggleSwitch[aria-checked=&quot;true&quot;] .knob { left: 21px; }
+
+  /* ---- readouts ---- */
+  .readouts { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .card { flex: 1; min-width: 78px; background: #0c0c0d; border: 1px solid #333; border-radius: 8px; padding: 7px 6px; text-align: center; }
+  .cardLabel { font-size: 10px; letter-spacing: 1.5px; color: #888; text-transform: uppercase; }
+  .cardValue { font-family: &quot;Courier New&quot;, monospace; font-size: 21px; font-weight: 700; color: #4dff88; text-shadow: 0 0 8px rgba(77,255,136,0.5); }
+  .cardValue.timeYellow { color: #ffd400; text-shadow: 0 0 8px rgba(255,212,0,0.6); }
+  .cardValue.timeRed { color: #ff3b30; text-shadow: 0 0 8px rgba(255,59,48,0.6); animation: pulse 0.6s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .comboTag { display: inline-block; font-size: 10px; color: #1c1c1e; background: #ffd400; border-radius: 10px; padding: 1px 6px; font-weight: 900; }
+
+  .message { text-align: center; min-height: 22px; font-size: 14px; font-weight: 700; color: #ffd400; margin: 6px 0; }
+  .feedback { border-left: 3px solid #0a84ff; padding: 8px 12px; margin: 10px 0; background: #202024; border-radius: 0 8px 8px 0; font-size: 14px; }
+  .feedback.hit  { border-color: #00c853; }
+  .feedback.near { border-color: #ffd400; }
+
+  /* ---- footswitches ---- */
+  .footswitches { display: flex; gap: 12px; justify-content: center; margin: 14px 0; flex-wrap: wrap; }
+  .switch {
+    width: 78px; height: 78px; border-radius: 50%; border: none;
+    font: 900 24px inherit; color: #1c1c1e; cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.35), inset 0 -4px 8px rgba(0,0,0,0.15), inset 0 4px 8px rgba(255,255,255,0.25);
+    transition: transform 0.06s ease, box-shadow 0.06s ease;
+  }
+  .switch:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 1px 0 rgba(0,0,0,0.35); }
+  .switch:disabled { opacity: 0.3; cursor: default; }
+
+  .missRow { display: flex; gap: 12px; justify-content: center; font-size: 12px; color: #8a8a8e; }
+  .missRow .hi { color: #ff3b30; font-weight: 700; }
+
+  /* ---- rule builder / reflection ---- */
+  select, textarea {
+    background: #1a1a1c; color: #eee; border: 1px solid #555; border-radius: 6px;
+    padding: 6px 8px; font: inherit; font-size: 14px;
+  }
+  select { font-weight: 700; color: #ffd400; }
+  textarea { width: 100%; font-size: 14px; }
+  .ruleSentence { font-size: 15px; line-height: 2.2; color: #d6d6da; }
+
+  .overlay {
+    position: absolute; inset: 6px; background: rgba(18,18,20,0.95); border-radius: 6px;
+    display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px; z-index: 5;
+  }
+  .overlay.show { display: flex; }
+  .overlay h3 { margin: 0; color: #ffd400; font-size: 20px; text-transform: uppercase; letter-spacing: 1px; }
+  .overlay .bigScore { font: 900 38px &quot;Courier New&quot;, monospace; color: #4dff88; }
+
+  .hidden { display: none !important; }
+  .confettiLayer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+  .confettiBit { position: absolute; width: 8px; height: 8px; top: -10px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+
+  .footnote { font-size: 12px; color: #7a7a7e; margin-top: 6px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+    .confettiLayer { display: none; }
+  }
+  @media (max-width: 560px) {
+    .switch { width: 64px; height: 64px; font-size: 20px; }
+    .stepBtn { font-size: 10px; letter-spacing: 0; }
+  }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class=&quot;wrap&quot;&gt;
+
+  &lt;div class=&quot;badge&quot;&gt;
+    &lt;h1&gt;String One&lt;/h1&gt;
+    &lt;p&gt;Where a note lives &amp;mdash; and why&lt;/p&gt;
+  &lt;/div&gt;
+
+  &lt;nav class=&quot;stepNav&quot; aria-label=&quot;Steps&quot;&gt;
+    &lt;button class=&quot;stepBtn active&quot; data-step=&quot;0&quot; id=&quot;navExplore&quot;&gt;1 · Explore&lt;/button&gt;
+    &lt;button class=&quot;stepBtn&quot; data-step=&quot;1&quot; id=&quot;navPredict&quot;&gt;2 · Predict&lt;/button&gt;
+    &lt;button class=&quot;stepBtn&quot; data-step=&quot;2&quot; id=&quot;navFade&quot; disabled&gt;3 · On your own&lt;/button&gt;
+    &lt;button class=&quot;stepBtn&quot; data-step=&quot;3&quot; id=&quot;navPlay&quot; disabled&gt;4 · Note Stomp&lt;/button&gt;
+  &lt;/nav&gt;
+
+  &lt;!-- ============ SHARED STAGE ============ --&gt;
+  &lt;div class=&quot;ampWindow&quot; id=&quot;ampWindow&quot;&gt;
+    &lt;div id=&quot;stage&quot; role=&quot;img&quot; aria-labelledby=&quot;stageDesc&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;overlay&quot; id=&quot;sprintOverlay&quot;&gt;
+      &lt;h3&gt;Time!&lt;/h3&gt;
+      &lt;div class=&quot;bigScore&quot; id=&quot;overlayScore&quot;&gt;0&lt;/div&gt;
+      &lt;p id=&quot;overlayDetail&quot; style=&quot;margin:0;color:#eee;&quot;&gt;Best streak: 0&lt;/p&gt;
+      &lt;div class=&quot;row&quot; style=&quot;justify-content:center;&quot;&gt;
+        &lt;button class=&quot;ctrlBtn primary&quot; id=&quot;playAgainBtn&quot;&gt;Play again&lt;/button&gt;
+        &lt;button class=&quot;ctrlBtn&quot; id=&quot;closeOverlayBtn&quot;&gt;Close&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;p id=&quot;stageDesc&quot; class=&quot;sr-only&quot; aria-live=&quot;polite&quot;&gt;Loading the string and the staff.&lt;/p&gt;
+  &lt;div class=&quot;message&quot; id=&quot;message&quot; role=&quot;status&quot; aria-live=&quot;polite&quot;&gt;&amp;nbsp;&lt;/div&gt;
+
+  &lt;!-- ============ STEP 1 · EXPLORE ============ --&gt;
+  &lt;section id=&quot;step0&quot;&gt;
+    &lt;div class=&quot;stepLabel&quot;&gt;Step 1 of 4&lt;/div&gt;
+    &lt;h2&gt;The staff is a picture of the string.&lt;/h2&gt;
+    &lt;p class=&quot;prose&quot;&gt;
+      That thin line on the left is the &lt;strong&gt;1st string&lt;/strong&gt; of a guitar &amp;mdash; the skinny one. Press it down
+      further &lt;span class=&quot;k&quot;&gt;up&lt;/span&gt; the neck and the pitch goes &lt;span class=&quot;k&quot;&gt;up&lt;/span&gt;. Everybody already knows that part.
+    &lt;/p&gt;
+    &lt;p class=&quot;prose&quot;&gt;
+      Here&#x27;s the claim this page is going to make: &lt;strong&gt;the five lines of the staff are that same string, stood on
+      end.&lt;/strong&gt; A note sitting higher on the staff is a note further up the string. The staff isn&#x27;t a code you
+      memorize &amp;mdash; it&#x27;s a map, and up is up.
+    &lt;/p&gt;
+    &lt;p class=&quot;prose&quot;&gt;Two positions are open right now. Move the finger and watch what the notehead does.&lt;/p&gt;
+
+    &lt;div class=&quot;panel&quot;&gt;
+      &lt;div class=&quot;row&quot;&gt;
+        &lt;label for=&quot;fretSlider&quot;&gt;Finger position&lt;/label&gt;
+        &lt;input type=&quot;range&quot; id=&quot;fretSlider&quot; min=&quot;0&quot; max=&quot;1&quot; step=&quot;1&quot; value=&quot;0&quot;
+               aria-describedby=&quot;stageDesc&quot;&gt;
+        &lt;button class=&quot;ctrlBtn&quot; id=&quot;pluckBtn&quot;&gt;Pluck ♪&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;row&quot;&gt;
+        &lt;div class=&quot;toggleWrap&quot;&gt;
+          &lt;button class=&quot;toggleSwitch&quot; id=&quot;lettersToggle&quot; role=&quot;switch&quot; aria-checked=&quot;true&quot; aria-label=&quot;Show letter names&quot;&gt;&lt;span class=&quot;knob&quot;&gt;&lt;/span&gt;&lt;/button&gt;
+          &lt;span&gt;Letter names&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;toggleWrap&quot;&gt;
+          &lt;button class=&quot;toggleSwitch&quot; id=&quot;linkToggle&quot; role=&quot;switch&quot; aria-checked=&quot;true&quot; aria-label=&quot;Show the link line&quot;&gt;&lt;span class=&quot;knob&quot;&gt;&lt;/span&gt;&lt;/button&gt;
+          &lt;span&gt;Link line&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;p class=&quot;footnote&quot;&gt;Drag the dot on the string, use the slider, or press &amp;uarr;/&amp;darr; when the slider is focused. (Frets 2 and 4 have no dot &amp;mdash; the notes there have sharp names, and they&#x27;re a different lesson.)&lt;/p&gt;
+    &lt;/div&gt;
+
+    &lt;p class=&quot;prose&quot; id=&quot;exploreNudge&quot;&gt;
+      Notice the pitch, the letter, and the notehead all move together — they&#x27;re three views of one thing.
+      When you&#x27;re ready to test the idea, go on.
+    &lt;/p&gt;
+    &lt;div class=&quot;row&quot;&gt;
+      &lt;button class=&quot;ctrlBtn primary&quot; id=&quot;toPredictBtn&quot;&gt;I see the pattern → Step 2&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;!-- ============ STEP 2 · PREDICT ============ --&gt;
+  &lt;section id=&quot;step1&quot; class=&quot;hidden&quot;&gt;
+    &lt;div class=&quot;stepLabel&quot;&gt;Step 2 of 4&lt;/div&gt;
+    &lt;h2 id=&quot;predictHeading&quot;&gt;Now predict.&lt;/h2&gt;
+    &lt;p class=&quot;prose&quot; id=&quot;predictPrompt&quot;&gt;&lt;/p&gt;
+
+    &lt;div class=&quot;panel&quot; id=&quot;predictPanel&quot;&gt;
+      &lt;div class=&quot;row&quot; id=&quot;predictNoteRow&quot;&gt;
+        &lt;label for=&quot;guessNote&quot;&gt;Your guess&lt;/label&gt;
+        &lt;input type=&quot;range&quot; id=&quot;guessNote&quot; min=&quot;-3&quot; max=&quot;3&quot; step=&quot;1&quot; value=&quot;0&quot; aria-label=&quot;Drag your guess up or down the staff&quot;&gt;
+        &lt;span style=&quot;font-size:12px;color:#8a8a8e;&quot;&gt;← lower · higher →&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;row&quot; id=&quot;predictFingerRow&quot; style=&quot;display:none;&quot;&gt;
+        &lt;label for=&quot;guessFinger&quot;&gt;Your guess&lt;/label&gt;
+        &lt;input type=&quot;range&quot; id=&quot;guessFinger&quot; min=&quot;0&quot; max=&quot;3&quot; step=&quot;1&quot; value=&quot;0&quot; aria-label=&quot;Drag the finger to your guess&quot;&gt;
+        &lt;span style=&quot;font-size:12px;color:#8a8a8e;&quot;&gt;← lower · higher →&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;row&quot;&gt;
+        &lt;button class=&quot;ctrlBtn primary&quot; id=&quot;lockBtn&quot;&gt;Lock in my guess → show me&lt;/button&gt;
+        &lt;button class=&quot;ctrlBtn hidden&quot; id=&quot;nextRoundBtn&quot;&gt;Next →&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;p class=&quot;footnote&quot;&gt;A wrong guess is the useful kind. Commit to one.&lt;/p&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;feedback hidden&quot; id=&quot;predictFeedback&quot;&gt;&lt;/div&gt;
+
+    &lt;!-- rule builder appears after the rounds --&gt;
+    &lt;div class=&quot;panel hidden&quot; id=&quot;rulePanel&quot;&gt;
+      &lt;h2&gt;So write the rule.&lt;/h2&gt;
+      &lt;p class=&quot;prose&quot;&gt;You&#x27;ve got three data points now. Finish the sentence so it&#x27;s true for all of them.&lt;/p&gt;
+      &lt;p class=&quot;ruleSentence&quot;&gt;
+        When the finger moves &lt;strong&gt;up the string&lt;/strong&gt;, the notehead moves
+        &lt;select id=&quot;ruleDir&quot; aria-label=&quot;direction the notehead moves&quot;&gt;
+          &lt;option value=&quot;&quot;&gt;…&lt;/option&gt;
+          &lt;option value=&quot;up&quot;&gt;up&lt;/option&gt;
+          &lt;option value=&quot;down&quot;&gt;down&lt;/option&gt;
+          &lt;option value=&quot;same&quot;&gt;nowhere&lt;/option&gt;
+        &lt;/select&gt;
+        the staff, and the pitch gets
+        &lt;select id=&quot;rulePitch&quot; aria-label=&quot;what the pitch does&quot;&gt;
+          &lt;option value=&quot;&quot;&gt;…&lt;/option&gt;
+          &lt;option value=&quot;higher&quot;&gt;higher&lt;/option&gt;
+          &lt;option value=&quot;lower&quot;&gt;lower&lt;/option&gt;
+          &lt;option value=&quot;same&quot;&gt;no different&lt;/option&gt;
+        &lt;/select&gt;.
+      &lt;/p&gt;
+      &lt;div class=&quot;row&quot;&gt;&lt;button class=&quot;ctrlBtn primary&quot; id=&quot;ruleCheckBtn&quot;&gt;Check my rule&lt;/button&gt;&lt;/div&gt;
+      &lt;div class=&quot;feedback hidden&quot; id=&quot;ruleFeedback&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;hidden&quot; id=&quot;reflectWrap&quot;&gt;
+        &lt;p class=&quot;prose&quot; style=&quot;margin-top:14px;&quot;&gt;&lt;strong&gt;Optional:&lt;/strong&gt; what did you expect that turned out wrong? One sentence.&lt;/p&gt;
+        &lt;textarea id=&quot;reflect&quot; rows=&quot;2&quot; placeholder=&quot;I thought…&quot;&gt;&lt;/textarea&gt;
+        &lt;div class=&quot;row&quot;&gt;&lt;button class=&quot;ctrlBtn primary&quot; id=&quot;toFadeBtn&quot;&gt;Step 3 →&lt;/button&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;!-- ============ STEP 3 · FADE ============ --&gt;
+  &lt;section id=&quot;step2&quot; class=&quot;hidden&quot;&gt;
+    &lt;div class=&quot;stepLabel&quot;&gt;Step 3 of 4&lt;/div&gt;
+    &lt;h2&gt;Scaffolds off.&lt;/h2&gt;
+    &lt;p class=&quot;prose&quot;&gt;
+      No letters, no link line. A note appears on the staff; put the finger where it belongs.
+      Six of them. If you&#x27;re stuck, the rule you just wrote still works — read the height.
+    &lt;/p&gt;
+    &lt;div class=&quot;panel&quot;&gt;
+      &lt;div class=&quot;row&quot;&gt;
+        &lt;label for=&quot;fadeSlider&quot;&gt;Finger position&lt;/label&gt;
+        &lt;input type=&quot;range&quot; id=&quot;fadeSlider&quot; min=&quot;0&quot; max=&quot;2&quot; step=&quot;1&quot; value=&quot;0&quot; aria-label=&quot;Place the finger on the string&quot;&gt;
+        &lt;button class=&quot;ctrlBtn primary&quot; id=&quot;fadeCommitBtn&quot;&gt;Place it&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;readouts&quot;&gt;
+        &lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;cardLabel&quot;&gt;Round&lt;/div&gt;&lt;div class=&quot;cardValue&quot; id=&quot;fadeRound&quot;&gt;1/6&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;cardLabel&quot;&gt;Right&lt;/div&gt;&lt;div class=&quot;cardValue&quot; id=&quot;fadeRight&quot;&gt;0&lt;/div&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;feedback hidden&quot; id=&quot;fadeFeedback&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;row hidden&quot; id=&quot;fadeDoneRow&quot;&gt;
+      &lt;button class=&quot;ctrlBtn primary&quot; id=&quot;toPlayBtn&quot;&gt;Step 4: Note Stomp →&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;!-- ============ STEP 4 · GAME ============ --&gt;
+  &lt;section id=&quot;step3&quot; class=&quot;hidden&quot;&gt;
+    &lt;div class=&quot;stepLabel&quot;&gt;Step 4 of 4&lt;/div&gt;
+    &lt;h2&gt;Note Stomp.&lt;/h2&gt;
+    &lt;p class=&quot;prose&quot;&gt;
+      Same map, now at speed. Read the height, hit the switch. The string stays on screen and lights up
+      after every answer &amp;mdash; so you keep seeing &lt;em&gt;why&lt;/em&gt;, not just &lt;em&gt;what&lt;/em&gt;.
+    &lt;/p&gt;
+
+    &lt;div class=&quot;readouts&quot;&gt;
+      &lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;cardLabel&quot;&gt;Score&lt;/div&gt;&lt;div class=&quot;cardValue&quot; id=&quot;scoreVal&quot;&gt;0&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;cardLabel&quot;&gt;Streak&lt;/div&gt;&lt;div class=&quot;cardValue&quot; id=&quot;streakVal&quot;&gt;0&lt;/div&gt;&lt;div id=&quot;comboWrap&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;cardLabel&quot;&gt;Best&lt;/div&gt;&lt;div class=&quot;cardValue&quot; id=&quot;bestVal&quot;&gt;0&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;card hidden&quot; id=&quot;timeCard&quot;&gt;&lt;div class=&quot;cardLabel&quot;&gt;Time&lt;/div&gt;&lt;div class=&quot;cardValue&quot; id=&quot;timeVal&quot;&gt;60&lt;/div&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;missRow&quot; id=&quot;missRow&quot;&gt;&lt;/div&gt;
+
+    &lt;div class=&quot;footswitches&quot; id=&quot;footswitches&quot;&gt;&lt;/div&gt;
+
+    &lt;div class=&quot;row&quot; style=&quot;justify-content:center;&quot;&gt;
+      &lt;button class=&quot;ctrlBtn primary&quot; id=&quot;startSprintBtn&quot;&gt;Start 60-second sprint&lt;/button&gt;
+      &lt;button class=&quot;ctrlBtn&quot; id=&quot;hintBtn&quot;&gt;Hint&lt;/button&gt;
+      &lt;button class=&quot;ctrlBtn&quot; id=&quot;resetBtn&quot;&gt;Reset&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;p class=&quot;footnote&quot; style=&quot;text-align:center;&quot;&gt;Keys 1–4 work too. A hint is worth fewer points — that&#x27;s the deal.&lt;/p&gt;
+  &lt;/section&gt;
+
+&lt;/div&gt;
+
+&lt;script&gt;
+/* ============================================================
+   MODEL — the whole explorable sits on this one table.
+   fret  = position along string 1.  Higher fret = higher pitch = higher on staff.
+   ============================================================ */
+/* Only the natural notes on string 1. Frets 2 and 4 are deliberately absent:
+   F-&gt;F# moves the finger UP the string but leaves the notehead at the SAME height
+   (it just grows a sharp). That&#x27;s true, and it&#x27;s a direct counterexample to the rule
+   this page exists to build. It belongs in a later lesson, not this one. */
+const NOTES = {
+  &quot;E&quot;: { fret: 0, freq: 329.63, key: &quot;e/5&quot;, line:  0.5, color: &quot;#ff3b30&quot; },
+  &quot;F&quot;: { fret: 1, freq: 349.23, key: &quot;f/5&quot;, line:  0.0, color: &quot;#ffd400&quot; },
+  &quot;G&quot;: { fret: 3, freq: 392.00, key: &quot;g/5&quot;, line: -0.5, color: &quot;#00c853&quot; },
+  &quot;A&quot;: { fret: 5, freq: 440.00, key: &quot;a/5&quot;, line: -1.0, color: &quot;#0a84ff&quot; }
+};
+const BY_FRET = { 0: &quot;E&quot;, 1: &quot;F&quot;, 3: &quot;G&quot;, 5: &quot;A&quot; };   // sparse: fret number -&gt; note name
+const POSITIONS = [0, 1, 3, 5];
+
+/* ---- geometry: real fret taper, drawn vertically so UP the string = UP the page ---- */
+/* Fret spacing uses the real 2^(-n/12) taper. SCALE_LEN/Y_NUT are tuned so the whole
+   finger band (y 200-360) sits BELOW the note band (y 160-190). That matters: if the
+   bands overlap, the link line points UP at low frets and DOWN at high ones, which
+   contradicts the rule the page is teaching. This way every link line points up, and
+   flattens as the finger climbs. */
+const W = 720, H = 400;
+const STRING_X = 150, Y_NUT = 344, SCALE_LEN = 630;
+const fretDist = n =&gt; SCALE_LEN * (1 - Math.pow(2, -n / 12));
+const fretY    = n =&gt; Y_NUT - fretDist(n);
+const dotY     = n =&gt; n === 0 ? Y_NUT + 16 : Y_NUT - (fretDist(n - 1) + fretDist(n)) / 2;
+
+const STAVE_X = 370, STAVE_Y = 100, STAVE_W = 320, LINE_PX = 20, NOTE_X = 500;
+const lineY = ln =&gt; (STAVE_Y + 4 * LINE_PX) + ln * LINE_PX;   // verified against VexFlow
+
+/* ---- state ---- */
+let unlockedFrets = [0, 1];       // widens as the narrative earns it
+let showLetters = true, showLink = true;
+let currentFret = 0;
+let step = 0;
+
+const $ = id =&gt; document.getElementById(id);
+const clamp = (v, a, b) =&gt; Math.max(a, Math.min(b, v));
+
+/* ============================================================
+   AUDIO
+   ============================================================ */
+let audioCtx = null;
+const ensureAudio = () =&gt; (audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)());
+function playTone(freq, dur = 0.45, delay = 0) {
+  const ctx = ensureAudio(), t0 = ctx.currentTime + delay;
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.type = &quot;triangle&quot;;
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+function playBuzz() {
+  const ctx = ensureAudio(), t0 = ctx.currentTime;
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.type = &quot;sawtooth&quot;;
+  osc.frequency.setValueAtTime(110, t0);
+  gain.gain.setValueAtTime(0.13, t0);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t0); osc.stop(t0 + 0.26);
+}
+const playFanfare = () =&gt; { playTone(392, 0.15, 0); playTone(440, 0.15, 0.13); playTone(523.25, 0.3, 0.26); };
+
+/* ============================================================
+   RENDER — one draw call updates every linked representation.
+   opts: { fret, ghostLine, ghostFret, actualNote, dimActual, showAllPositions }
+   ============================================================ */
+function render(opts = {}) {
+  const el = $(&quot;stage&quot;);
+  el.innerHTML = &quot;&quot;;
+  const VF = window.VexFlow;
+  if (!VF) { el.innerHTML = &quot;&lt;p style=&#x27;color:#900;padding:24px;font:14px sans-serif;&#x27;&gt;The notation engine didn&#x27;t load. Connect to the internet once, then reload.&lt;/p&gt;&quot;; return; }
+
+  const renderer = new VF.Renderer(el, VF.Renderer.Backends.SVG);
+  renderer.resize(W, H);
+  const ctx = renderer.getContext();
+
+  const stave = new VF.Stave(STAVE_X, STAVE_Y, STAVE_W, { spacingBetweenLinesPx: LINE_PX });
+  stave.addClef(&quot;treble&quot;, &quot;default&quot;, &quot;8vb&quot;);
+  stave.setNoteStartX(NOTE_X);
+  stave.setContext(ctx).draw();
+
+  const noteName = opts.actualNote !== undefined ? opts.actualNote : BY_FRET[opts.fret];
+  let noteY = null;
+
+  if (noteName &amp;&amp; !opts.hideNote) {
+    const def = NOTES[noteName];
+    const sn = new VF.StaveNote({ keys: [def.key], duration: &quot;q&quot; });
+    const col = opts.dimActual ? &quot;#b9b3a6&quot; : (showLetters ? def.color : &quot;#1c1c1e&quot;);
+    sn.setStyle({ fillStyle: col, strokeStyle: col });
+    const voice = new VF.Voice({ numBeats: 1, beatValue: 4 }).setStrict(false);
+    voice.addTickables([sn]);
+    new VF.Formatter().joinVoices([voice]).format([voice], 60);
+    voice.draw(ctx, stave);
+    noteY = sn.getYs()[0];
+  }
+
+  // everything below is injected into VexFlow&#x27;s own &lt;svg&gt;, so one coordinate space
+  const svg = el.querySelector(&quot;svg&quot;);
+  svg.setAttribute(&quot;viewBox&quot;, `0 0 ${W} ${H}`);
+  svg.removeAttribute(&quot;width&quot;); svg.removeAttribute(&quot;height&quot;);
+  const g = document.createElementNS(&quot;http://www.w3.org/2000/svg&quot;, &quot;g&quot;);
+  g.innerHTML = fretboardMarkup(opts) + staffLadderMarkup(opts) + linkMarkup(opts, noteY);
+  svg.appendChild(g);
+
+  describe(opts, noteName);
+}
+
+function fretboardMarkup(opts) {
+  const activeFret = opts.fret;
+  let s = &quot;&quot;;
+  // fingerboard slab
+  s += `&lt;rect x=&quot;${STRING_X - 34}&quot; y=&quot;${fretY(5.4)}&quot; width=&quot;68&quot; height=&quot;${Y_NUT - fretY(5.4)}&quot; fill=&quot;#6b4b2f&quot; rx=&quot;3&quot;/&gt;`;
+  // frets
+  for (let n = 1; n &lt;= 5; n++) {
+    s += `&lt;line x1=&quot;${STRING_X - 34}&quot; y1=&quot;${fretY(n)}&quot; x2=&quot;${STRING_X + 34}&quot; y2=&quot;${fretY(n)}&quot; stroke=&quot;#c9c4bb&quot; stroke-width=&quot;2.5&quot;/&gt;`;
+    s += `&lt;text x=&quot;${STRING_X - 44}&quot; y=&quot;${dotY(n) + 4}&quot; font-size=&quot;11&quot; fill=&quot;#7a736a&quot; text-anchor=&quot;end&quot; font-family=&quot;sans-serif&quot;&gt;${n}&lt;/text&gt;`;
+  }
+  // nut
+  s += `&lt;line x1=&quot;${STRING_X - 36}&quot; y1=&quot;${Y_NUT}&quot; x2=&quot;${STRING_X + 36}&quot; y2=&quot;${Y_NUT}&quot; stroke=&quot;#efe9dc&quot; stroke-width=&quot;6&quot;/&gt;`;
+  s += `&lt;text x=&quot;${STRING_X - 44}&quot; y=&quot;${dotY(0) + 4}&quot; font-size=&quot;11&quot; fill=&quot;#7a736a&quot; text-anchor=&quot;end&quot; font-family=&quot;sans-serif&quot;&gt;0&lt;/text&gt;`;
+  // the string itself
+  s += `&lt;line x1=&quot;${STRING_X}&quot; y1=&quot;${Y_NUT + 30}&quot; x2=&quot;${STRING_X}&quot; y2=&quot;${fretY(5.4)}&quot; stroke=&quot;#8d8d92&quot; stroke-width=&quot;2&quot;/&gt;`;
+  // direction cue — the whole point: up is up
+  s += `&lt;line x1=&quot;${STRING_X + 52}&quot; y1=&quot;${Y_NUT - 6}&quot; x2=&quot;${STRING_X + 52}&quot; y2=&quot;${fretY(5.2)}&quot; stroke=&quot;#b8b2a5&quot; stroke-width=&quot;1&quot; stroke-dasharray=&quot;3 4&quot;/&gt;`;
+  s += `&lt;path d=&quot;M ${STRING_X + 52} ${fretY(5.5)} l -4 8 l 8 0 z&quot; fill=&quot;#b8b2a5&quot;/&gt;`;
+  s += `&lt;text x=&quot;${STRING_X + 58}&quot; y=&quot;${fretY(3.2)}&quot; font-size=&quot;10&quot; fill=&quot;#8a8378&quot; font-family=&quot;sans-serif&quot; letter-spacing=&quot;1&quot;&gt;UP THE NECK&lt;/text&gt;`;
+  s += `&lt;text x=&quot;${STRING_X + 58}&quot; y=&quot;${fretY(3.2) + 12}&quot; font-size=&quot;10&quot; fill=&quot;#8a8378&quot; font-family=&quot;sans-serif&quot; letter-spacing=&quot;1&quot;&gt;HIGHER PITCH&lt;/text&gt;`;
+
+  // selectable positions
+  unlockedFrets.forEach(n =&gt; {
+    const name = BY_FRET[n], y = dotY(n), on = n === activeFret;
+    const col = showLetters ? NOTES[name].color : &quot;#3a3630&quot;;
+    if (!on) {
+      s += `&lt;circle cx=&quot;${STRING_X}&quot; cy=&quot;${y}&quot; r=&quot;7&quot; fill=&quot;none&quot; stroke=&quot;${col}&quot; stroke-width=&quot;2&quot; opacity=&quot;0.5&quot;/&gt;`;
+    }
+    if (showLetters) s += `&lt;text x=&quot;${STRING_X + 22}&quot; y=&quot;${y + 4}&quot; font-size=&quot;12&quot; font-weight=&quot;700&quot; fill=&quot;${col}&quot; font-family=&quot;sans-serif&quot;&gt;${name}&lt;/text&gt;`;
+  });
+  // ghost finger (the learner&#x27;s committed guess, step 2 reverse round)
+  if (opts.ghostFret !== undefined &amp;&amp; opts.ghostFret !== null) {
+    s += `&lt;circle cx=&quot;${STRING_X}&quot; cy=&quot;${dotY(opts.ghostFret)}&quot; r=&quot;11&quot; fill=&quot;none&quot; stroke=&quot;#0a84ff&quot; stroke-width=&quot;3&quot; stroke-dasharray=&quot;4 3&quot;/&gt;`;
+    s += `&lt;text x=&quot;${STRING_X - 20}&quot; y=&quot;${dotY(opts.ghostFret) + 4}&quot; font-size=&quot;10&quot; fill=&quot;#0a84ff&quot; text-anchor=&quot;end&quot; font-family=&quot;sans-serif&quot;&gt;guess&lt;/text&gt;`;
+  }
+  // the finger
+  if (activeFret !== undefined &amp;&amp; activeFret !== null) {
+    const name = BY_FRET[activeFret], y = dotY(activeFret);
+    const col = showLetters ? NOTES[name].color : &quot;#1c1c1e&quot;;
+    s += `&lt;circle id=&quot;finger&quot; cx=&quot;${STRING_X}&quot; cy=&quot;${y}&quot; r=&quot;12&quot; fill=&quot;${col}&quot; stroke=&quot;#1c1c1e&quot; stroke-width=&quot;2&quot;/&gt;`;
+    s += `&lt;circle cx=&quot;${STRING_X}&quot; cy=&quot;${y}&quot; r=&quot;17&quot; fill=&quot;none&quot; stroke=&quot;${col}&quot; stroke-width=&quot;1.5&quot; opacity=&quot;0.45&quot;/&gt;`;
+  }
+  return s;
+}
+
+/* the ladder of staff positions — makes 10-pixel steps legible without faking the notation */
+function staffLadderMarkup(opts) {
+  if (!showLetters || opts.hideLadder) return &quot;&quot;;
+  let s = &quot;&quot;;
+  unlockedFrets.forEach(n =&gt; {
+    const name = BY_FRET[n], def = NOTES[name], y = lineY(def.line);
+    if (n === opts.fret) return;
+    s += `&lt;circle cx=&quot;${NOTE_X + 12}&quot; cy=&quot;${y}&quot; r=&quot;5&quot; fill=&quot;none&quot; stroke=&quot;${def.color}&quot; stroke-width=&quot;1.5&quot; opacity=&quot;0.4&quot;/&gt;`;
+    s += `&lt;text x=&quot;${NOTE_X + 34}&quot; y=&quot;${y + 4}&quot; font-size=&quot;11&quot; fill=&quot;${def.color}&quot; opacity=&quot;0.55&quot; font-family=&quot;sans-serif&quot;&gt;${name}&lt;/text&gt;`;
+  });
+  return s;
+}
+
+/* the link line — the explicit mapping between the two representations */
+function linkMarkup(opts, noteY) {
+  let s = &quot;&quot;;
+  if (opts.ghostLine !== undefined &amp;&amp; opts.ghostLine !== null) {
+    const y = lineY(opts.ghostLine);
+    s += `&lt;line x1=&quot;${NOTE_X - 60}&quot; y1=&quot;${y}&quot; x2=&quot;${NOTE_X + 60}&quot; y2=&quot;${y}&quot; stroke=&quot;#0a84ff&quot; stroke-width=&quot;1&quot; stroke-dasharray=&quot;3 3&quot; opacity=&quot;0.7&quot;/&gt;`;
+    s += `&lt;circle cx=&quot;${NOTE_X + 12}&quot; cy=&quot;${y}&quot; r=&quot;9&quot; fill=&quot;none&quot; stroke=&quot;#0a84ff&quot; stroke-width=&quot;3&quot;/&gt;`;
+    s += `&lt;text x=&quot;${NOTE_X + 66}&quot; y=&quot;${y + 4}&quot; font-size=&quot;11&quot; fill=&quot;#0a84ff&quot; font-family=&quot;sans-serif&quot;&gt;your guess&lt;/text&gt;`;
+  }
+  if (!showLink || noteY === null || opts.fret === undefined || opts.fret === null) return s;
+  const x1 = STRING_X + 14, y1 = dotY(opts.fret), x2 = NOTE_X - 4, y2 = noteY;
+  const mid = (x1 + x2) / 2;
+  const col = showLetters ? NOTES[BY_FRET[opts.fret]].color : &quot;#8a8378&quot;;
+  s += `&lt;path d=&quot;M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}&quot; fill=&quot;none&quot; stroke=&quot;${col}&quot; stroke-width=&quot;2&quot; stroke-dasharray=&quot;5 4&quot; opacity=&quot;0.75&quot;/&gt;`;
+  s += `&lt;circle cx=&quot;${x2}&quot; cy=&quot;${y2}&quot; r=&quot;3&quot; fill=&quot;${col}&quot;/&gt;`;
+  return s;
+}
+
+/* screen-reader + everyone-else state description */
+function describe(opts, noteName) {
+  if (!noteName) { $(&quot;stageDesc&quot;).textContent = &quot;A note is on the staff. Place the finger on the string.&quot;; return; }
+  const def = NOTES[noteName];
+  const where = def.line &gt; 0 ? &quot;in the top space of the staff&quot;
+              : def.line === 0 ? &quot;on the top line of the staff&quot;
+              : def.line === -0.5 ? &quot;in the space just above the staff&quot;
+              : &quot;on the first ledger line above the staff&quot;;
+  const fretTxt = def.fret === 0 ? &quot;open string, no finger&quot; : &quot;fret &quot; + def.fret;
+  $(&quot;stageDesc&quot;).textContent = `Finger at ${fretTxt}. The note is ${noteName}, ${where}, at ${Math.round(def.freq)} hertz.`;
+}
+
+/* ============================================================
+   STEP 1 — EXPLORE (worked example, free manipulation)
+   ============================================================ */
+function setFret(n, { silent = false } = {}) {
+  if (!unlockedFrets.includes(n)) return;
+  const changed = n !== currentFret;
+  currentFret = n;
+  render({ fret: currentFret });
+  syncSlider();
+  if (changed &amp;&amp; !silent) playTone(NOTES[BY_FRET[n]].freq);
+}
+function syncSlider() {
+  const sl = $(&quot;fretSlider&quot;);
+  sl.min = 0; sl.max = unlockedFrets.length - 1;
+  sl.value = unlockedFrets.indexOf(currentFret);
+  sl.setAttribute(&quot;aria-valuetext&quot;, `Fret ${currentFret}, note ${BY_FRET[currentFret]}`);
+}
+$(&quot;fretSlider&quot;).addEventListener(&quot;input&quot;, e =&gt; { ensureAudio(); setFret(unlockedFrets[Number(e.target.value)]); });
+$(&quot;pluckBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; { ensureAudio(); playTone(NOTES[BY_FRET[currentFret]].freq, 0.7); });
+
+/* drag the finger directly on the string */
+function stageToSvgY(evt) {
+  const svg = $(&quot;stage&quot;).querySelector(&quot;svg&quot;);
+  if (!svg) return null;
+  const r = svg.getBoundingClientRect();
+  return (evt.clientY - r.top) * (H / r.height);
+}
+function nearestUnlockedFret(y) {
+  let best = unlockedFrets[0], bd = Infinity;
+  unlockedFrets.forEach(n =&gt; { const d = Math.abs(dotY(n) - y); if (d &lt; bd) { bd = d; best = n; } });
+  return best;
+}
+let dragging = false;
+$(&quot;stage&quot;).addEventListener(&quot;pointerdown&quot;, e =&gt; {
+  if (step !== 0) return;
+  const y = stageToSvgY(e); if (y === null) return;
+  dragging = true; ensureAudio(); setFret(nearestUnlockedFret(y));
+});
+window.addEventListener(&quot;pointermove&quot;, e =&gt; {
+  if (!dragging || step !== 0) return;
+  const y = stageToSvgY(e); if (y === null) return;
+  setFret(nearestUnlockedFret(y));
+});
+window.addEventListener(&quot;pointerup&quot;, () =&gt; { dragging = false; });
+
+function bindToggle(id, get, set) {
+  $(id).addEventListener(&quot;click&quot;, () =&gt; {
+    set(!get());
+    $(id).setAttribute(&quot;aria-checked&quot;, String(get()));
+    redrawCurrentStep();
+  });
+}
+bindToggle(&quot;lettersToggle&quot;, () =&gt; showLetters, v =&gt; showLetters = v);
+bindToggle(&quot;linkToggle&quot;,    () =&gt; showLink,    v =&gt; showLink = v);
+
+/* ============================================================
+   STEP 2 — PREDICT (commitment gated before every reveal)
+   ============================================================ */
+const GUESS_LINES = [1.5, 1, 0.5, 0, -0.5, -1, -1.5];   // C5 up to B5
+const ROUNDS = [
+  { kind: &quot;note&quot;, targetFret: 3,
+    prompt: &quot;The finger is about to move to &lt;strong&gt;fret 3&lt;/strong&gt; — a position you haven&#x27;t heard yet. Before you hear it: &lt;strong&gt;where does the notehead land?&lt;/strong&gt; Drag your guess up or down the staff and lock it in.&quot;,
+    heading: &quot;Round 1 — a note you&#x27;ve never seen.&quot; },
+  { kind: &quot;note&quot;, targetFret: 5,
+    prompt: &quot;Further up: &lt;strong&gt;fret 5&lt;/strong&gt;. Same question. Careful — the staff only has five lines, and you&#x27;re near the top of it.&quot;,
+    heading: &quot;Round 2 — off the top.&quot; },
+  { kind: &quot;fret&quot;, targetFret: 3,
+    prompt: &quot;Now backwards, which is the direction that actually matters when you&#x27;re reading music. &lt;strong&gt;Here&#x27;s the note.&lt;/strong&gt; Where does the finger go?&quot;,
+    heading: &quot;Round 3 — read it, don&#x27;t compute it.&quot; }
+];
+let roundIdx = 0, locked = false;
+
+function startRound() {
+  const r = ROUNDS[roundIdx];
+  locked = false;
+  $(&quot;predictHeading&quot;).innerHTML = r.heading;
+  $(&quot;predictPrompt&quot;).innerHTML = r.prompt;
+  $(&quot;predictFeedback&quot;).classList.add(&quot;hidden&quot;);
+  $(&quot;lockBtn&quot;).classList.remove(&quot;hidden&quot;);
+  $(&quot;lockBtn&quot;).disabled = false;
+  $(&quot;nextRoundBtn&quot;).classList.add(&quot;hidden&quot;);
+
+  if (r.kind === &quot;note&quot;) {
+    $(&quot;predictNoteRow&quot;).style.display = &quot;flex&quot;;
+    $(&quot;predictFingerRow&quot;).style.display = &quot;none&quot;;
+    $(&quot;guessNote&quot;).value = 0;
+    // show the finger AT the target, but hide the note — that&#x27;s the thing being predicted
+    render({ fret: r.targetFret, hideNote: true, hideLadder: true, ghostLine: GUESS_LINES[3] });
+  } else {
+    $(&quot;predictNoteRow&quot;).style.display = &quot;none&quot;;
+    $(&quot;predictFingerRow&quot;).style.display = &quot;flex&quot;;
+    $(&quot;guessFinger&quot;).max = POSITIONS.length - 1;
+    $(&quot;guessFinger&quot;).value = 0;
+    // show the note, hide the finger
+    render({ fret: null, actualNote: BY_FRET[r.targetFret], hideLadder: true, ghostFret: POSITIONS[0] });
+  }
+}
+$(&quot;guessNote&quot;).addEventListener(&quot;input&quot;, e =&gt; {
+  if (locked) return;
+  const r = ROUNDS[roundIdx];
+  render({ fret: r.targetFret, hideNote: true, hideLadder: true, ghostLine: GUESS_LINES[Number(e.target.value) + 3] });
+});
+$(&quot;guessFinger&quot;).addEventListener(&quot;input&quot;, e =&gt; {
+  if (locked) return;
+  const r = ROUNDS[roundIdx];
+  render({ fret: null, actualNote: BY_FRET[r.targetFret], hideLadder: true, ghostFret: POSITIONS[Number(e.target.value)] });
+});
+
+$(&quot;lockBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; {
+  ensureAudio();
+  locked = true;
+  const r = ROUNDS[roundIdx];
+  const targetName = BY_FRET[r.targetFret];
+
+  // the reveal earns the fret its place in the world
+  const top = Math.max(r.targetFret, ...unlockedFrets);
+  unlockedFrets = POSITIONS.filter(f =&gt; f &lt;= top);
+
+  let fb = &quot;&quot;, cls = &quot;&quot;;
+  if (r.kind === &quot;note&quot;) {
+    const guessLine = GUESS_LINES[Number($(&quot;guessNote&quot;).value) + 3];
+    const actualLine = NOTES[targetName].line;
+    render({ fret: r.targetFret, ghostLine: guessLine });
+    playTone(NOTES[targetName].freq, 0.7);
+    const off = Math.round((guessLine - actualLine) / 0.5);
+    if (off === 0) { cls = &quot;hit&quot;; fb = `&lt;strong&gt;Dead on.&lt;/strong&gt; Fret ${r.targetFret} is &lt;strong&gt;${targetName}&lt;/strong&gt;, and you put it exactly there.`; }
+    else if (Math.abs(off) === 1) { cls = &quot;near&quot;; fb = `&lt;strong&gt;One step ${off &gt; 0 ? &quot;low&quot; : &quot;high&quot;}.&lt;/strong&gt; Fret ${r.targetFret} is &lt;strong&gt;${targetName}&lt;/strong&gt;. You were close — you had the direction right, which is the part that matters.`; }
+    else { fb = `You guessed ${Math.abs(off)} steps ${off &gt; 0 ? &quot;too low&quot; : &quot;too high&quot;}. Fret ${r.targetFret} is &lt;strong&gt;${targetName}&lt;/strong&gt;. Look at the link line: the finger went up, so the notehead had to go up too. The only question was how far.`; }
+    if (r.targetFret === 5) fb += ` Notice it ran &lt;em&gt;out of staff&lt;/em&gt; and grew its own little line — a ledger line. The map didn&#x27;t stop; it just added road.`;
+  } else {
+    const guessFret = POSITIONS[Number($(&quot;guessFinger&quot;).value)];
+    render({ fret: r.targetFret, ghostFret: guessFret !== r.targetFret ? guessFret : null });
+    playTone(NOTES[targetName].freq, 0.7);
+    if (guessFret === r.targetFret) { cls = &quot;hit&quot;; fb = `&lt;strong&gt;That&#x27;s it.&lt;/strong&gt; ${targetName} lives at fret ${r.targetFret}. You just read music.`; }
+    else { const dir = guessFret &lt; r.targetFret ? &quot;low&quot; : &quot;high&quot;; fb = `You went ${dir}. ${targetName} sits at fret ${r.targetFret}. The notehead was ${dir === &quot;low&quot; ? &quot;higher&quot; : &quot;lower&quot;} than where you pointed — trust the height.`; }
+  }
+  const el = $(&quot;predictFeedback&quot;);
+  el.className = &quot;feedback &quot; + cls; el.innerHTML = fb;
+  $(&quot;lockBtn&quot;).classList.add(&quot;hidden&quot;);
+  $(&quot;nextRoundBtn&quot;).classList.remove(&quot;hidden&quot;);
+  $(&quot;nextRoundBtn&quot;).focus();
+});
+
+$(&quot;nextRoundBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; {
+  roundIdx++;
+  if (roundIdx &lt; ROUNDS.length) { startRound(); }
+  else {
+    unlockedFrets = [...POSITIONS];   // the sandbox opens: all four positions
+    $(&quot;predictPanel&quot;).classList.add(&quot;hidden&quot;);
+    $(&quot;predictFeedback&quot;).classList.add(&quot;hidden&quot;);
+    $(&quot;predictHeading&quot;).textContent = &quot;Three for three.&quot;;
+    $(&quot;predictPrompt&quot;).innerHTML = &quot;Step 1 is a sandbox now — all four positions, E up to A. Go back and poke at it whenever you like.&quot;;
+    $(&quot;rulePanel&quot;).classList.remove(&quot;hidden&quot;);
+    render({ fret: 3 });
+    $(&quot;ruleDir&quot;).focus();
+  }
+});
+
+$(&quot;ruleCheckBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; {
+  const d = $(&quot;ruleDir&quot;).value, p = $(&quot;rulePitch&quot;).value;
+  const el = $(&quot;ruleFeedback&quot;);
+  el.classList.remove(&quot;hidden&quot;);
+  if (!d || !p) { el.className = &quot;feedback&quot;; el.textContent = &quot;Pick both before you check.&quot;; return; }
+  if (d === &quot;up&quot; &amp;&amp; p === &quot;higher&quot;) {
+    el.className = &quot;feedback hit&quot;;
+    el.innerHTML = &quot;&lt;strong&gt;That&#x27;s the whole page.&lt;/strong&gt; Up the string, up the staff, up in pitch — one motion seen three ways. Everything from here is just getting fast at it.&quot;;
+    $(&quot;reflectWrap&quot;).classList.remove(&quot;hidden&quot;);
+    unlockStep(2);
+    playFanfare();
+    confetti();
+  } else {
+    el.className = &quot;feedback&quot;;
+    el.innerHTML = &quot;Not what the three rounds showed. Go back to Step 1, move the finger up, and watch the notehead and listen to the pitch at the same time. Then try again.&quot;;
+  }
+});
+$(&quot;toFadeBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; goStep(2));
+
+/* ============================================================
+   STEP 3 — FADE (scaffolds removed; note → place the finger)
+   ============================================================ */
+let fadeRound = 0, fadeRight = 0, fadeTarget = null, fadeAnswered = false;
+const FADE_POOL = [0, 1, 3];
+
+function newFadeRound() {
+  if (fadeRound &gt;= 6) {
+    $(&quot;fadeFeedback&quot;).className = &quot;feedback hit&quot;;
+    $(&quot;fadeFeedback&quot;).innerHTML = `&lt;strong&gt;${fadeRight} of 6 with no scaffolds.&lt;/strong&gt; ` +
+      (fadeRight &gt;= 5 ? &quot;That&#x27;s the map living in your head now, not on the screen.&quot; :
+       fadeRight &gt;= 3 ? &quot;Solid. The rest is reps — which is exactly what Step 4 is for.&quot; :
+                        &quot;Worth a lap back through Step 1 with the letters on. No shame in it; that&#x27;s what the toggle is for.&quot;);
+    $(&quot;fadeDoneRow&quot;).classList.remove(&quot;hidden&quot;);
+    unlockStep(3);
+    return;
+  }
+  fadeAnswered = false;
+  let next = FADE_POOL[Math.floor(Math.random() * FADE_POOL.length)];
+  if (next === fadeTarget) next = FADE_POOL[(FADE_POOL.indexOf(next) + 1) % FADE_POOL.length];
+  fadeTarget = next;
+  $(&quot;fadeRound&quot;).textContent = (fadeRound + 1) + &quot;/6&quot;;
+  $(&quot;fadeRight&quot;).textContent = fadeRight;
+  $(&quot;fadeFeedback&quot;).classList.add(&quot;hidden&quot;);
+  $(&quot;fadeCommitBtn&quot;).textContent = &quot;Place it&quot;;
+  $(&quot;fadeSlider&quot;).value = 0;
+  $(&quot;fadeSlider&quot;).max = FADE_POOL.length - 1;
+  render({ fret: null, actualNote: BY_FRET[fadeTarget], hideLadder: true, ghostFret: FADE_POOL[0] });
+}
+$(&quot;fadeSlider&quot;).addEventListener(&quot;input&quot;, e =&gt; {
+  if (fadeAnswered) return;
+  render({ fret: null, actualNote: BY_FRET[fadeTarget], hideLadder: true, ghostFret: FADE_POOL[Number(e.target.value)] });
+});
+$(&quot;fadeCommitBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; {
+  ensureAudio();
+  if (fadeAnswered) { fadeRound++; newFadeRound(); return; }
+  fadeAnswered = true;
+  const guess = FADE_POOL[Number($(&quot;fadeSlider&quot;).value)], name = BY_FRET[fadeTarget];
+  const ok = guess === fadeTarget;
+  if (ok) { fadeRight++; playTone(NOTES[name].freq, 0.5); flashAmp(true); }
+  else { playBuzz(); flashAmp(false); }
+  render({ fret: fadeTarget, ghostFret: ok ? null : guess });
+  const el = $(&quot;fadeFeedback&quot;);
+  el.className = &quot;feedback &quot; + (ok ? &quot;hit&quot; : &quot;&quot;);
+  el.innerHTML = ok ? `&lt;strong&gt;Yes — ${name}, fret ${fadeTarget}.&lt;/strong&gt;`
+                    : `That was &lt;strong&gt;${name}&lt;/strong&gt; at fret ${fadeTarget}. Yours is the dashed circle. Compare the two heights.`;
+  $(&quot;fadeRight&quot;).textContent = fadeRight;
+  $(&quot;fadeCommitBtn&quot;).textContent = fadeRound &gt;= 5 ? &quot;Finish →&quot; : &quot;Next →&quot;;
+});
+$(&quot;toPlayBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; goStep(3));
+
+/* ============================================================
+   STEP 4 — NOTE STOMP (the fluency layer, model still on screen)
+   ============================================================ */
+let drillUnlocked = [&quot;E&quot;, &quot;F&quot;, &quot;G&quot;];
+let score = 0, streak = 0, best = 0, totalScore = 0, correctSinceUnlock = 0;
+let missCounts = { E: 0, F: 0, G: 0, A: 0 };
+let currentDrill = null, hintUsed = false;
+let sprintActive = false, sprintLeft = 60, sprintTimer = null;
+const UNLOCK_AT = 8;
+
+function buildSwitches() {
+  const wrap = $(&quot;footswitches&quot;);
+  wrap.innerHTML = &quot;&quot;;
+  drillUnlocked.forEach((n, i) =&gt; {
+    const b = document.createElement(&quot;button&quot;);
+    b.className = &quot;switch&quot;;
+    b.style.background = NOTES[n].color;
+    b.textContent = n;
+    b.dataset.note = n;
+    b.setAttribute(&quot;aria-label&quot;, `Answer ${n}, key ${i + 1}`);
+    b.addEventListener(&quot;click&quot;, () =&gt; { ensureAudio(); answerDrill(n); });
+    wrap.appendChild(b);
+  });
+}
+const multiplier = () =&gt; streak &gt;= 10 ? 4 : streak &gt;= 6 ? 3 : streak &gt;= 3 ? 2 : 1;
+
+function updateHud() {
+  $(&quot;scoreVal&quot;).textContent = score;
+  $(&quot;streakVal&quot;).textContent = streak;
+  $(&quot;bestVal&quot;).textContent = best;
+  const m = multiplier();
+  $(&quot;comboWrap&quot;).innerHTML = m &gt; 1 ? `&lt;span class=&quot;comboTag&quot;&gt;x${m}&lt;/span&gt;` : &quot;&quot;;
+  $(&quot;missRow&quot;).innerHTML = &quot;Misses — &quot; + drillUnlocked
+    .map(n =&gt; `&lt;span class=&quot;${missCounts[n] &gt; 2 ? &quot;hi&quot; : &quot;&quot;}&quot;&gt;${n}: ${missCounts[n]}&lt;/span&gt;`).join(&quot; &quot;);
+}
+function pickDrill() {
+  const w = drillUnlocked.map(n =&gt; 1 + missCounts[n] * 2);
+  const total = w.reduce((a, b) =&gt; a + b, 0);
+  let r = Math.random() * total, chosen = drillUnlocked[0];
+  for (let i = 0; i &lt; drillUnlocked.length; i++) { if (r &lt; w[i]) { chosen = drillUnlocked[i]; break; } r -= w[i]; }
+  if (chosen === currentDrill &amp;&amp; drillUnlocked.length &gt; 1) {
+    const alt = drillUnlocked.filter(n =&gt; n !== currentDrill);
+    chosen = alt[Math.floor(Math.random() * alt.length)];
+  }
+  currentDrill = chosen; hintUsed = false;
+  render({ fret: null, actualNote: currentDrill, hideLadder: true });
+}
+function answerDrill(letter) {
+  if (!currentDrill) return;
+  if (letter === currentDrill) {
+    const gained = hintUsed ? 5 : 10 * multiplier();
+    score += gained; totalScore += gained; streak++; best = Math.max(best, streak); correctSinceUnlock++;
+    flashAmp(true); playTone(NOTES[letter].freq, 0.4);
+    render({ fret: NOTES[currentDrill].fret });   // the answer is always shown ON the string
+    setMessage([&quot;Nice.&quot;, &quot;Locked in.&quot;, &quot;Clean.&quot;, &quot;That&#x27;s it.&quot;, &quot;On the money.&quot;][Math.floor(Math.random() * 5)]);
+    updateHud();
+    const up = maybeUnlockA();
+    setTimeout(pickDrill, up ? 1100 : 420);
+  } else {
+    streak = 0; missCounts[currentDrill]++;
+    flashAmp(false); playBuzz();
+    setMessage(&quot;Not quite — look at the height.&quot;);
+    updateHud();
+  }
+}
+function maybeUnlockA() {
+  if (!drillUnlocked.includes(&quot;A&quot;) &amp;&amp; correctSinceUnlock &gt;= UNLOCK_AT) {
+    drillUnlocked.push(&quot;A&quot;); correctSinceUnlock = 0;
+    buildSwitches(); updateHud();
+    setMessage(&quot;A unlocked — fret 5, the one with its own little line.&quot;);
+    confetti(); playFanfare();
+    return true;
+  }
+  return false;
+}
+document.addEventListener(&quot;keydown&quot;, e =&gt; {
+  if (step !== 3) return;
+  const i = [&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;].indexOf(e.key);
+  if (i &gt; -1 &amp;&amp; drillUnlocked[i]) { ensureAudio(); answerDrill(drillUnlocked[i]); }
+});
+$(&quot;hintBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; {
+  if (step !== 3 || !currentDrill) return;
+  hintUsed = true;
+  render({ fret: NOTES[currentDrill].fret, dimActual: false });
+  setMessage(&quot;Hint shown — this one&#x27;s worth fewer points.&quot;);
+  setTimeout(() =&gt; { if (currentDrill) render({ fret: null, actualNote: currentDrill, hideLadder: true }); }, 1400);
+});
+$(&quot;resetBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; {
+  score = 0; streak = 0; best = 0; correctSinceUnlock = 0;
+  missCounts = { E: 0, F: 0, G: 0, A: 0 };
+  drillUnlocked = [&quot;E&quot;, &quot;F&quot;, &quot;G&quot;];
+  buildSwitches(); updateHud(); setMessage(&quot;Reset.&quot;); pickDrill();
+});
+function startSprint() {
+  score = 0; streak = 0; sprintLeft = 60; sprintActive = true;
+  $(&quot;sprintOverlay&quot;).classList.remove(&quot;show&quot;);
+  $(&quot;timeCard&quot;).classList.remove(&quot;hidden&quot;);
+  $(&quot;timeVal&quot;).className = &quot;cardValue&quot;;
+  $(&quot;timeVal&quot;).textContent = sprintLeft;
+  document.querySelectorAll(&quot;.switch&quot;).forEach(b =&gt; b.disabled = false);
+  updateHud(); setMessage(&quot;Go!&quot;); pickDrill();
+  clearInterval(sprintTimer);
+  sprintTimer = setInterval(() =&gt; {
+    sprintLeft--;
+    $(&quot;timeVal&quot;).textContent = sprintLeft;
+    $(&quot;timeVal&quot;).className = &quot;cardValue &quot; + (sprintLeft &lt;= 10 ? &quot;timeRed&quot; : sprintLeft &lt;= 30 ? &quot;timeYellow&quot; : &quot;&quot;);
+    if (sprintLeft &lt;= 0) {
+      clearInterval(sprintTimer); sprintActive = false;
+      document.querySelectorAll(&quot;.switch&quot;).forEach(b =&gt; b.disabled = true);
+      $(&quot;overlayScore&quot;).textContent = score;
+      $(&quot;overlayDetail&quot;).textContent = &quot;Best streak: &quot; + best;
+      $(&quot;sprintOverlay&quot;).classList.add(&quot;show&quot;);
+      setMessage(&quot;&quot;);
+    }
+  }, 1000);
+}
+$(&quot;startSprintBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; { ensureAudio(); startSprint(); });
+$(&quot;playAgainBtn&quot;).addEventListener(&quot;click&quot;, startSprint);
+$(&quot;closeOverlayBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; {
+  $(&quot;sprintOverlay&quot;).classList.remove(&quot;show&quot;);
+  $(&quot;timeCard&quot;).classList.add(&quot;hidden&quot;);
+  document.querySelectorAll(&quot;.switch&quot;).forEach(b =&gt; b.disabled = false);
+});
+
+/* ============================================================
+   CHROME — steps, flashes, confetti
+   ============================================================ */
+function setMessage(t) { $(&quot;message&quot;).textContent = t || &quot;\u00A0&quot;; }
+function flashAmp(good) {
+  const el = $(&quot;ampWindow&quot;);
+  el.classList.remove(&quot;flashGood&quot;, &quot;flashBad&quot;);
+  void el.offsetWidth;
+  el.classList.add(good ? &quot;flashGood&quot; : &quot;flashBad&quot;);
+  setTimeout(() =&gt; el.classList.remove(&quot;flashGood&quot;, &quot;flashBad&quot;), 320);
+}
+function confetti() {
+  if (window.matchMedia(&quot;(prefers-reduced-motion: reduce)&quot;).matches) return;
+  const layer = document.createElement(&quot;div&quot;);
+  layer.className = &quot;confettiLayer&quot;;
+  document.body.appendChild(layer);
+  const cols = [&quot;#ff3b30&quot;, &quot;#ffd400&quot;, &quot;#00c853&quot;, &quot;#0a84ff&quot;];
+  for (let i = 0; i &lt; 24; i++) {
+    const bit = document.createElement(&quot;div&quot;);
+    bit.className = &quot;confettiBit&quot;;
+    bit.style.left = (Math.random() * 100) + &quot;vw&quot;;
+    bit.style.background = cols[Math.floor(Math.random() * cols.length)];
+    bit.style.animationDuration = (1.2 + Math.random() * 1.2) + &quot;s&quot;;
+    bit.style.borderRadius = Math.random() &gt; 0.5 ? &quot;50%&quot; : &quot;0&quot;;
+    layer.appendChild(bit);
+  }
+  setTimeout(() =&gt; layer.remove(), 2600);
+}
+function unlockStep(n) {
+  const b = document.querySelector(`.stepBtn[data-step=&quot;${n}&quot;]`);
+  if (b) b.disabled = false;
+  const prev = document.querySelector(`.stepBtn[data-step=&quot;${n - 1}&quot;]`);
+  if (prev) prev.classList.add(&quot;done&quot;);
+}
+function redrawCurrentStep() {
+  if (step === 0) render({ fret: currentFret });
+  else if (step === 3 &amp;&amp; currentDrill) render({ fret: null, actualNote: currentDrill, hideLadder: true });
+}
+function goStep(n) {
+  step = n;
+  [0, 1, 2, 3].forEach(i =&gt; $(&quot;step&quot; + i).classList.toggle(&quot;hidden&quot;, i !== n));
+  document.querySelectorAll(&quot;.stepBtn&quot;).forEach(b =&gt; b.classList.toggle(&quot;active&quot;, Number(b.dataset.step) === n));
+  setMessage(&quot;&quot;);
+  clearInterval(sprintTimer);
+  $(&quot;sprintOverlay&quot;).classList.remove(&quot;show&quot;);
+
+  if (n === 0) { showLetters = true; showLink = true; syncToggles(); syncSlider(); render({ fret: currentFret }); }
+  if (n === 1) { showLetters = true; showLink = true; syncToggles(); if (roundIdx &lt; ROUNDS.length) startRound(); else render({ fret: 3 }); }
+  if (n === 2) { showLetters = false; showLink = false; syncToggles(); fadeRound = 0; fadeRight = 0; fadeTarget = null;
+                 $(&quot;fadeDoneRow&quot;).classList.add(&quot;hidden&quot;); newFadeRound(); }
+  if (n === 3) { showLetters = true; showLink = true; syncToggles(); buildSwitches(); updateHud(); pickDrill(); }
+  window.scrollTo({ top: 0, behavior: &quot;smooth&quot; });
+}
+function syncToggles() {
+  $(&quot;lettersToggle&quot;).setAttribute(&quot;aria-checked&quot;, String(showLetters));
+  $(&quot;linkToggle&quot;).setAttribute(&quot;aria-checked&quot;, String(showLink));
+}
+document.querySelectorAll(&quot;.stepBtn&quot;).forEach(b =&gt;
+  b.addEventListener(&quot;click&quot;, () =&gt; { if (!b.disabled) goStep(Number(b.dataset.step)); }));
+$(&quot;toPredictBtn&quot;).addEventListener(&quot;click&quot;, () =&gt; { unlockStep(1); goStep(1); });
+
+window.addEventListener(&quot;load&quot;, () =&gt; {
+  syncSlider();
+  render({ fret: 0 });
+  buildSwitches();
+  updateHud();
+});
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+    </section>
+  </div>
+
+</body>
+</html>
