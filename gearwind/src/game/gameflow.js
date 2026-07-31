@@ -26,7 +26,7 @@ import {
 } from './dialog.js';
 import { drawCounter } from './hud.js';
 import {
-  writeSave, saveTick, setSaveMenu, resetTick,
+  writeSave, saveTick, setSaveMenu, resetTick, activeName,
 } from './save.js';
 
 // ---------------------------------------------------------------------------
@@ -1628,7 +1628,14 @@ export class SaveMenu {
     if (!this.open) return;
     const P = SAVE_PANEL;
     drawBox(ctx, P.x, P.y, P.w, P.h);
-    drawDialogTextCentered(ctx, 'THE FILE', P.x + P.w / 2, P.y + 10, DIM);
+    // THE FILE, BY NAME. The player typed it at NAME ENTRY and picked it off
+    // the file select; this is the one place in the chapter that is talking
+    // about the FILE rather than about Wren, so it is the one place the name
+    // belongs. A run that never went through a file select (a `?beat=` warp)
+    // has no name and gets the old header.
+    let head = 'THE FILE';
+    try { head = activeName() || head; } catch (e) { /* never fatal */ }
+    drawDialogTextCentered(ctx, head, P.x + P.w / 2, P.y + 10, DIM);
     ctx.fillStyle = RULE;
     ctx.fillRect(P.x + 8, P.y + 20, P.w - 16, 1);
 

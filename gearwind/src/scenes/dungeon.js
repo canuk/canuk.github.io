@@ -555,7 +555,11 @@ export default class DungeonScene {
   _bossDoorWords() {
     const rule = 'The doors slam. Rule 4, on the wall behind you: NEVER COOL AN OPEN VALVE.';
     if (!quest.has('hasBellowsCuff')) return rule;
-    if (this._bItem() === 'cuff') return `${rule}\nThe BELLOWS CUFF is on B.`;
+    // The correctly-equipped player says nothing extra. The clause used to fire
+    // here too, and measured it pushed the line onto a SECOND page — an extra A
+    // press and a loadout readout landing on the frame the doors slam, for the
+    // player who did nothing wrong. Only the mis-equipped branch needs to speak.
+    if (this._bItem() === 'cuff') return rule;
     const name = this._bItemName();
     return name
       ? `${rule}\nB carries the ${name}. The CUFF is in the pack.`

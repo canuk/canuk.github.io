@@ -31,9 +31,16 @@
 // Exports: TitleScreen (the screen), FrontEnd (title -> intro -> onStart), and
 // the pixel helpers intro.js reuses.
 import { makeSprite } from '../sprites.js';
-import { drawDialogTextCentered, dialogTextWidth } from './dialog.js';
+import {
+  drawBox, drawDialogText, drawDialogTextCentered, dialogTextWidth,
+} from './dialog.js';
+import { HUD } from './hud.js';
 import { Intro } from './intro.js';
-import { titleFile, requestContinue } from './save.js';
+import {
+  titleSlots, listSlots, createSlot, eraseSlot, requestContinue, setActiveSlot,
+  storeAvailable,
+  SLOTS, NAME_MAX,
+} from './save.js';
 
 export const W = 256, H = 224;
 
@@ -542,14 +549,17 @@ function makeSubtitle(text) {
 // ---------------------------------------------------------------------------
 // PRESS START — a third face: 9 rows, 2px stems, blocky, all caps.
 //
-// It was six glyphs, which was exactly enough for the one thing the title
-// screen said. The file-select prompt (CONTINUE / NEW GAME — see TitleScreen
-// below) needs eight more, and a menu set in the 6px dialogue face under a
-// 26-row chiselled logo reads as a debug overlay, not as a front end. So they
-// are authored here in the SAME grammar: 9 rows, 2px stems, flat terminals, no
-// curves, widths from 6 (I) to 11 (M/W — an M or a W squeezed into a 9 cell
-// loses its counters, which is the mistake that produced the broken capital W
-// the dialogue font was pulled up on in round 8).
+// SIX GLYPHS AND A SPACE, which is exactly the one thing this screen says.
+//
+// It briefly carried eight more (CONTINUE / NEW GAME), from the round where the
+// save file was announced on the title screen itself because it had nowhere
+// else to go. It has somewhere else now — the FILE SELECT below — and that
+// screen is set in the DIALOGUE face, not in this one, for a reason worth
+// writing down: the file select lives inside dialog.js's window, and a panel
+// with the chapter's border ramp round it and the title screen's display face
+// inside it is two grammars in one box. The chapter has one window and one text
+// face; a menu that lives in a window uses them. This face is for the one line
+// that stands directly on the cloud deck with nothing around it.
 // ---------------------------------------------------------------------------
 const BIG = {
   P: ['#######..', '##....##.', '##....##.', '##....##.', '#######..', '##.......', '##.......', '##.......', '##.......'],
@@ -558,14 +568,6 @@ const BIG = {
   S: ['.######..', '##....##.', '##.......', '###......', '..####...', '.....###.', '.......##', '##....##.', '.######..'],
   T: ['#########', '...###...', '...###...', '...###...', '...###...', '...###...', '...###...', '...###...', '...###...'],
   A: ['..#####..', '.##...##.', '##.....##', '##.....##', '#########', '##.....##', '##.....##', '##.....##', '##.....##'],
-  C: ['.######..', '##....##.', '##.......', '##.......', '##.......', '##.......', '##.......', '##....##.', '.######..'],
-  O: ['.######..', '##....##.', '##....##.', '##....##.', '##....##.', '##....##.', '##....##.', '##....##.', '.######..'],
-  N: ['##.....##', '###....##', '####...##', '##.##..##', '##..##.##', '##...####', '##....###', '##.....##', '##.....##'],
-  I: ['######', '..##..', '..##..', '..##..', '..##..', '..##..', '..##..', '..##..', '######'],
-  U: ['##.....##', '##.....##', '##.....##', '##.....##', '##.....##', '##.....##', '##.....##', '###...###', '.#######.'],
-  G: ['.######..', '##....##.', '##.......', '##.......', '##..####.', '##....##.', '##....##.', '##....##.', '.######..'],
-  W: ['##.......##', '##.......##', '##.......##', '##.......##', '##...#...##', '##..###..##', '##.##.##.##', '#####.#####', '.###...###.'],
-  M: ['##.......##', '###.....###', '####...####', '##.##.##.##', '##..###..##', '##...#...##', '##.......##', '##.......##', '##.......##'],
   ' ': [''],
 };
 const BIG_W = {};
@@ -804,60 +806,19 @@ export const cloudPal = (i) => ({
 
 const STRIP_W = 384;
 
-// Where the file-select sits. PRESS START lives at 156 on its own; with a file
-// on the machine the same band carries two lines and a summary, ending clear of
-// the 1993 SKYFORGE credit at 208 and starting below the subtitle at 56.
-// The left edge of the widest option lands at x~86, which is one pixel clear of
-// the windmill sails (they span x 22-66) — the cursor gear at x-13 therefore
-// sits over open cloud, not over the mill.
-const OPT_Y = [144, 164];
-const FILE_Y = 187;
+// PRESS START sits at 156, on its own, exactly where the critic passed it.
+//
+// It used to share that band with a CONTINUE / NEW GAME pair, because the save
+// file had nowhere else to be announced. It has somewhere else now — a real
+// FILE SELECT screen, below — so the title screen is back to the one thing a
+// 1993 title screen says, and the front end is the shape A Link to the Past's
+// actually was: title, then files, then names.
+const PRESS_Y = 156;
 
 export class TitleScreen {
   constructor() {
     this.frame = 0;
-    /** A describeSave() result, or null for "no file on this machine". */
-    this.file = null;
-    /** 0 = CONTINUE, 1 = NEW GAME. Ignored when `file` is null. */
-    this.sel = 0;
     this.build();
-  }
-
-  /**
-   * Hand the screen the save file, or null. With a file it draws the two-line
-   * select; without one it is byte-for-byte the screen a critic already passed
-   * — same blinking PRESS START, same everything. That is the whole contract:
-   * a machine with no save, a corrupt save or a save from another build sees
-   * exactly the title screen this game shipped with.
-   */
-  setFile(file) {
-    this.file = file || null;
-    this.sel = 0;
-    this.fileLine = file ? this._summary(file) : null;
-  }
-
-  /**
-   * ALttP's file select prints where you are and how much life you have. Same
-   * here, in the dialogue face, and measured: the longest form is used only if
-   * it fits inside the panel-width the rest of the screen is composed to, and
-   * the cogs are what get dropped when it does not.
-   */
-  _summary(f) {
-    const hearts = `${f.hearts} HEART${f.hearts === 1 ? '' : 'S'}`;
-    const full = `${f.place}  -  ${hearts}  -  ${String(f.cogs).padStart(3, '0')} COGS`;
-    if (dialogTextWidth(full) <= 236) return full;
-    const mid = `${f.place}  -  ${hearts}`;
-    if (dialogTextWidth(mid) <= 236) return mid;
-    return hearts;
-  }
-
-  /** Move the cursor. Returns true if it actually moved (so FrontEnd can beep). */
-  moveSel(d) {
-    if (!this.file) return false;
-    const n = (this.sel + d + 2) % 2;
-    if (n === this.sel) return false;
-    this.sel = n;
-    return true;
   }
 
   build() {
@@ -918,20 +879,6 @@ export class TitleScreen {
     this.sub = makeSubtitle('Isles of the Sky');
     this.rule = makeRule(this.logo.width - 30);
     this.press = makeBigCaps('PRESS START', '#f8f8f8', '#1a1208');
-    // THE FILE SELECT. Two states of the same two words: lit when the cursor
-    // is on them, and dropped to the cloud-deck greys when it is not, so the
-    // unselected line still reads as a thing you could choose rather than as
-    // something switched off. Both are built whether or not a save exists —
-    // building two 84px canvases costs nothing and the alternative is a branch
-    // inside draw() that runs sixty times a second.
-    this.optOn = [
-      makeBigCaps('CONTINUE', '#f8f8f8', '#1a1208'),
-      makeBigCaps('NEW GAME', '#f8f8f8', '#1a1208'),
-    ];
-    this.optOff = [
-      makeBigCaps('CONTINUE', '#7a8ba4', '#141b2c'),
-      makeBigCaps('NEW GAME', '#7a8ba4', '#141b2c'),
-    ];
 
     this.logoX = Math.round((W - this.logo.width) / 2);
     this.logoY = 14;
@@ -1006,7 +953,14 @@ export class TitleScreen {
     if (STRIP_W - off > W) return;
   }
 
-  draw(ctx) {
+  /**
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {boolean} [showPress] false while a menu panel stands over the
+   *   screen — the file select and name entry keep the whole backdrop alive
+   *   behind them (the clouds keep drifting, the mill keeps turning) but a
+   *   blinking PRESS START under an opaque panel is a sprite nobody sees.
+   */
+  draw(ctx, showPress = true) {
     ctx.drawImage(this.back, 0, 0);
     this.drawStrip(ctx, this.haze, 52, 0.05);
     this.drawStrip(ctx, this.far, 92, 0.13);
@@ -1041,39 +995,489 @@ export class TitleScreen {
     ctx.drawImage(GEAR, rx + this.rule.width + 2, this.ruleY - 2);
     ctx.drawImage(this.sub, Math.round((W - this.sub.width) / 2), this.subY);
 
-    if (this.file) this.drawFileSelect(ctx);
     // PRESS START at ~1Hz: 36 frames lit, 24 dark
-    else if (this.frame % 60 < 36) {
-      ctx.drawImage(this.press, Math.round((W - this.press.width) / 2), 156);
+    if (showPress && this.frame % 60 < 36) {
+      ctx.drawImage(this.press, Math.round((W - this.press.width) / 2), PRESS_Y);
     }
     drawDialogTextCentered(ctx, '1993 SKYFORGE', W / 2, 208, '#3f5c82', '#e4eef6');
   }
+}
+
+// ---------------------------------------------------------------------------
+// THE FRAME LANGUAGE THE TWO MENU SCREENS ARE MADE OF
+//
+// Nothing here is new. `drawBox` is dialog.js's own window — the 1px #1e1a22
+// keyline, two rows of #f8f8f8, a #6878a0 slate bevel and a black well, with
+// r=3 staircase corners — which is the ramp every panel in this chapter has
+// been measured against. INK and DIM are the two ink values the subscreen and
+// the SAVE panel already use for "the cursor is on this" and "it is not".
+// The heart row is the HUD's own three sprites, taken off a HUD instance rather
+// than re-authored, because those seven rows are a byte-for-byte transcription
+// of the real thing and there must only ever be one copy of them.
+// The text is the dialogue face, which is the only face in the build with
+// lowercase — and NAME ENTRY has to offer lowercase.
+// ---------------------------------------------------------------------------
+const INK = '#f8f8f8';
+const DIM = '#6878a0';
+const KEYLINE = '#1e1a22';
+const WARN = '#d9482b';
+
+let _hudSprites = null;
+/** The HUD's own heart sprites. Built once, never a second heart. */
+function heartSprites() {
+  if (!_hudSprites) _hudSprites = new HUD().sprites;
+  return _hudSprites;
+}
+
+/**
+ * THE STATUS READOUT. In A Link to the Past a file's whole summary is its
+ * name and its heart row, so that is what a row draws: `maxHearts` containers,
+ * 7px sprites on the HUD's own 8px pitch, filled from `halves`.
+ */
+function drawHeartRow(ctx, x, y, maxHearts, halves) {
+  const s = heartSprites();
+  const n = Math.max(1, Math.min(20, maxHearts | 0));
+  for (let i = 0; i < n; i++) {
+    const rem = (halves | 0) - i * 2;
+    ctx.drawImage(rem >= 2 ? s.full : rem === 1 ? s.half : s.empty, x + i * 8, y);
+  }
+  return n * 8;
+}
+
+/**
+ * The list cursor: a solid 4x7 chevron on a keyline pad — the same shape and
+ * the same two colours the SAVE panel points with, so the chapter has one
+ * pointer. It is reproduced here rather than imported because gameflow.js is
+ * the chapter's flow machinery (music, bestiary, the Boilerworks' furniture)
+ * and the front door must not have to load all of that to draw six pixels.
+ */
+function drawChevron(ctx, x, y) {
+  ctx.fillStyle = KEYLINE;
+  ctx.fillRect(x - 1, y - 1, 6, 9);
+  ctx.fillStyle = INK;
+  for (let r = 0; r < 7; r++) ctx.fillRect(x, y + r, r <= 3 ? r + 1 : 7 - r, 1);
+}
+
+/** One sound, through the chapter's one mixer. Never fatal, safe headless. */
+function beep(name) {
+  try {
+    if (typeof window !== 'undefined' && window.__gwSfx) window.__gwSfx(name);
+  } catch (e) { /* no audio in a capture */ }
+}
+
+/**
+ * D-PAD AUTO-REPEAT.
+ *
+ * `Input` only reports edges, and a 70-cell character grid navigated one press
+ * per cell is a name-entry screen nobody finishes. This gives the four
+ * directions the console behaviour: fire on the press, then after a 22-frame
+ * hold fire again every 5 frames. Each screen owns one, so leaving a held key
+ * on one screen cannot auto-repeat into the screen that replaces it.
+ */
+class Repeater {
+  constructor() { this.key = null; this.t = 0; }
+  /** @returns {string|null} a direction to apply this frame */
+  read(input) {
+    const dirs = ['up', 'down', 'left', 'right'];
+    for (const d of dirs) {
+      if (input.hit(d)) { this.key = d; this.t = 0; return d; }
+    }
+    if (this.key && input.held(this.key)) {
+      this.t++;
+      if (this.t >= 22 && (this.t - 22) % 5 === 0) return this.key;
+      return null;
+    }
+    this.key = null; this.t = 0;
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// FILE SELECT
+//
+// Two rows and an ERASE. ALttP's own file select is a list of files showing
+// each one's NAME and HEART ROW with a cursor you move up and down, and a strip
+// of secondary options along the bottom (copy / erase). Two slots is what was
+// asked for, and ERASE is the one secondary option that is not optional: a
+// player who fills both files with no way to clear one has a game he cannot
+// start again.
+//
+// GEOMETRY, measured against what is behind it. The panel is 216 wide (the
+// subscreen's own width) and runs y 52..202, which starts below the chiselled
+// GEARWIND logo (it ends at y=46) and stops above the 1993 SKYFORGE credit at
+// y=208. So the title art a critic passed is not covered up — the clouds keep
+// drifting, the mill keeps turning and the logo keeps sitting on top of the
+// menu, which is what makes this read as the same screen rather than a
+// different program.
+// ---------------------------------------------------------------------------
+const FS = { x: 20, y: 52, w: 216, h: 150 };
+const FS_ROW = [84, 122];          // top of each file row (label; name is +12)
+const FS_LABEL_X = FS.x + 24;      // 44
+const FS_HEART_X = 150;            // 59px clear of a full six-glyph name
+const FS_ERASE_Y = 160;
+const FS_RULES = [74, 112, 150];
+const FS_FOOT_Y = 182;
+const ERASE_BOX = { x: 56, y: 88, w: 144, h: 68 };
+
+export class FileSelect {
+  /**
+   * @param {Array} rows listSlots() output — one entry per slot, null = empty
+   * @param {object} [opts] { onPlay(slot,row), onNew(slot), onBack() }
+   */
+  constructor(rows, opts = {}) {
+    this.rows = rows || listSlots();
+    this.onPlay = opts.onPlay || (() => {});
+    this.onNew = opts.onNew || (() => {});
+    this.onBack = opts.onBack || (() => {});
+    /** 0..SLOTS-1 = a file row, SLOTS = ERASE. */
+    this.sel = 0;
+    /** 'pick' | 'erase' | 'confirm' */
+    this.mode = 'pick';
+    /** In 'confirm': 0 = NO (the safe default), 1 = YES. */
+    this.yes = 0;
+    this.t = 0;
+    this.rep = new Repeater();
+  }
+
+  refresh() { this.rows = listSlots(); return this.rows; }
+
+  /** True if any slot holds a file that can actually be loaded. */
+  get hasFile() { return this.rows.some((r) => r && r.playable); }
+  get anyFile() { return this.rows.some((r) => !!r); }
+
+  get maxSel() { return this.mode === 'pick' ? SLOTS : SLOTS - 1; }
+
+  move(d) {
+    const n = this.maxSel + 1;
+    this.sel = (this.sel + d + n) % n;
+    beep('cursor');
+  }
+
+  update(dt, engine) {
+    this.t++;
+    const input = engine.input;
+
+    if (this.mode === 'confirm') {
+      const d = this.rep.read(input);
+      if (d === 'up' || d === 'down' || d === 'left' || d === 'right') {
+        this.yes = 1 - this.yes; beep('cursor');
+      }
+      if (input.hit('b')) { beep('cursor'); this.mode = 'erase'; return; }
+      if (input.hit('a') || input.hit('start')) {
+        if (this.yes) {
+          eraseSlot(this.sel + 1);
+          this.refresh();
+          beep('select');
+          // Back to the LIST, not back to the erase cursor. The player has to
+          // see the slot go empty, and leaving them hovering in erase mode is
+          // one careless A away from losing the other file too.
+          this.mode = 'pick';
+        } else {
+          beep('cursor');
+          this.mode = 'erase';
+        }
+      }
+      return;
+    }
+
+    const d = this.rep.read(input);
+    if (d === 'up') this.move(-1);
+    else if (d === 'down') this.move(1);
+
+    if (input.hit('b')) {
+      beep('cursor');
+      if (this.mode === 'erase') { this.mode = 'pick'; this.sel = SLOTS; }
+      else this.onBack();
+      return;
+    }
+
+    if (!(input.hit('a') || input.hit('start'))) return;
+
+    if (this.mode === 'erase') {
+      if (!this.rows[this.sel]) { beep('error'); return; }
+      beep('select');
+      this.yes = 0;
+      this.mode = 'confirm';
+      return;
+    }
+
+    // 'pick'
+    if (this.sel === SLOTS) {
+      // ERASE. Refusing when there is nothing to erase is the whole reason the
+      // bank has an `error` sound.
+      if (!this.anyFile) { beep('error'); return; }
+      beep('select');
+      this.mode = 'erase';
+      this.sel = this.rows.findIndex((r) => !!r);
+      return;
+    }
+    const row = this.rows[this.sel];
+    beep('select');
+    if (row) this.onPlay(this.sel + 1, row);
+    else this.onNew(this.sel + 1);
+  }
+
+  draw(ctx) {
+    drawBox(ctx, FS.x, FS.y, FS.w, FS.h);
+
+    const head = this.mode === 'pick' ? 'SELECT A FILE' : 'ERASE WHICH FILE';
+    drawDialogTextCentered(ctx, head, 128, 62, this.mode === 'pick' ? DIM : WARN);
+    ctx.fillStyle = DIM;
+    for (const y of FS_RULES) ctx.fillRect(FS.x + 8, y, FS.w - 16, 1);
+
+    for (let i = 0; i < SLOTS; i++) {
+      const top = FS_ROW[i];
+      const row = this.rows[i];
+      const on = this.sel === i && this.mode !== 'confirm';
+      const lit = on ? INK : DIM;
+      drawDialogText(ctx, `FILE ${i + 1}`, FS_LABEL_X, top, DIM);
+      if (!row) {
+        drawDialogText(ctx, '-  EMPTY  -', FS_LABEL_X, top + 12, on ? INK : DIM);
+      } else {
+        drawDialogText(ctx, row.name || '?', FS_LABEL_X, top + 12, lit);
+        drawHeartRow(ctx, FS_HEART_X, top + 11, row.maxHearts, row.halves);
+      }
+      if (on) drawChevron(ctx, FS_LABEL_X - 12, top + 12);
+    }
+
+    // ERASE only exists in 'pick'; in 'erase' the cursor is over the files and
+    // the header has already said what pressing A will do.
+    if (this.mode === 'pick') {
+      const on = this.sel === SLOTS;
+      const w = dialogTextWidth('ERASE');
+      drawDialogTextCentered(ctx, 'ERASE', 128, FS_ERASE_Y, on ? INK : DIM);
+      if (on) drawChevron(ctx, Math.round(128 - w / 2) - 12, FS_ERASE_Y);
+    }
+
+    if (this.mode === 'confirm') this.drawConfirm(ctx);
+    else if ((this.t % 60) < 40) {
+      const foot = this.mode === 'pick' ? 'A  TO  CHOOSE' : 'B  TO  GO  BACK';
+      drawDialogTextCentered(ctx, foot, 128, FS_FOOT_Y, DIM);
+    }
+  }
 
   /**
-   * CONTINUE / NEW GAME, in the lockup's own hardware.
-   *
-   * No box is drawn round it. The title screen's grammar is a chiselled plate,
-   * a brass rule with a gear at each end, and cast-shadowed caps standing
-   * directly on the cloud deck — a windowed menu dropped on top of that would
-   * be the only framed object on the screen and would read as a different
-   * game's UI. So the select is the same cast-shadowed caps at the same weight
-   * as PRESS START, and the cursor is the SAME GEAR that caps the rule, which
-   * is the one piece of pointing hardware this screen already owns.
-   *
-   * The selected line does not blink. PRESS START blinks because it is asking
-   * for a press; a cursor that blinks is asking you to wait for it.
+   * ERASE IS THE ONE IRREVERSIBLE THING ON THIS SCREEN, so it asks, and the
+   * cursor starts on NO. The panel is a smaller copy of the panel it is sitting
+   * on, exactly as the SAVE menu is a smaller copy of the subscreen.
    */
-  drawFileSelect(ctx) {
-    for (let i = 0; i < 2; i++) {
-      const on = i === this.sel;
-      const img = on ? this.optOn[i] : this.optOff[i];
-      const x = Math.round((W - img.width) / 2);
-      ctx.drawImage(img, x, OPT_Y[i]);
-      if (on) ctx.drawImage(GEAR, x - 13, OPT_Y[i] + 2);
+  drawConfirm(ctx) {
+    const P = ERASE_BOX;
+    drawBox(ctx, P.x, P.y, P.w, P.h);
+    const row = this.rows[this.sel];
+    drawDialogTextCentered(ctx, `ERASE FILE ${this.sel + 1}`, 128, P.y + 12, WARN);
+    drawDialogTextCentered(ctx, row && row.name ? row.name : '', 128, P.y + 24, INK);
+    ['NO', 'YES'].forEach((label, i) => {
+      const y = P.y + 40 + i * 14;
+      const on = this.yes === i;
+      drawDialogText(ctx, label, 118, y, on ? INK : DIM);
+      if (on) drawChevron(ctx, 106, y);
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// NAME ENTRY
+//
+// ALttP's grid: capitals, lowercase, digits and a handful of marks, with the
+// name building at the top, the d-pad on the grid, A to append, B to delete,
+// and END to finish. Same here.
+//
+// FOURTEEN COLUMNS, FIVE ROWS. Fourteen is what makes the alphabet fall out
+// evenly — A..N and O..Z with two marks on the end of the second row, then the
+// same shape in lowercase — so no row is a ragged half. 14 x 14px = 196px,
+// centred in a 216px panel. The sixth row is the two commands.
+//
+// The name is drawn at 2x on a 16px pitch, with a rule under every one of the
+// six slots and the next one lit, so the box always shows how many characters
+// are left. That doubling is why the cap is six and not seven: 6 x 16 = 96px
+// centred; a seventh slot pushes the display to 112 and the rules stop lining
+// up under the panel's own 8px margins.
+// ---------------------------------------------------------------------------
+const NE = { x: 20, y: 48, w: 216, h: 154 };
+const GRID = [
+  'ABCDEFGHIJKLMN',
+  'OPQRSTUVWXYZ.-',
+  'abcdefghijklmn',
+  'opqrstuvwxyz!?',
+  "0123456789',& ",
+];
+const GRID_COLS = 14;
+const GRID_X = 30;          // 128 - (14 * 14) / 2
+const GRID_Y = 104;
+const GRID_PITCH = 14;
+const NAME_X = 80;          // 128 - (6 * 16) / 2
+const NAME_Y = 68;
+const CMD_Y = 170;
+const COMMANDS = [
+  { label: 'BACK', cx: 92 },
+  { label: 'END', cx: 164 },
+];
+
+export class NameEntry {
+  /**
+   * @param {number} slot which file is being named (drawn in the header)
+   * @param {object} [opts] { onDone(name), onCancel() }
+   */
+  constructor(slot, opts = {}) {
+    this.slot = slot;
+    this.onDone = opts.onDone || (() => {});
+    this.onCancel = opts.onCancel || (() => {});
+    this.name = '';
+    this.r = 0;
+    this.c = 0;
+    this.cmd = 0;
+    this.t = 0;
+    this.rep = new Repeater();
+    /** Set once so a scratch canvas is not built per glyph per frame. */
+    this._big = new Map();
+  }
+
+  /** The character under the cursor, or null when the cursor is on a command. */
+  get charAt() { return this.r < GRID.length ? GRID[this.r][this.c] : null; }
+
+  move(d) {
+    const last = GRID.length;          // the command row's index
+    if (d === 'left' || d === 'right') {
+      const s = d === 'left' ? -1 : 1;
+      if (this.r === last) this.cmd = (this.cmd + s + 2) % 2;
+      else this.c = (this.c + s + GRID_COLS) % GRID_COLS;
+    } else if (d === 'up') {
+      if (this.r === 0) { this.r = last; this.cmd = this.c < 7 ? 0 : 1; }
+      else if (this.r === last) { this.r = last - 1; this.c = this.cmd === 0 ? 3 : 10; }
+      else this.r--;
+    } else if (d === 'down') {
+      if (this.r === last - 1) { this.r = last; this.cmd = this.c < 7 ? 0 : 1; }
+      else if (this.r === last) this.r = 0;
+      else this.r++;
     }
-    if (this.fileLine) {
-      drawDialogTextCentered(ctx, this.fileLine, W / 2, FILE_Y, '#e4eef6', '#0e1420');
+    beep('cursor');
+  }
+
+  append(ch) {
+    // A leading blank is not a name, and a trailing one is invisible — so the
+    // space cell is only live once there is something for it to sit between.
+    if (ch === ' ' && !this.name) { beep('error'); return; }
+    if (this.name.length >= NAME_MAX) { beep('error'); return; }
+    this.name += ch;
+    beep('select');
+  }
+
+  backspace() {
+    if (!this.name) {
+      // B on an empty name is the way out. The grid's BACK cell is the
+      // backspace; this is the only gesture left that can mean "never mind",
+      // and a name-entry screen with no way back is a trap.
+      beep('cursor');
+      this.onCancel();
+      return;
     }
+    this.name = this.name.slice(0, -1);
+    beep('cursor');
+  }
+
+  commit() {
+    const nm = this.name.trim();
+    if (!nm) { beep('error'); return; }
+    beep('select');
+    this.onDone(nm);
+  }
+
+  update(dt, engine) {
+    this.t++;
+    const input = engine.input;
+    const d = this.rep.read(input);
+    if (d) this.move(d);
+    if (input.hit('b')) { this.backspace(); return; }
+    if (input.hit('start')) { this.commit(); return; }
+    if (!input.hit('a')) return;
+    if (this.r < GRID.length) this.append(this.charAt);
+    else if (this.cmd === 0) this.backspace();
+    else this.commit();
+  }
+
+  // --- drawing --------------------------------------------------------------
+
+  /** One dialogue-face glyph, rendered once at 1x and blitted at 2x. */
+  bigGlyph(ch) {
+    let cv = this._big.get(ch);
+    if (!cv) {
+      const w = Math.max(1, Math.ceil(dialogTextWidth(ch)));
+      const src = document.createElement('canvas');
+      src.width = w; src.height = 10;
+      const sg = src.getContext('2d');
+      sg.imageSmoothingEnabled = false;
+      drawDialogText(sg, ch, 0, 0, INK);
+      cv = document.createElement('canvas');
+      cv.width = w * 2; cv.height = 20;
+      const g = cv.getContext('2d');
+      g.imageSmoothingEnabled = false;
+      g.drawImage(src, 0, 0, w, 10, 0, 0, w * 2, 20);
+      this._big.set(ch, cv);
+    }
+    return cv;
+  }
+
+  draw(ctx) {
+    drawBox(ctx, NE.x, NE.y, NE.w, NE.h);
+    drawDialogTextCentered(ctx, `NAME FILE ${this.slot}`, 128, 54, DIM);
+
+    // --- the name, building, at the top --------------------------------------
+    for (let i = 0; i < NAME_MAX; i++) {
+      const x = NAME_X + i * 16;
+      const ch = this.name[i];
+      if (ch && ch !== ' ') {
+        const g = this.bigGlyph(ch);
+        ctx.drawImage(g, Math.round(x + (14 - g.width) / 2), NAME_Y);
+      }
+      // The caret: the rule under the next free slot blinks, every other rule
+      // is the panel's slate.
+      const next = i === this.name.length;
+      ctx.fillStyle = next && (this.t % 40) < 24 ? INK : DIM;
+      ctx.fillRect(x + 1, NAME_Y + 22, 12, 1);
+    }
+    ctx.fillStyle = DIM;
+    ctx.fillRect(NE.x + 8, 98, NE.w - 16, 1);
+
+    // --- the grid ------------------------------------------------------------
+    for (let r = 0; r < GRID.length; r++) {
+      for (let c = 0; c < GRID_COLS; c++) {
+        const ch = GRID[r][c];
+        const x = GRID_X + c * GRID_PITCH;
+        const y = GRID_Y + r * GRID_PITCH;
+        const on = this.r === r && this.c === c;
+        if (on) this.cell(ctx, x, y, GRID_PITCH - 1, 11);
+        if (ch === ' ') {
+          // The space cell has no ink of its own, so it is drawn as the face's
+          // own underscore rather than as a second, invented glyph.
+          ctx.fillStyle = on ? INK : DIM;
+          ctx.fillRect(x + 3, y + 7, 7, 1);
+        } else {
+          drawDialogText(ctx, ch, x + Math.round((13 - dialogTextWidth(ch)) / 2), y, on ? INK : DIM);
+        }
+      }
+    }
+
+    // --- the two commands ----------------------------------------------------
+    COMMANDS.forEach((cmd, i) => {
+      const on = this.r === GRID.length && this.cmd === i;
+      const w = dialogTextWidth(cmd.label);
+      if (on) this.cell(ctx, Math.round(cmd.cx - w / 2) - 4, CMD_Y - 2, w + 8, 11);
+      drawDialogTextCentered(ctx, cmd.label, cmd.cx, CMD_Y, on ? INK : DIM);
+    });
+
+    if ((this.t % 60) < 40) {
+      drawDialogTextCentered(ctx, 'A  ADD    B  DELETE', 128, 188, DIM);
+    }
+  }
+
+  /** The cursor: a 1px white cell outline, in the panel's own ink. */
+  cell(ctx, x, y, w, h) {
+    ctx.fillStyle = INK;
+    ctx.fillRect(x, y - 2, w, 1);
+    ctx.fillRect(x, y + h - 3, w, 1);
+    ctx.fillRect(x, y - 2, 1, h);
+    ctx.fillRect(x + w - 1, y - 2, 1, h);
   }
 }
 
@@ -1083,64 +1487,135 @@ export class TitleScreen {
 //   const front = new FrontEnd({ onStart: () => engine.setScene(new Game()) });
 //   front.update(dt, engine);  front.draw(ctx);
 //
-// title --START--> (fade) --> intro --START/last panel--> (fade) --> onStart()
+// THE FRONT DOOR A LINK TO THE PAST ACTUALLY HAD:
+//
+//   title --START--> (wipe) --> FILE SELECT
+//     ...on a played file  --> (fade) --------------------------> onStart()
+//     ...on a fresh file   --> (fade) --> intro --> (fade) -----> onStart()
+//     ...on an empty file  --> (wipe) --> NAME ENTRY --> (wipe) --> FILE SELECT
+//
+// A named file is CREATED at the end of NAME ENTRY and the player is put back
+// on the file select with the cursor on it, which is the real thing's own
+// order: you name a file, you see it in the list, then you choose it. It also
+// means the very first thing a new player does after typing a name is watch it
+// appear in a slot — the one moment that teaches what the slots are for.
+//
+// CONTINUE does not replay the four intro panels: the prologue of a chapter you
+// are half way through is the one thing nobody wants to sit through twice. The
+// load happens on the other side of the fade — requestContinue(slot) records
+// the choice and save.js's saveTick drains it on the first frame the chapter is
+// actually holding the phase, holding the curtain black across the async
+// rebuild of the Boilerworks if the file was saved down there.
+//
+// WHEN THERE IS NO FILE SELECT AT ALL. `?bot=play` and `?beat=` get the
+// pre-slot front door — PRESS START, intro, chapter (see save.titleSlots for
+// why). Every existing capture of the title and the intro therefore still
+// captures exactly what it captured before, and the autopilot still plays the
+// chapter end to end without a menu it cannot read.
 // ---------------------------------------------------------------------------
 const FADE_FRAMES = 24;
-
-/** The cursor click, through the chapter's one mixer. Never fatal, headless. */
-function titleBeep() {
-  try {
-    if (typeof window !== 'undefined' && window.__gwSfx) window.__gwSfx('select');
-  } catch (e) { /* no audio in a capture */ }
-}
+/** Half of a wipe: out over WIPE_HALF frames, then back in over WIPE_HALF. */
+const WIPE_HALF = 12;
 
 export class FrontEnd {
   constructor(opts = {}) {
     this.onStart = opts.onStart || (() => {});
     this.title = new TitleScreen();
     this.intro = null;
-    this.state = 'title';
     this.fade = 0;
     this.skipIntro = !!opts.skipIntro;
-    // IS THERE A FILE ON THIS MACHINE. Asked once, here, on the frame the
-    // front end is built — which is also the frame game.js rebuilds it on
-    // after the chapter card (scenes/game.js _newGame), so a run that has just
-    // been played comes back to a title screen offering to continue it.
-    //
-    // describeSave() cannot throw: absent, unreadable, non-JSON, wrong-shaped
-    // and wrong-schema files all come back null, and null is the title screen
-    // exactly as it was before save/load existed. That is the whole of the
-    // "a corrupt save must not break the title screen" requirement, and it is
-    // one line because the refusing is all done in save.js.
-    let file = null;
-    try { file = opts.file !== undefined ? opts.file : titleFile(); } catch (e) { file = null; }
-    this.title.setFile(file);
     this.continuing = false;
+    this.wipe = null;
+
+    // ARE THERE FILES ON THIS MACHINE. Asked once, here, on the frame the front
+    // end is built — which is also the frame game.js rebuilds it on after the
+    // chapter card (scenes/game.js _newGame), so a run that has just been
+    // played comes straight back to a file select listing it.
+    //
+    // titleSlots() cannot throw: absent, unreadable, non-JSON, wrong-shaped and
+    // wrong-schema files all come back as a null ROW, and a null row is
+    // "- EMPTY -". A corrupt file 2 costs the player file 2 and nothing else —
+    // file 1 still lists, still loads, and the screen still draws.
+    let rows = null;
+    try { rows = opts.slots !== undefined ? opts.slots : titleSlots(); } catch (e) { rows = null; }
+    this.files = !!rows;
+    this.select = this.files ? new FileSelect(rows, {
+      onPlay: (slot, row) => this.choose(slot, row),
+      onNew: (slot) => this.nameFile(slot),
+      onBack: () => this.startWipe('title'),
+    }) : null;
+    this.name = null;
+
+    // `startAt: 'files'` is what the ENDING comes back to: A on the last card
+    // returns the player to the FILE SELECT, not to a dead title. It falls back
+    // to the title on a run that has no file select to come back to.
+    this.state = (opts.startAt === 'files' && this.files) ? 'files' : 'title';
   }
 
-  /** True if the player is looking at a file-select rather than PRESS START. */
-  get hasFile() { return !!this.title.file; }
+  /** True if any slot holds a file that can actually be loaded. */
+  get hasFile() { return !!(this.select && this.select.hasFile); }
+
+  // --- transitions ----------------------------------------------------------
 
   /**
-   * The player answered the title screen.
-   *
-   * CONTINUE does not replay the four intro panels — the prologue of a chapter
-   * you are half way through is the one thing nobody wants to sit through
-   * twice — so it fades once and goes straight to onStart(). The load itself
-   * happens on the other side of that fade: requestContinue() records the
-   * choice and save.js's saveTick drains it on the first frame the chapter is
-   * actually holding the phase, holding the curtain black across the async
-   * rebuild of the Boilerworks if the file was saved down there.
-   *
-   * NEW GAME is the untouched path: fade, intro, chapter.
+   * A dithered cross-wipe between two front-end screens: down to black over
+   * WIPE_HALF frames on the screen being left, back up over WIPE_HALF on the
+   * screen being entered. Same four-step ordered dither the fade to the chapter
+   * uses — no alpha, no gradient.
    */
+  startWipe(to) {
+    this.wipe = { t: 0, from: this.state, to };
+    this.state = 'wipe';
+  }
+
+  /** The player answered the title screen. */
   commit() {
     if (this.state !== 'title') return;
-    this.continuing = this.hasFile && this.title.sel === 0;
-    if (this.continuing) { try { requestContinue(); } catch (e) { this.continuing = false; } }
-    titleBeep();
+    beep('select');
+    if (this.files) { this.startWipe('files'); return; }
+    // No file select on this run: the old single-press path, untouched.
+    this.continuing = false;
     this.state = 'fadein';
     this.fade = 0;
+  }
+
+  /** A file was chosen on the file select. */
+  choose(slot, row) {
+    setActiveSlot(slot);
+    this.continuing = false;
+    if (row && row.playable) {
+      try { requestContinue(slot); this.continuing = true; } catch (e) { this.continuing = false; }
+    }
+    this.state = 'fadein';
+    this.fade = 0;
+  }
+
+  /** An empty slot was chosen: go and name it. */
+  nameFile(slot) {
+    this.name = new NameEntry(slot, {
+      onDone: (nm) => {
+        const made = createSlot(slot, nm);
+        // A CARTRIDGE WITH A DEAD BATTERY STILL PLAYS. If the browser refuses
+        // storage outright (cookies blocked, Safari private mode) the write
+        // fails, the row comes back EMPTY, and A on it reopens NAME ENTRY —
+        // measured, six rounds of that never reached the chapter. So when
+        // there is no store at all, fall through into the chapter as an
+        // unsaved session instead of back to a menu with no exit.
+        if (!made && !storeAvailable()) { this.choose(slot, null); return; }
+        this.backToFiles(slot - 1);
+      },
+      onCancel: () => this.backToFiles(slot - 1),
+    });
+    this.startWipe('name');
+  }
+
+  /** Re-read the slots and put the cursor on `sel`, then wipe back to them. */
+  backToFiles(sel) {
+    this.select.refresh();
+    this.select.sel = Math.max(0, Math.min(SLOTS, sel | 0));
+    this.select.mode = 'pick';
+    this.name = null;
+    this.startWipe('files');
   }
 
   /** Jump straight into the intro (used by captures and by a "skip title"). */
@@ -1156,20 +1631,31 @@ export class FrontEnd {
     this.fade = 0;
   }
 
+  // --- frame ----------------------------------------------------------------
+
   update(dt, engine) {
     const input = engine.input;
     switch (this.state) {
       case 'title':
         this.title.update(dt, engine);
-        // With a file on the machine the title is a two-line select: up/down
-        // moves the gear, START or A commits. Without one it is the single
-        // press it has always been, and neither the d-pad nor this branch is
-        // reachable.
-        if (this.hasFile) {
-          if (input.hit('up') && this.title.moveSel(-1)) titleBeep();
-          if (input.hit('down') && this.title.moveSel(1)) titleBeep();
+        if (input.hit('start') || input.hit('a')) this.commit();
+        break;
+      case 'wipe':
+        // The backdrop keeps living through the wipe — the clouds do not stop
+        // drifting because a menu is changing.
+        this.title.update(dt, engine);
+        if (++this.wipe.t >= WIPE_HALF * 2) {
+          this.state = this.wipe.to;
+          this.wipe = null;
         }
-        if (input.hit('start') || input.hit('a')) { this.commit(); }
+        break;
+      case 'files':
+        this.title.update(dt, engine);
+        this.select.update(dt, engine);
+        break;
+      case 'name':
+        this.title.update(dt, engine);
+        this.name.update(dt, engine);
         break;
       case 'fadein':
         this.title.update(dt, engine);
@@ -1187,18 +1673,53 @@ export class FrontEnd {
     }
   }
 
+  /** Paint one of the three front-end screens, without any transition on it. */
+  drawScreen(ctx, which) {
+    switch (which) {
+      case 'files':
+        this.title.draw(ctx, false);
+        if (this.select) this.select.draw(ctx);
+        break;
+      case 'name':
+        this.title.draw(ctx, false);
+        if (this.name) this.name.draw(ctx);
+        break;
+      default:
+        this.title.draw(ctx, true);
+    }
+  }
+
+  /** The four-step ordered dither to black. `k` is 0 (clear) to 1 (black). */
+  dither(ctx, k) {
+    const step = Math.min(4, Math.floor(Math.max(0, k) * 5));
+    if (step <= 0) return;
+    ctx.fillStyle = '#000';
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (BAYER[y & 3][x & 3] < step * 4) ctx.fillRect(x, y, 1, 1);
+    }
+  }
+
   draw(ctx) {
-    if (this.state === 'title' || this.state === 'fadein') this.title.draw(ctx);
-    else if (this.intro) this.intro.draw(ctx);
+    if (this.state === 'wipe') {
+      const w = this.wipe;
+      const first = w.t < WIPE_HALF;
+      this.drawScreen(ctx, first ? w.from : w.to);
+      this.dither(ctx, first ? w.t / WIPE_HALF : (WIPE_HALF * 2 - w.t) / WIPE_HALF);
+      return;
+    }
+
+    if (this.state === 'title' || this.state === 'files' || this.state === 'name'
+      || this.state === 'fadein') {
+      // `fadein` fades out whichever screen the player answered on.
+      this.drawScreen(ctx, this.state === 'fadein' ? this.fadeFrom() : this.state);
+    } else if (this.intro) this.intro.draw(ctx);
     else { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); }
 
     if (this.state === 'fadein' || this.state === 'fadeout') {
-      // Dithered fade to black — four ordered-dither steps, no alpha blending.
-      const step = Math.min(4, Math.floor((this.fade / FADE_FRAMES) * 5));
-      ctx.fillStyle = '#000';
-      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-        if (BAYER[y & 3][x & 3] < step * 4) ctx.fillRect(x, y, 1, 1);
-      }
+      this.dither(ctx, this.fade / FADE_FRAMES);
     }
   }
+
+  /** Which screen `fadein` is fading OUT — the file select, or the title. */
+  fadeFrom() { return this.files ? 'files' : 'title'; }
 }

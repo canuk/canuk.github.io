@@ -1520,7 +1520,14 @@ export default class GameScene {
     this.owReady = this.makeOverworld(null)
       .then(() => { this._booting = false; this.syncHud(); this.hud.snap(); })
       .catch(() => { this._booting = false; });
-    this.front = new FrontEnd({ onStart: () => this.startChapter() });
+    // BACK TO THE FILE SELECT, NOT TO A DEAD TITLE. The chapter that just ended
+    // is a file — it was autosaved at the boss and it is sitting in a slot — so
+    // the screen that comes up after the card is the one that lists it. A 1993
+    // cartridge that dropped you on PRESS START after a finished game and made
+    // you press through the logo again to see your own save would be the wrong
+    // answer. `startAt` falls back to the title on runs with no file select
+    // (?bot=play, ?beat=), so the autopilot's loop is unchanged.
+    this.front = new FrontEnd({ onStart: () => this.startChapter(), startAt: 'files' });
     this.syncHud();
     this.hud.snap();
   }
