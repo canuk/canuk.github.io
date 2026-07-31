@@ -9,6 +9,20 @@
 # it anywhere in this file. Position in the file doesn't matter — sorting is
 # by `featured` then `date`.
 
+- slug: gearwind
+  title: "Gearwind: Isles of the Sky"
+  description: "A top-down action-adventure built to pass as a lost SNES Zelda: floating steampunk islands, a falling isle you have 25 minutes to save, and a seven-room dungeon under it. Written by pairs of AI agents, a builder and a harsh critic that compared every screen against real A Link to the Past screenshots and sent it back until it measured up. 29 rounds, 227 agents, vanilla JS and canvas at 256x224."
+  date: 2026-07-31
+  thumb: gearwind-thumb.webp
+  badges:
+    - { color: "#F7DF1E", icon: "bi-filetype-js", text: "Vanilla JS", text_dark: true }
+    - { color: "#E44D26", icon: "bi-bounding-box", text: "Canvas" }
+    - { color: "#6E4A9E", icon: "bi-soundwave", text: "Web Audio" }
+    - { color: "#198754", icon: "bi-robot", text: "Agent Loops" }
+  buttons:
+    - { url: "/projects/gearwind/", icon: "bi-journal-code", label: "Build Notes" }
+    - { url: "/gearwind/", icon: "bi-joystick", label: "Play it now!", primary: true, target: "_blank" }
+
 - slug: note-reader
   title: Note Reader
   description: "A music-reading app for a choir and guitar teacher's students: a 45-song library across three levels, drills that reveal each note on an 88-key piano or guitar fretboard, and a builder for melodies you can share by link. Tap any note to hear it, name it, and see where to play it. Vanilla JS, offline-first PWA, runs on school Chromebooks with the wifi off."

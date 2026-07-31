@@ -1,0 +1,171 @@
+---
+layout: default
+title: Building Gearwind
+description: "Gearwind is a SNES-quality top-down action-adventure built by pairs of AI agents: a builder and a harsh critic that compares the running game against real A Link to the Past screenshots. Notes on the build: why the critics flip-flopped until I made them measure, the bug class that kept coming back, and what happened when the agents ran overnight."
+---
+
+<div class="container py-5">
+  <article class="article-content mx-auto">
+
+    <!-- Hero Section -->
+    <header class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3">Building Gearwind</h1>
+      <p class="lead text-secondary">A lost SNES Zelda about floating islands, built by agents that argue with each other</p>
+      <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+        <span class="badge" style="background-color: #F7DF1E; color: #212529;"><i class="bi bi-filetype-js me-1"></i>Vanilla JS</span>
+        <span class="badge" style="background-color: #E44D26;"><i class="bi bi-bounding-box me-1"></i>Canvas</span>
+        <span class="badge" style="background-color: #6E4A9E;"><i class="bi bi-soundwave me-1"></i>Web Audio</span>
+        <span class="badge" style="background-color: #198754;"><i class="bi bi-robot me-1"></i>Agent Loops</span>
+        <span class="badge" style="background-color: #212529;"><i class="bi bi-controller me-1"></i>256&times;224</span>
+      </div>
+      <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+        <a href="/gearwind/" class="btn btn-primary btn-lg" target="_blank" rel="noopener">
+          <i class="bi bi-joystick me-2"></i>Play it now!
+        </a>
+        <a href="/projects/gearwind/board/" class="btn btn-outline-secondary btn-lg">
+          <i class="bi bi-kanban me-2"></i>See the build board
+        </a>
+      </div>
+    </header>
+
+    <figure class="figure d-block text-center mb-5">
+      <img src="/img/projects/gearwind-1.webp" alt="The Windrope: a rope bridge over open sky, with cloud banks and drifting islets far below" class="figure-img img-fluid rounded shadow">
+      <figcaption class="figure-caption text-center">The Windrope. The isle lurches while you are halfway across.</figcaption>
+    </figure>
+
+    <!-- Table of Contents -->
+    <nav class="toc card card-modern p-4 mb-5">
+      <h5 class="fw-bold mb-3"><i class="bi bi-list-ol me-2"></i>Contents</h5>
+      <ol class="mb-0">
+        <li><a href="#the-brief">The brief</a></li>
+        <li><a href="#flip-flop">The critics kept contradicting each other</a></li>
+        <li><a href="#call-sites">The same bug, eleven times</a></li>
+        <li><a href="#probes">A critic caught its own probe lying</a></li>
+        <li><a href="#overnight">Running out of tokens at bedtime</a></li>
+        <li><a href="#fun">Whether it is any fun</a></li>
+        <li><a href="#links">Links</a></li>
+      </ol>
+    </nav>
+
+    <!-- The brief -->
+    <section id="the-brief" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-lightbulb-fill text-warning me-2"></i>The brief</h2>
+
+      <p>I asked for a top-down action-adventure at the quality of A Link to the Past. Steampunk, floating islands, vanilla JS and canvas, no engine and no libraries. The part that mattered was how it got built: split the work into pieces small enough to judge on their own, and for each piece run a builder agent and a separate critic agent with fresh context. The critic had to look at the real running output, pull up actual SNES screenshots, compare them blind, and ask whether ours could pass as a lost cartridge. If not, name the single biggest gap and send it back.</p>
+
+      <p>Then loop until it wins.</p>
+
+      <p>I gave it a live progress page and left it running. It went twenty-nine rounds, 227 agents, and about 36 million tokens of sub-agent work before every piece passed.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-rulers me-2"></i>Hard constraints do most of the work</h6>
+        <p class="mb-0">256&times;224 internal resolution, 16&times;16 tiles, integer scaling, 15 colours per sprite, no alpha blending, no gradients. Those rules came from the SNES itself, and having them written down meant the agents could check each other against something real instead of against taste.</p>
+      </div>
+    </section>
+
+    <!-- Flip flop -->
+    <section id="flip-flop" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-arrow-repeat text-primary me-2"></i>The critics kept contradicting each other</h2>
+
+      <p>The loop stalled early. One critic failed the terrain for reading like a modern indie game, saying the grass was too saturated and too busy. The builder flattened it. The next critic failed the same tileset for being flat single-colour green, which is the exact failure the spec warned about. Two rounds burned, and the piece ended up back where it started.</p>
+
+      <p>Both critics were describing a feeling. Neither had anything to point at.</p>
+
+      <p>So I stopped the argument and measured the reference instead. I wrote a script that downsamples the real screenshots back to native resolution and counts what is actually there: how many pixels in a 16&times;16 tile differ from the base colour, how many distinct colours a block uses, how many colours are on screen at once.</p>
+
+      <p>ALttP's overworld grass is <code>#489848</code>. It is bright and fairly saturated, not the muted olive one critic had demanded. A terrain tile carries around 61 non-base pixels out of 256, roughly a quarter of its area, drawn from three to five colours. A whole screen shows 40 to 90 distinct colours.</p>
+
+      <p>Those numbers went into a file the agents read, plus a second script that scores our own screenshots the same way. After that, critics were not allowed to fail a piece on a claim the measurement contradicted. Two of them were formally overturned for trying.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-check2-square me-2"></i>The rule that made it converge</h6>
+        <p class="mb-0">Once critics had to measure, they started overturning themselves. One later wrote out five objections it had planned to raise, then killed all five after checking them against the reference, and recorded them in its verdict "so nobody re-litigates them."</p>
+      </div>
+    </section>
+
+    <!-- Call sites -->
+    <section id="call-sites" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-plug-fill text-danger me-2"></i>The same bug, eleven times</h2>
+
+      <p>Every piece passed on its own and the game was still wrong. The pattern repeated for most of the build: a module gets written, gets reviewed, passes, and then nothing calls it properly.</p>
+
+      <p>The sound bank shipped 33 authored effects and combat called none of them, so a connecting sword swing made no noise at all. The player's death animation was drawn, approved, and read zero times during an actual death. Enemies never received the player's position, so the clockwork beetle's aiming code had never once run in the shipping game. Knockback was stored as <code>[0, 0]</code> with a live timer, so struck enemies flashed nothing and moved nowhere. The dungeon had no drops and no pots, which made dying the cheapest way to heal.</p>
+
+      <p>None of these show up in a diff. They only show up if you drive the running game and measure what happened.</p>
+
+      <p>The fix was to give a whole round over to call sites, and to tell every critic to instrument the thing and count. A critic checking the death animation patched the sprite lookup, killed the player with real damage, and reported the read count: zero before, 122 after, in both halves of the game.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-eye-fill me-2"></i>Reviewing the diff is not reviewing the game</h6>
+        <p class="mb-0">Every one of these bugs sat in code that looked correct. The question that caught them was never "does this read right" but "how many times did it fire, and what were the numbers."</p>
+      </div>
+    </section>
+
+    <!-- Probes -->
+    <section id="probes" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-bug-fill text-secondary me-2"></i>A critic caught its own probe lying</h2>
+
+      <p>The critics wrote about 500 throwaway scripts to answer their own questions. Does the beetle aim at the player. How far does an enemy actually recoil once you subtract its patrol. How many frames is the landed pose visible before the letterbox covers it.</p>
+
+      <p>That habit paid off in a way I did not expect: several of them found bugs in their own measurements before reporting.</p>
+
+      <p>One measured combat sounds as 3 dB quieter than the builder claimed. Instead of filing a regression it traced the gap, found it had tapped the music bus before the stereo panner while the effects were tapped after, and that a centre pan costs 3.01 dB. It fixed its own script and then confirmed the builder's numbers to within a tenth of a decibel.</p>
+
+      <p>Another found that a helper every probe depended on was reading <code>kb.x</code> and <code>kb.y</code> from an object whose fields are <code>vx</code> and <code>vy</code>. That helper printed a zero knockback vector no matter what the real one was. Any future critic re-running the old script would have "confirmed" a bug that had already been fixed and measured.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-file-earmark-text me-2"></i>Stale probes need a written record</h6>
+        <p class="mb-0">Three separate probes went stale during the build, each one reporting a failure that was not real. I kept a list of them in the handoff notes so a fresh agent would check the tool before believing the result.</p>
+      </div>
+    </section>
+
+    <!-- Overnight -->
+    <section id="overnight" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-moon-stars-fill text-primary me-2"></i>Running out of tokens at bedtime</h2>
+
+      <p>Around 10pm I realised I would hit my usage limit before the build finished, and the limit reset at midnight. I wanted to go to bed and have it keep working.</p>
+
+      <p>A cloud schedule was the obvious answer and it does not work here, because the project only exists on my laptop with no git remote for a cloud agent to check out. So the loop stayed local: an hourly job from midnight to 8am, plus a handoff document written for an agent with no memory of any of this.</p>
+
+      <p>The handoff turned out to be the important part. It records the method, the tooling, the current state of every piece, and one section I would not have thought to write: how to recover a workflow that died. Agents get killed by session limits mid-round, and their completed verdicts survive in a journal file. Parsing that file back out saved a full round of critique twice.</p>
+
+      <p>The limit hit at 6:30pm and again overnight, killing fourteen agents across three rounds. Nothing was lost. The next firing read the journals, recovered every verdict, and relaunched only the lanes that had failed.</p>
+
+      <div class="callout-box">
+        <h6><i class="bi bi-hdd-network me-2"></i>Write the handoff before you need it</h6>
+        <p class="mb-0">The most useful line in mine explains <em>why</em> the loop converges: critics measure instead of arguing, and may not raise an objection that contradicts a measurement. A fresh agent would have dropped that rule and the flip-flopping would have started again.</p>
+      </div>
+    </section>
+
+    <!-- Fun -->
+    <section id="fun" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-joystick text-warning me-2"></i>Whether it is any fun</h2>
+
+      <p>Passing a screenshot test is not the same as being worth playing, so the last round put five critics through the whole chapter with different jobs: a first-time player, someone judging combat feel, someone timing the pacing, someone doing the blind authenticity test, and one whose only task was to break it.</p>
+
+      <p>The breaker earned its keep. It found that the ladder out of the dungeon printed "Marla is waiting at the top" and then put you back in the room you came from, which stranded the entire cog economy behind a door that only opened downward.</p>
+
+      <p>The pacing critic caught something better. Two earlier testers had reported the boss dying on the first attempt every time, and a third called it a wall. The lead resolved the contradiction by reading the bot's script: the autopilot's own code contained the answer to the fight. Nothing in the game told a human that compressed air opens the boiler's valve. Bots killed it instantly, humans reached attempt eleven.</p>
+
+      <p>The fix was a brass plaque on the wall and a line when the doors slam. Afterwards a bot that reads the room and knows nothing else kills the boss in a median of two attempts, and it connects with the solve earlier than the bot that was told the answer.</p>
+
+      <p>The verdict came back: fun, holds together, and it would pass as a lost SNES Zelda to anyone not staring at the status bar. One tester's favourite moment was the tin soldier that rings off your blade from the front and takes damage from behind, teaching the whole grammar of the second half without a line of text.</p>
+    </section>
+
+    <!-- Links -->
+    <section id="links" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-link-45deg text-primary me-2"></i>Links</h2>
+      <div class="list-group">
+        <a href="/gearwind/" class="list-group-item list-group-item-action" target="_blank" rel="noopener">
+          <i class="bi bi-joystick me-2"></i><strong>Play Gearwind</strong>
+          <span class="text-secondary d-block small">Arrows or WASD to move, X to swing, Z for the item, Enter to start</span>
+        </a>
+        <a href="/projects/gearwind/board/" class="list-group-item list-group-item-action">
+          <i class="bi bi-kanban me-2"></i><strong>The build board</strong>
+          <span class="text-secondary d-block small">Every piece, every critic verdict, and the screenshots round by round</span>
+        </a>
+      </div>
+    </section>
+
+  </article>
+</div>
