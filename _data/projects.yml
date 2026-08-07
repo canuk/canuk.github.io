@@ -9,6 +9,20 @@
 # it anywhere in this file. Position in the file doesn't matter — sorting is
 # by `featured` then `date`.
 
+- slug: flight-path-printer
+  title: Flight Path Printer
+  description: "Drop in a GPX file and get two build plates: the terrain you flew over with your flight path standing above it, and a frame to hold it. Elevation from AWS terrain tiles, lakes read off a basemap, sectional airport symbols carved into the ground, and a long argument with Bambu Studio's undocumented 3MF."
+  date: 2026-08-07
+  thumb: flight-path-printer-thumb.webp
+  badges:
+    - { color: "#F7DF1E", icon: "bi-filetype-js", text: "Vanilla JS", text_dark: true }
+    - { color: "#049EF4", icon: "bi-box", text: "Three.js" }
+    - { color: "#198754", icon: "bi-globe-americas", text: "Elevation tiles" }
+    - { color: "#00A97F", icon: "bi-printer-fill", text: "3MF" }
+  buttons:
+    - { url: "/projects/flight-path-printer/", icon: "bi-journal-code", label: "Build Notes" }
+    - { url: "https://wewentflying.com/3dprint", icon: "bi-printer", label: "Make one", primary: true, target: "_blank" }
+
 - slug: gearwind
   title: "Gearwind: Isles of the Sky"
   description: "A top-down action-adventure built to pass as a lost SNES Zelda: floating steampunk islands, a falling isle you have 25 minutes to save, and a seven-room dungeon under it. Written by pairs of AI agents, a builder and a harsh critic that compared every screen against real A Link to the Past screenshots and sent it back until it measured up. 29 rounds, 227 agents, vanilla JS and canvas at 256x224."

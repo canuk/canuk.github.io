@@ -1,0 +1,192 @@
+---
+layout: default
+title: Building the Flight Path Printer
+description: "Turning a GPX flight track into a 3D-printable relief map: terrain from AWS elevation tiles, lakes read off a basemap, a flight path that prints without supports, and a long argument with Bambu Studio's undocumented 3MF."
+---
+
+<div class="container py-5">
+  <article class="article-content mx-auto">
+
+    <!-- Hero -->
+    <header class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3">Building the Flight Path Printer</h1>
+      <p class="lead text-secondary">A GPX file goes in. Two files come out, and a few hours later the flight is sitting on the bench.</p>
+      <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+        <span class="badge" style="background-color: #F7DF1E; color: #111;"><i class="bi bi-filetype-js me-1"></i>Vanilla JS</span>
+        <span class="badge" style="background-color: #049EF4;"><i class="bi bi-box me-1"></i>Three.js</span>
+        <span class="badge" style="background-color: #198754;"><i class="bi bi-globe-americas me-1"></i>Elevation tiles</span>
+        <span class="badge" style="background-color: #00A97F;"><i class="bi bi-printer-fill me-1"></i>3MF</span>
+        <span class="badge" style="background-color: #5856D6;"><i class="bi bi-airplane-fill me-1"></i>Aviation</span>
+      </div>
+    </header>
+
+    <figure class="figure d-block text-center mb-5">
+      <img src="/img/projects/flight-path-printer-1.webp" alt="A finished print: a green relief map of southern California terrain in a black frame, with a pink flight path standing above it and the flight's date, duration, distance and maximum altitude on the frame below" class="figure-img img-fluid rounded shadow">
+      <figcaption class="figure-caption text-center">A discovery flight out of Hemet, printed. Green terrain, blue lakes, the track standing about a centimetre proud of the ground.</figcaption>
+    </figure>
+
+    <!-- Contents -->
+    <nav class="toc card card-modern p-4 mb-5">
+      <h5 class="fw-bold mb-3"><i class="bi bi-list-ol me-2"></i>Contents</h5>
+      <ol class="mb-0">
+        <li><a href="#the-idea">The idea</a></li>
+        <li><a href="#water">Finding the lakes</a></li>
+        <li><a href="#curtain">A path that needs no supports</a></li>
+        <li><a href="#bambu">Bambu's 3MF is not the 3MF spec</a></li>
+        <li><a href="#tower">The prime tower decides how big it can be</a></li>
+        <li><a href="#airports">Sectional symbols, and the variation nobody surveys</a></li>
+        <li><a href="#pillar">The symbol that became a pillar</a></li>
+        <li><a href="#time">Ninety minutes off the print</a></li>
+        <li><a href="#links">Links</a></li>
+      </ol>
+    </nav>
+
+    <!-- The idea -->
+    <section id="the-idea" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-lightbulb-fill text-warning me-2"></i>The idea</h2>
+
+      <p>Someone on Reddit had printed the ground track of a discovery flight as a relief map and hung it on a wall. I wanted one for a checkride, and then I wanted a tool that would make one from any GPX file, because a pilot with a logbook has dozens of flights worth keeping and none of them are worth an afternoon in CAD.</p>
+
+      <p>The tool reads a GPX track, works out the map bounds, pulls elevation tiles for that patch of ground, and builds two build plates: the terrain with the flight path standing above it, and a frame to hold the result. It lives at <a href="https://wewentflying.com/3dprint">wewentflying.com/3dprint</a> as a page of vanilla JavaScript with no build step and no dependencies beyond Three.js for the preview.</p>
+
+      <figure class="figure d-block text-center my-4">
+        <img src="/img/projects/flight-path-printer-2.webp" alt="The tool in a browser: a dark settings panel on the left with map, flight path, airport and frame controls, and a 3D preview of the finished piece on the right" class="figure-img img-fluid rounded shadow">
+        <figcaption class="figure-caption text-center">Every setting rebuilds the mesh and the preview. The frame, the label and the two airport symbols are all part of the same model.</figcaption>
+      </figure>
+
+      <p>Elevation comes from <a href="https://registry.opendata.aws/terrain-tiles/">AWS Terrain Tiles</a>, terrarium-encoded, which need no API key and decode to metres with <code>(R &times; 256 + G + B / 256) - 32768</code>. Resolution is about 30 m worldwide and finer over the US. A Bay Area flight comes out crisp. Somewhere remote looks softer, and that shows in the print.</p>
+    </section>
+
+    <!-- Water -->
+    <section id="water" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-water text-primary me-2"></i>Finding the lakes</h2>
+
+      <p>Elevation data carries no water mask, so the first attempt inferred lakes from flatness: a DEM renders a lake surface dead level, and real ground almost never is across a large connected area. That works. Lake Tahoe comes out blue at 1,897 m. It also has two failure modes, and both of them bit.</p>
+
+      <p>The first was Lake Tahoe itself. My flatness tolerance was one number doing two jobs, checking both how flat each cell was and how flat the whole body was end to end. Tahoe measures 1897.2 to 1898.4 m in the resampled grid, so the whole-body check rejected it. Splitting that into two tolerances fixed it: 0.75 m between neighbouring samples, 4 m across an entire lake.</p>
+
+      <p>The second was Diamond Valley Lake, which sits beside the airport I was testing with and refused to appear at all. The reservoir filled between 1999 and 2003. SRTM flew in February 2000. The elevation data shows the valley floor because when it was surveyed, that is what was there.</p>
+
+      <p>No amount of threshold tuning finds a lake that the survey predates. I went to OpenStreetMap through the Overpass API, which worked and then did not: four public mirrors in a row returned 504 or hung on a single Riverside County query. Water is now read off <a href="https://carto.com/basemaps">CARTO's Positron</a> basemap instead. It paints water as one flat colour, so a colour match against the rendered tiles gives an exact mask, using the same tile-fetching code the elevation grid already needed. No API, no key, no mirror to fall over.</p>
+
+      <p>A basemap paints rivers and canals as water too, and they arrive one or two cells wide, well under a millimetre at print scale. A feature has to be both big enough and wide enough to survive: it must hold at least one cell surrounded on all four sides by water, which no thin ribbon manages however far it runs.</p>
+    </section>
+
+    <!-- Curtain -->
+    <section id="curtain" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-graph-up text-danger me-2"></i>A path that needs no supports</h2>
+
+      <p>The flight path is the point of the object, and the obvious way to draw it, a tube following the aircraft through space, is the wrong way to print it. A tube floating above terrain needs supports under every inch, and picking them out of a relief map without wrecking it is nobody's idea of a good evening.</p>
+
+      <p>So the path is a curtain: a vertical wall running from the ground up to the altitude line, with a rounded top. It anchors along its whole length, its cross-section is a stadium shape whose cap radius equals its half width, and nothing on the plate overhangs anything. Plate one prints without a single support and needs no glue, because the terrain, the water and the path are three parts of one object that weld at their seams.</p>
+
+      <p>Altitude is normalised rather than to scale. A 10,000 ft cruise at true scale would stand a foot off the map, so the flight's own minimum and maximum map onto a fixed band in millimetres. Climb and descent stay relative to each other and the piece stays in its frame.</p>
+
+      <p>The curtain also has to clear rising ground, which produced the bug I spent longest on. Clamping each station's top edge to stay above the terrain beneath it copies every ridge in the elevation data straight into the top of the wall, giving a sawtooth of spikes wherever the ground is rough. I blamed the GPS twice before the client pointed at the terrain and was right. The fix runs a rolling maximum over the ground under the track, then a shorter average over that. The maximum's plateau around a peak is wider than the averaging window, so the average never dips back into the hill.</p>
+    </section>
+
+    <!-- Bambu -->
+    <section id="bambu" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-printer-fill text-success me-2"></i>Bambu's 3MF is not the 3MF spec</h2>
+
+      <p>Getting a multi-colour, multi-plate file to open correctly in Bambu Studio took longer than the geometry did. Most of what follows is written down nowhere.</p>
+
+      <p><strong>The generator tag is a gate.</strong> Bambu reads its own metadata only if it decides the file is its own, and it decides that from one thing: the <code>Application</code> metadata starting with <code>BambuStudio-</code>. Anything else and the importer logs "found 3mf from other vendor, split as instance", splits the assemblies apart and throws away the part names, the filament assignments and the plates. That check is <code>_handle_end_metadata</code> in <code>bbs_3mf.cpp</code>.</p>
+
+      <p><strong>A plate assignment is a position, not a label.</strong> The <code>&lt;plate&gt;</code> block in the metadata names a plate and does not fill it. The line in <code>PartPlate.cpp</code> that would assign objects from the file is commented out, marked "we will rebuild later". Bambu works out which plate an object belongs to from where the object is: <code>col = translation(X) / plate_stride_x()</code>, with a stride of <code>plate_width &times; 1.2</code>. Two plates means putting the second one 307.2 mm to the right.</p>
+
+      <p><strong>A mesh is stored centred on its own origin</strong> and placed by the build item's translation, so that translation is a centre rather than an offset. A mesh written from 0 to W lands half its own width off and Bambu files it under "Outside". Diffing against a real Bambu project was what finally showed this.</p>
+
+      <p><strong>Colour comes from the project config.</strong> Once Bambu loads one it ignores <code>displaycolor</code> in the model entirely, so the parts arrive grey unless <code>filament_colour</code> agrees. That config has to be present and non-empty or every plate collapses onto one bed, and it needs at least one real print option: <code>load_from_json</code> pulls <code>name</code>, <code>from</code> and <code>version</code> into a metadata map and never passes them to <code>set_deserialize</code>, so a file of only those parses to an empty config.</p>
+
+      <p>The most expensive lesson came from trying to be helpful. Since a minimal config makes Bambu invent a printer and a set of presets, I embedded a real project's config instead, all 569 keys of it, so files would open with the right machine already selected. Bambu Studio refused to open them at all: an error box reading only <code>vector</code>, then "The file does not contain any geometry data".</p>
+
+      <p>That message is <code>ConfigOptionVector::set_with(): Assigning from an vector with invalid size</code>. Ninety-nine arrays in that config are sized by the filament count, I had resized eighty-nine of them, and one wrong length kills the load before the model is read. Worse, which arrays those are cannot be read off a single file: on a dual-nozzle machine with two spools loaded, the per-extruder arrays are also length two, and <code>extruder_type</code> is <code>['Direct Drive', 'Bowden']</code>. Guess by length and you rewrite the printer.</p>
+
+      <p>I backed the whole thing out. The file now carries eight keys, and the one that matters is the purge table: <code>flush_volumes_matrix</code> holds <code>nozzles &times; n &times; n</code> entries, and get it wrong and slicing stops at "Flush volumes matrix do not match to the correct size". A single-nozzle X1C rejects the dual-nozzle size and a dual-nozzle X2D rejects the single, which is the one thing a file cannot infer about the machine that will open it. So the export asks which printer you have, and that is the only reason it asks.</p>
+
+      <p>The real lesson was about verification. I had been checking everything with Bambu Studio's CLI, which slices a 3mf headlessly:</p>
+
+      <pre class="bg-dark text-light p-3 rounded"><code>BambuStudio --load-settings "&lt;machine&gt;.json;&lt;process&gt;.json" --slice 1 file.3mf</code></pre>
+
+      <p>The CLI applies a project config through a different path than the GUI, and it accepted every file the GUI rejected. My harness could confirm slicing and was blind to exactly the thing I was changing.</p>
+    </section>
+
+    <!-- Tower -->
+    <section id="tower" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-bounding-box text-warning me-2"></i>The prime tower decides how big it can be</h2>
+
+      <p>Slicing failed for a while with <code>gcode path conflicts found between WipeTower and Terrain, water and flight path</code>, and I spent a round chasing the geometry before working out that the geometry was fine.</p>
+
+      <p>Both plates use more than one filament, so both need a prime tower, and Bambu parks it toward the back of the bed, around y = 202. A piece centred on a 256 mm bed reaches into that band. Each plate now sits hard against the front of its bed instead, leaving that strip clear, and stays centred left to right so it clears the 18 &times; 28 mm corner an X1C reserves and refuses to print near.</p>
+
+      <p>Naming the tower's own position looks like the more direct fix and is not one. Writing <code>wipe_tower_x</code> and <code>wipe_tower_y</code> into the project config makes an X2D print unprintable wherever the tower is put. Front, back, middle, all tried. Where the tower goes is Bambu's business. Leaving it room is mine.</p>
+
+      <p>That sets a ceiling on the finished piece. At a 200 mm frame the terrain plate is 183.4 mm and slices; the frame plate is the full 200 and does not. 180 mm is the largest size where both plates leave room, so 180 is the default, and the frame panel reads back the space behind the piece rather than the margin around it.</p>
+    </section>
+
+    <!-- Airports -->
+    <section id="airports" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Sectional symbols, and the variation nobody surveys</h2>
+
+      <p>A sectional chart draws an airport as a filled circle with the runways through it, tines around it when the field has fuel, and a star when it has a rotating beacon. Printed, the runways are cut out rather than drawn, so the terrain shows through exactly where the chart shows paper. Both ends of a flight can be marked, so a cross-country shows the field it left and the field it reached.</p>
+
+      <p>Both are looked up from the track. The nearest-airport search runs against the airport list the site already bundles; the runway detail comes from <a href="https://airports-db-reuben.web.app">airports-db</a>, a pipeline I keep on the FAA's 28-day cycle for three other apps. Adding a fourth consumer meant two changes to it.</p>
+
+      <p>The first was magnetic variation. A chart draws runways in their <em>true</em> alignment, and NASR leaves <code>TRUE_ALIGNMENT</code> blank for 9,554 of 15,815 runway ends. The designation is always there and is magnetic, so the missing alignments can be reconstructed as <code>designation &times; 10 + variation</code>. NASR carries the variation in <code>MAG_VARN</code> and <code>MAG_HEMIS</code>, and the pipeline had been dropping it.</p>
+
+      <p>The second was the fifth of US fields NASR has never surveyed a variation for. Combined with the missing alignments, that would have left a fifth of airports undrawable. Variation drifts by roughly a degree per hundred miles, so those borrow from the nearest field that has one, flagged so a consumer can say so. 2,854 entries at this release, with the farthest donor 356 nm away out in sparse Alaska.</p>
+
+      <p>Runways are drawn to scale, longest spanning the symbol. Which of two parallels sits on top is not in the data, and at Hemet the 2,014 ft strip belongs above the 4,315 ft one, so that is a pair of arrows in the panel rather than a rule.</p>
+    </section>
+
+    <!-- Pillar -->
+    <section id="pillar" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>The symbol that became a pillar</h2>
+
+      <figure class="figure d-block text-center my-4">
+        <img src="/img/projects/flight-path-printer-3.webp" alt="A 3D preview showing the airport symbol rendered as a tall pillar rising out of the terrain beside a lake, with the identifier letters standing up like slabs" class="figure-img img-fluid rounded shadow" style="max-height: 520px;">
+        <figcaption class="figure-caption text-center">Hemet Ryan sits beside Diamond Valley Lake. The symbol spanned the shoreline, and the letters came with it.</figcaption>
+      </figure>
+
+      <p>The symbol is thin and the ground under it is not flat, so it used to span from the lowest point of its own footprint to above the highest. A hillside could not swallow an edge that way. Then someone marked a field on a shoreline, the footprint straddled the drop from the lake to the hill behind, and the mark came out several times taller than it is thick.</p>
+
+      <p>The fix levels the ground instead of stretching the mark. The terrain under each symbol is cut down or filled up to the airport's own elevation, water there becomes land, and a 0.9 mm skirt keeps the ground from meeting the symbol at a knife edge. The pad follows the lit mask, so it hugs the disc and each letter rather than flattening a circle of countryside.</p>
+
+      <p>The symbol then sits at one level on that pad, taking the median of what is under it rather than the extremes, which keeps it honest even where no pad exists: one cliff at the edge of a footprint no longer drags the whole mark upward. It reads as carved into the map, which is what a chart mark should look like.</p>
+    </section>
+
+    <!-- Time -->
+    <section id="time" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-stopwatch-fill text-primary me-2"></i>Ninety minutes off the print</h2>
+
+      <p>Water started out as a solid, running from its surface down to the build plate. Every layer between the bed and the waterline then contained both green and blue, so the printer changed tool on each one. A lake sitting 10 mm up the relief cost about fifty tool changes on its own.</p>
+
+      <p>Water is now a cap 0.8 mm deep, four layers at Bambu's default height, with terrain filling the space beneath it. Sliced with the real thing, a test piece went from 7 h 10 m to 5 h 44 m, and the blue filament dropped from 3,271 mm to 782 mm.</p>
+
+      <p>The cap's floor follows each body's own surface rather than a plane, so a mountain lake and the sea each keep their height. It never takes more than three quarters of the depth either, since a shallow sea should not end up with a slab thicker than the water it stands for.</p>
+
+      <p>One catch, and it cost a round of debugging. The fill has to be its own part rather than merged into the terrain mesh. Both shells run to the plate and share their shoreline edge at z=0, and a slicer welds vertices by position before it slices, so inside one mesh that edge ends up carrying four faces. My manifold tests compared vertex <em>indices</em> and saw nothing wrong. They weld by position now.</p>
+    </section>
+
+    <!-- Links -->
+    <section id="links" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-link-45deg text-primary me-2"></i>Links</h2>
+      <div class="list-group">
+        <a href="https://wewentflying.com/3dprint" class="list-group-item list-group-item-action" target="_blank" rel="noopener">
+          <i class="bi bi-printer me-2"></i><strong>Flight Path Printer</strong>
+          <span class="text-secondary d-block small">Drop in a GPX and export two build plates. Nothing leaves the browser</span>
+        </a>
+        <a href="https://wewentflying.com" class="list-group-item list-group-item-action" target="_blank" rel="noopener">
+          <i class="bi bi-airplane me-2"></i><strong>We Went Flying</strong>
+          <span class="text-secondary d-block small">The logbook the printer lives inside: log a flight, share the ticket</span>
+        </a>
+        <a href="https://airports-db-reuben.web.app" class="list-group-item list-group-item-action" target="_blank" rel="noopener">
+          <i class="bi bi-database me-2"></i><strong>airports-db</strong>
+          <span class="text-secondary d-block small">FAA NASR, OurAirports and TAF stations merged on the 28-day cycle, with the runway data the symbols draw from</span>
+        </a>
+      </div>
+    </section>
+
+  </article>
+</div>
