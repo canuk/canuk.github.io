@@ -9,6 +9,20 @@
 # it anywhere in this file. Position in the file doesn't matter — sorting is
 # by `featured` then `date`.
 
+- slug: oed-dongle
+  title: OED Dongle
+  description: "A USB stick that stays plugged into a JPI EDM-730 engine monitor and sends each flight's log to your phone. ESP32-S3 firmware with a card-ownership handover, a BLE control channel, a WiFi bulk path after Bluetooth capped at 25KB/s, and an engine monitor that so far refuses to enumerate it. In progress."
+  date: 2026-09-09
+  thumb: oed-dongle-thumb.webp
+  badges:
+    - { color: "#E7352C", icon: "bi-cpu-fill", text: "ESP32-S3" }
+    - { color: "#0082FC", icon: "bi-bluetooth", text: "BLE" }
+    - { color: "#6C757D", icon: "bi-wifi", text: "WiFi" }
+    - { color: "#F05138", icon: "bi-swift", text: "SwiftUI" }
+  buttons:
+    - { url: "/projects/oed-dongle/", icon: "bi-journal-code", label: "Build Notes" }
+    - { url: "https://openenginedata.org", icon: "bi-box-arrow-up-right", label: "Open Engine Data", primary: true, target: "_blank" }
+
 - slug: flight-path-printer
   title: Flight Path Printer
   description: "Drop in a GPX file and get two build plates: the terrain you flew over with your flight path standing above it, and a frame to hold it. Elevation from AWS terrain tiles, lakes read off a basemap, sectional airport symbols carved into the ground, and a long argument with Bambu Studio's undocumented 3MF."
