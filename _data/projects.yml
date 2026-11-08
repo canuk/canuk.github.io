@@ -11,7 +11,7 @@
 
 - slug: gns430-practice-station
   title: GNS 430 Practice Station
-  description: "A standalone non-WAAS GNS 430 trainer with physical RealSimGear controls and a Raspberry Pi 5. A 16-bit Windows program, missed knob inputs, native instrument data, a current navigation database, and a printed opening that faced the wrong way."
+  description: "A desk-sized trainer for the GNS 430 in my airplane, built with RealSimGear controls and a Raspberry Pi 5."
   date: 2026-11-08
   thumb: gns430-practice-station-thumb.webp
   badges:
