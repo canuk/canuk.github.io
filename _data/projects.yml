@@ -9,6 +9,19 @@
 # it anywhere in this file. Position in the file doesn't matter — sorting is
 # by `featured` then `date`.
 
+- slug: gns430-practice-station
+  title: GNS 430 Practice Station
+  description: "A standalone non-WAAS GNS 430 trainer with physical RealSimGear controls and a Raspberry Pi 5. A 16-bit Windows program, missed knob inputs, native instrument data, a current navigation database, and a printed opening that faced the wrong way."
+  date: 2026-11-08
+  thumb: gns430-practice-station-thumb.webp
+  badges:
+    - { color: "#A22846", icon: "bi-cpu-fill", text: "Raspberry Pi 5" }
+    - { color: "#3776AB", icon: "bi-filetype-py", text: "Python" }
+    - { color: "#663399", icon: "bi-pc-display", text: "QEMU + Wine" }
+    - { color: "#198754", icon: "bi-printer-fill", text: "3D Printing" }
+  buttons:
+    - { url: "/projects/gns430-practice-station/", icon: "bi-journal-code", label: "Build Notes", primary: true }
+
 - slug: oed-dongle
   title: OED Dongle
   description: "A USB stick that stays plugged into a JPI EDM-730 engine monitor and sends each flight's log to your phone. ESP32-S3 firmware with a card-ownership handover, a BLE control channel, a WiFi bulk path after Bluetooth capped at 25KB/s, and an engine monitor that so far refuses to enumerate it. In progress."

@@ -1,0 +1,150 @@
+---
+layout: default
+title: Building a GNS 430 Practice Station
+description: "A standalone non-WAAS GNS 430 trainer with RealSimGear controls and a Raspberry Pi 5. Build notes on Win16 emulation, missed knob inputs, native instrument data, a current navigation database, and a mirrored 3D-printed mount."
+---
+
+<div class="container py-5">
+  <article class="article-content mx-auto">
+    <header class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3">Building a GNS 430 Practice Station</h1>
+      <p class="lead text-secondary">Physical knobs, a 2006 Windows trainer, and a Raspberry Pi 5</p>
+      <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+        <span class="badge" style="background-color: #A22846;"><i class="bi bi-cpu-fill me-1"></i>Raspberry Pi 5</span>
+        <span class="badge" style="background-color: #3776AB;"><i class="bi bi-filetype-py me-1"></i>Python</span>
+        <span class="badge" style="background-color: #663399;"><i class="bi bi-pc-display me-1"></i>QEMU + Wine</span>
+        <span class="badge" style="background-color: #137C8B;"><i class="bi bi-compass me-1"></i>GNS 430</span>
+        <span class="badge" style="background-color: #198754;"><i class="bi bi-printer-fill me-1"></i>3D Printing</span>
+      </div>
+    </header>
+
+    <figure class="figure d-block text-center mb-5">
+      <img src="/img/projects/gns430-practice-station-live.webp" alt="The running Pi displays: the touchscreen instruments on the left and the original trainer LCD on the right" class="figure-img img-fluid rounded shadow" width="2080" height="720">
+      <figcaption class="figure-caption text-center">A capture from the running Pi. The left 1280-by-720 area drives the touchscreen. The right 800-by-480 area drives the RealSimGear LCD.</figcaption>
+    </figure>
+
+    <nav class="toc card card-modern p-4 mb-5" aria-label="Article contents">
+      <h5 class="fw-bold mb-3"><i class="bi bi-list-ol me-2"></i>Contents</h5>
+      <ol class="mb-0">
+        <li><a href="#three-years">Three years of wanting the knobs</a></li>
+        <li><a href="#old-trainer">A 16-bit trainer on an ARM computer</a></li>
+        <li><a href="#knob-input">The knob events arrived. The pages still skipped.</a></li>
+        <li><a href="#instrument-data">Getting the instrument data right</a></li>
+        <li><a href="#navigation-data">A current database inside the old trainer</a></li>
+        <li><a href="#appliance">Making the Pi start as an appliance</a></li>
+        <li><a href="#printed-stand">The mirrored opening</a></li>
+        <li><a href="#links">Links and resources</a></li>
+      </ol>
+    </nav>
+
+    <section id="three-years" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-hand-index-thumb text-warning me-2"></i>Three years of wanting the knobs</h2>
+      <p>For about three years, I wanted a small GNS 430 practice station that I could leave on my desk. I wanted to turn the inner and outer knobs, press the cursor, make a mistake, and recover with the same buttons. The target was the original non-WAAS 430, the version without the later satellite augmentation upgrade.</p>
+      <p>I used a RealSimGear GNS430 bezel for the physical controls and a Raspberry Pi 5 to run the trainer. A seven-inch Touch Display 2 supplied the instruments and scenario controls. The project needed to start from power without asking me to arrange windows or operate a desktop.</p>
+      <p>The physical controls, both displays, and automatic startup now work on the Pi. The printed stand remains a revised design awaiting its fit and stability checks. Getting there took more work in the old Windows program than I expected.</p>
+    </section>
+
+    <section id="old-trainer" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-pc-display text-primary me-2"></i>A 16-bit trainer on an ARM computer</h2>
+      <p>The RealSimGear unit separated into two useful interfaces: USB for control events and HDMI for the LCD. I captured the USB stream at 115200 baud. Buttons sent separate press and release messages. Each knob detent sent a named event. The capture also split one identity message across reads, so the parser needed to collect complete lines before interpreting them.</p>
+      <p>The harder part was the software. Garmin's <a href="https://www8.garmin.com/support/download_details.jsp?id=3527" target="_blank" rel="noopener noreferrer">400 Series Simulator 5.01</a> dates from November 2006. Its main program and instrument program are 16-bit Windows executables. The download page calls for Windows XP and excludes 64-bit operating systems. An ARM Pi could not run that package on its own.</p>
+      <p>I tested the trainer inside an emulated x86 Debian computer with Wine and its 32-bit components. Wine supplied the old Windows interfaces, while QEMU supplied the processor architecture. Once that worked on the Mac, I moved the prepared guest to the Pi. Docker helped prepare and test the guest on the Mac. The Pi ran QEMU without Docker.</p>
+      <p>I kept the trainer's own LCD output. A helper captured the LCD region and the Pi viewer placed it on the RealSimGear display. The controls and image exchange stayed local, through shared files. The emulated guest had no network adapter.</p>
+      <div class="callout-box">
+        <h6><i class="bi bi-aspect-ratio me-2"></i>The HDMI mode was only part of the display problem</h6>
+        <p class="mb-0">The first picture clipped the top row on the physical LCD. I reduced the image scale to 0.9375 and preserved its proportions. A screenshot with the right dimensions did not tell me whether the bezel hid the edge.</p>
+      </div>
+    </section>
+
+    <section id="knob-input" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-arrow-repeat text-danger me-2"></i>The knob events arrived. The pages still skipped.</h2>
+      <p>The first adapter translated knob turns into clicks on the trainer's on-screen controls. Some turns did nothing. Others skipped a page group. The USB capture showed the expected events, and the command files appeared without a backlog.</p>
+      <p>The trainer kept its mouse position in a cache. Its mouse-move handler updated that cache, and its button-down handler used the cached position to decide which control received the click. My adapter moved the pointer and pressed the button together. A click could reach the program before it processed the new position.</p>
+      <p>A 40-millisecond pause after pointer movement fixed an isolated reproduction. The physical knob still failed during another test. I needed an input path that did not depend on that timing.</p>
+      <p>The trainer already had a keyboard handler and a table that mapped keys to controls. I used that path for the rotary inputs. A guarded four-byte patch reassigned the radio knob keys in a working copy of the executable. The patch checked the expected binary before changing it and preserved the original file.</p>
+      <p>The right outer knob then passed individual steps in both directions and bursts with the pointer parked elsewhere. I confirmed the physical sequence through WPT, AUX, NRST, and back to NAV. The adapter used native key events for all eight rotary directions after the remaining mappings passed their checks.</p>
+      <div class="callout-box">
+        <h6><i class="bi bi-clock-history me-2"></i>A delay was not an acknowledgement</h6>
+        <p class="mb-0">The pause gave the mouse handler time to run. It could not confirm that the trainer processed the movement. The keyboard path removed that dependency from knob input.</p>
+      </div>
+    </section>
+
+    <section id="instrument-data" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-compass text-primary me-2"></i>Getting the instrument data right</h2>
+      <p>I wanted G5-style instruments beside the 430, with values from the same simulation. I built a small Win16 library that used the trainer's existing library callbacks to read its internal instrument interface. The host decoded those records for the browser display. It checked the record format, connection state, validity flags, and freshness before showing a value.</p>
+      <p>Loading the library exposed a defect in the old instrument program. Its segment declaration reserved 256 bytes for port settings, but its copy routine could write through byte 1151. The extra library changed the memory layout enough to turn that overwrite into large colored polygons on the original instrument. Empty callbacks produced the same fault. A guarded patch increased the allocation to 1152 bytes without changing executable instructions.</p>
+      <p>Another fault looked like a course calculation error. I selected a GPS OBS course of 219 degrees, but the HSI arrow stayed near 249 degrees. The trainer's current GPS field contained 218.985772 degrees. Its original HSI retained 249.128463 degrees in a display cache that updated only when a separate event byte changed.</p>
+      <p>I changed the decoder to use the current GPS course for GPS guidance and kept the trainer's angular reference. That brought the arrow into agreement without a magnetic correction or a change to the trainer controls. Missing GPS course data stayed unavailable instead of falling back to the old arrow.</p>
+      <p>The attitude display needed a different boundary. The trainer supplied ground speed, altitude, selected altitude, and navigation values. It did not supply aircraft pitch and bank through the recovered interface. I estimated those movements from altitude and heading changes and marked the attitude as simulated. The speed tape shows ground speed.</p>
+      <p>The touch controls also used the native interface. Speed, altitude, heading, mode, and airport requests carried a session and sequence number. The screen accepted a matching native acknowledgement, then checked the reported result. An old request could not become a new command after a trainer restart.</p>
+    </section>
+
+    <section id="navigation-data" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-database-fill text-warning me-2"></i>A current database inside the old trainer</h2>
+      <p>The trainer arrived with navigation cycle 0602. I had a licensed non-WAAS GNS 430 database download for cycle 2611, effective October 29 through November 26, 2026. I wanted to find out whether the old trainer could read that data.</p>
+      <p>The download contained a TAW wrapper around a navigation payload in region 4. That payload was 3,145,728 bytes. I extracted those bytes unchanged and used them as <code>trainer.ndb</code> in a separate trainer copy. I did not rewrite its internal header or checksums.</p>
+      <p>The trainer showed cycle 2611 and the expected dates on its database page. Airport lookup and a nearest-airport list worked. I also loaded and activated an RNAV approach and inspected its fixes. Those checks established that the tested records loaded. They did not establish correct behavior for every procedure or complete approach sequencing.</p>
+      <p>The first candidate launch showed two warnings. I compared it with a fresh installation using the original database, which showed the same warnings. After a candidate restart, the message page was empty. That comparison kept me from treating a first-launch symptom as proof that the new database was incompatible.</p>
+      <p>I also made the mistake of running the candidate in the same emulator as the physical trainer. The separate Wine prefix did not give it separate CPU resources. The controls became slow until I stopped the second trainer. Later comparisons used a separate emulator.</p>
+      <div class="callout-box">
+        <h6><i class="bi bi-file-earmark-binary me-2"></i>The database cycle and software version stayed separate</h6>
+        <p class="mb-0">Replacing <code>trainer.ndb</code> left Main software at 5.01. It did not turn the trainer into a 5.04 unit or load aircraft firmware. The executable, navigation data, and aircraft software update each have a different role.</p>
+      </div>
+      <h3 class="h4 fw-bold mt-4 mb-3">Repeating the database extraction</h3>
+      <p>I kept extraction separate from installation. The process starts with a locally obtained database download and produces a candidate file for testing.</p>
+      <ol>
+        <li>Keep an unchanged copy of the licensed non-WAAS GNS 430 download.</li>
+        <li>Parse the TAW records and check the region lengths.</li>
+        <li>Extract the single region 4 payload without changing its bytes.</li>
+        <li>Preserve the old <code>trainer.ndb</code> before testing the candidate in a separate trainer copy.</li>
+        <li>Check the displayed cycle, dates, airport records, and intended procedures before using that copy for practice.</li>
+      </ol>
+      <p>The <a href="/projects/gns430-practice-station/nav_database.py" download>standalone extraction script</a> uses the Python standard library. I tested it with Python 3.11 on Linux and 3.14 on macOS. Use Python 3.11 or later:</p>
+      <pre><code class="language-bash">python3 nav_database.py \
+  --source ./licensed-download.taw \
+  --expected-cycle 2611 \
+  --output ./nav-candidate-2611</code></pre>
+      <p>The output directory contains <code>trainer.ndb</code> and a manifest with the source and payload SHA-256 hashes, cycle, and dates. The script preserves the input, refuses an existing output directory, and gives the candidate private file permissions.</p>
+      <p>This version accepts the compact GNC 400 / US profile tested here: one region 4 at offset zero, with a 3 MiB payload and the observed layout markers. It checks the record lengths and dates, then rejects an unrecognized layout. It does not authenticate the vendor signature or establish compatibility with other database families. Each new cycle still needs a trainer test.</p>
+      <p>The download on this page contains extraction source only. Garmin trainer files and navigation data remain local.</p>
+    </section>
+
+    <section id="appliance" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-display text-primary me-2"></i>Making the Pi start as an appliance</h2>
+      <p>The <a href="https://www.raspberrypi.com/products/touch-display-2/" target="_blank" rel="noopener noreferrer">Touch Display 2</a> is a portrait panel. I used the seven-inch version in landscape at 1280 by 720, with the RealSimGear HDMI output alongside it. Rotating the picture was only half the setup. The Goodix pointer also needed the matching display mapping.</p>
+      <p>At first, an auxiliary window covered Chromium. Its button restarted the browser behind the same window. I reduced that window to a loading screen and kept it below the browser. The display setup also needed to enable an HDMI connector that X11 reported as connected but inactive.</p>
+      <p>I replaced the normal desktop session with a dedicated Openbox session. It configured the displays before starting the viewer, imported the X11 environment into the user service, and stopped the viewer when the session ended. The Pi then started without the LXDE panel, desktop icons, or migration dialog. I installed a black boot theme with a cyan compass and a matching viewer loading screen.</p>
+      <p>I used the <a href="https://static.garmin.com/pumac/190-01112-12_A.pdf" target="_blank" rel="noopener noreferrer">G5 Pilot's Guide</a> as a reference for the instrument menus. The on-screen G5 knobs opened touch menus for heading, altitude, and display selection. Each instrument could show the attitude display or the HSI. I left pitch adjustment disabled because the attitude remained an estimate, and the bearing pointer required fresh native GPS bearing data.</p>
+      <figure class="figure d-block text-center my-4">
+        <img src="/img/projects/gns430-practice-station-menus.webp" alt="Both G5-style touch menus open, with heading, altitude, instrument selection, and bearing pointer controls" class="figure-img img-fluid rounded" width="1280" height="720" loading="lazy">
+        <figcaption class="figure-caption text-center">A menu test with synthetic telemetry. This image checks the interface layout, not the trainer's navigation output.</figcaption>
+      </figure>
+      <p>The touchscreen supplied numeric entry and an airport keyboard. I added a lesson panel beside the navigation instrument and a separate training library with 18 VFR exercises. The lessons shared manual completion marks within the same browser and site address. They covered button practice and recovery, without claiming to grade a flight.</p>
+      <p>The original trainer does not simulate VLOC deviation or ILS glideslope, even though it allows radio tuning and GPS/VLOC selection. I kept those limits in the practice interface. The project still uses the original non-WAAS trainer's navigation behavior.</p>
+    </section>
+
+    <section id="printed-stand" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-printer-fill text-danger me-2"></i>The mirrored opening</h2>
+      <p>After a three-hour print, the GNS 430 opening faced the wrong way. I used the vendor's two-dimensional contour with a different front/rear coordinate convention. The dimensions were right and the shape was mirrored.</p>
+      <p>The preview concealed the mistake. It placed a bezel graphic over the opening, so I saw the expected device instead of the contour that the printer would make. Flipping the part would also put the touchscreen lip on the wrong side.</p>
+      <figure class="figure d-block text-center my-4">
+        <img src="/img/projects/gns430-practice-station-cutout.webp" alt="Front-view comparison of the mirrored old GNS 430 opening and the corrected opening from the saved STL files" class="figure-img img-fluid rounded" loading="lazy">
+        <figcaption class="figure-caption text-center">The comparison uses sections of the saved STL files from the same physical front view. The asymmetric notch makes the reversal visible.</figcaption>
+      </figure>
+      <p>I reflected the contour about its mounting center and made a small keyed coupon with a FRONT label. The revised checks inspected the exported STL from the physical front, including the touchscreen lip. I also checked the full display envelope through its insertion path, since fitting the screen in its final position did not prove I could get it there.</p>
+      <p>The fifth revision used a ten-degree integrated stand with open side braces and a center pillar joined to a 45-degree diagonal. That geometry removed the need for exterior supports in the reviewed slice. Bambu Studio estimated about eight hours and 384 grams for the stand. The coupon took an estimated 25 minutes and 12 grams.</p>
+      <p>The revised model passed the geometry and slicing checks. The full stand was nearly printed as I finished these notes. I still needed to check physical assembly, fit, strength, and stability.</p>
+    </section>
+
+    <section id="links" class="mb-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-link-45deg text-secondary me-2"></i>Links and resources</h2>
+      <div class="list-group">
+        <a href="/projects/gns430-practice-station/nav_database.py" download class="list-group-item list-group-item-action"><i class="bi bi-filetype-py me-2"></i>Navigation database extractor source (Python 3.11+)</a>
+        <a href="https://www8.garmin.com/support/download_details.jsp?id=3527" target="_blank" rel="noopener noreferrer" class="list-group-item list-group-item-action"><i class="bi bi-download me-2"></i>Garmin 400 Series Simulator 5.01</a>
+        <a href="https://static.garmin.com/pumac/GNS430_PilotsGuide.pdf" target="_blank" rel="noopener noreferrer" class="list-group-item list-group-item-action"><i class="bi bi-file-earmark-pdf me-2"></i>Garmin GNS 430 Pilot's Guide and Reference</a>
+        <a href="https://realsimgear.com/products/realsimgear-gns430-bezel-for-x-plane-realistic-gps-for-your-sim" target="_blank" rel="noopener noreferrer" class="list-group-item list-group-item-action"><i class="bi bi-toggles me-2"></i>RealSimGear GNS430 hardware</a>
+        <a href="https://www.raspberrypi.com/products/touch-display-2/" target="_blank" rel="noopener noreferrer" class="list-group-item list-group-item-action"><i class="bi bi-display me-2"></i>Raspberry Pi Touch Display 2</a>
+      </div>
+    </section>
+  </article>
+</div>
